@@ -274,6 +274,40 @@ export default function RFQPage() {
             </Grid>
 
             <Grid container spacing={1}>
+                <Grid item xs={12} sm={4}>
+                    <Grid container direction="column" spacing={1}>
+                        {["average_feed_length", "max_feed_length", "min_feed_length"].map((field) => (
+                            <Grid item key={field}>
+                                <TextField size="small" label={formatLabel(field)} value={rfq[field]} onChange={(e) => handleChange(field, e.target.value)} fullWidth />
+                            </Grid>
+                        ))}
+                    </Grid>
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                    <Grid container direction="column" spacing={1}>
+                        {["average_spm", "max_spm", "min_spm"].map((field) => (
+                            <Grid item key={field}>
+                                <TextField size="small" label={formatLabel(field)} value={rfq[field]} onChange={(e) => handleChange(field, e.target.value)} fullWidth />
+                            </Grid>
+                        ))}
+                    </Grid>
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                    <Grid container direction="column" spacing={1}>
+                        {["feed_window_degrees", "press_cycle_time"].map((field) => (
+                            <Grid item key={field}>
+                                <TextField size="small" label={formatLabel(field)} value={rfq[field]} onChange={(e) => handleChange(field, e.target.value)} fullWidth />
+                            </Grid>
+                        ))}
+                    </Grid>
+                </Grid>
+
+                <Grid item xs={12} sm={4}>
+                    <TextField size="small" label={formatLabel("voltage_required")} value={rfq.voltage_required} onChange={(e) => handleChange("voltage_required", e.target.value)} fullWidth />
+                </Grid>
+            </Grid>
+
+            <Grid container spacing={1}>
                 
             </Grid>
 
