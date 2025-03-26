@@ -47,7 +47,7 @@
     <Content Include="backend\requirements.txt" />
     <Content Include="frontend\package.json" />
     <Content Include="frontend\src\api\machine.js" />
-    <Content Include="frontend\src\components\MachineSpecsForm.js" />
+    <Content Include="frontend\src\components\MaterialSpecsForm.js" />
     <Content Include="frontend\src\index.css" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.Web.targets" />

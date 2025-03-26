@@ -1,7 +1,7 @@
 import React from "react";
 import { Routes, Route, Link } from "react-router-dom";
 import RFQForm from "./components/RFQForm";
-import MachineSpecsForm from "./components/MachineSpecsForm";
+import MaterialSpecsForm from "./components/MaterialSpecsForm";
 import EquipmentSummary from "./components/EquipmentSummary";
 
 function App() {
@@ -15,9 +15,9 @@ function App() {
             </nav>
 
             <Routes>
-                <Route path="/" element={<h1>Welcome to the RFQ System</h1>} />
+                <Route path="/" element={<h1>Welcome to the Perfomance Web Sheet</h1>} />
                 <Route path="/rfq" element={<RFQForm />} />
-                <Route path="/specs" element={<MachineSpecsForm rfqId={1} />} />
+                <Route path="/specs" element={<MaterialSpecsForm rfqId={1} />} />
                 <Route path="/summary" element={<EquipmentSummary rfqId={1} />} />
             </Routes>
         </div>
