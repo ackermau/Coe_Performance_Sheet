@@ -143,10 +143,10 @@ export default function RFQForm() {
     };
 
     const materialTypeOptions = {
-        "max_yield_material_type": ["Steel", "Aluminum", "Copper", "Brass"],
-        "max_material_material_type": ["Steel", "Aluminum", "Copper", "Brass"],
-        "min_material_material_type": ["Steel", "Aluminum", "Copper", "Brass"],
-        "max_material_run_material_type": ["Steel", "Aluminum", "Copper", "Brass"]
+        "max_yield_material_type": ["Aluminum", "Galvanized", "HS Steel", "Hot Rolled Steel", "Dual Phase", "Cold Rolled Steel", "Stainless Steel", "Titanium", "Brass",  "Beryl Copper"],
+        "max_material_material_type": ["Aluminum", "Galvanized", "HS Steel", "Hot Rolled Steel", "Dual Phase", "Cold Rolled Steel", "Stainless Steel", "Titanium", "Brass", "Beryl Copper"],
+        "min_material_material_type": ["Aluminum", "Galvanized", "HS Steel", "Hot Rolled Steel", "Dual Phase", "Cold Rolled Steel", "Stainless Steel", "Titanium", "Brass", "Beryl Copper"],
+        "max_material_run_material_type": ["Aluminum", "Galvanized", "HS Steel", "Hot Rolled Steel", "Dual Phase", "Cold Rolled Steel", "Stainless Steel", "Titanium", "Brass", "Beryl Copper"]
     };
 
     return (
@@ -182,11 +182,35 @@ export default function RFQForm() {
             <Grid container spacing={1}>
                 {/* Running Specifications */}
                 <Grid item xs={12}><Divider /><Typography variant="h5">Running Specifications</Typography></Grid>
-                {["number_days_running", "number_of_shifts"].map((field) => (
-                    <Grid item xs={12} sm={4} key={field}>
-                        <TextField size="small" label={formatLabel(field)} type="number" value={rfqForm[field]} onChange={(e) => handleChange(field, e.target.value)} fullWidth />
-                    </Grid>
-                ))}
+                <Grid item xs={12} sm={6}>
+                    <Typography noWrap style={{ minWidth: 200 }}>Number of days running</Typography>
+                    <FormControl>
+                        <Select value={rfqForm.number_days_running}
+                                onChange={(e) => handleChange("number_days_running", e.target.value)}
+                            IconComponent={ArrowDropDown}>
+                            <MenuItem value="1">1</MenuItem>
+                            <MenuItem value="2">2</MenuItem>
+                            <MenuItem value="3">3</MenuItem>
+                            <MenuItem value="4">4</MenuItem>
+                            <MenuItem value="5">5</MenuItem>
+                            <MenuItem value="6">6</MenuItem>
+                            <MenuItem value="7">7</MenuItem>
+                        </Select>
+                    </FormControl>
+                </Grid>
+
+                <Grid item xs={12} sm={6}>
+                    <Typography noWrap style={{ minWidth: 200 }}>Number of shifts</Typography>
+                    <FormControl>
+                        <Select value={rfqForm.number_of_shifts}
+                            onChange={(e) => handleChange("number_of_shifts", e.target.value)}
+                            IconComponent={ArrowDropDown}>
+                            <MenuItem value="1">1</MenuItem>
+                            <MenuItem value="2">2</MenuItem>
+                            <MenuItem value="3">3</MenuItem>
+                        </Select>
+                    </FormControl>
+                </Grid>
 
                 {/* Line Specifications */}
                 <Grid item xs={12}><Divider /><Typography variant="h5">Line Specifications</Typography></Grid>
@@ -244,12 +268,12 @@ export default function RFQForm() {
                         <TextField size="small" label={formatLabel(field)} value={rfqForm[field]} onChange={(e) => handleChange(field, e.target.value)} fullWidth />
                     </Grid>
                 ))}
-                <Grid item xs={12} sm={5} key="max_yield_material_type">
+                <Grid item xs={12} sm={6} key="max_yield_material_type">
                     <FormControl fullWidth>
                         <InputLabel>Material Type</InputLabel>
                         <Select
                             value={rfqForm.max_yield_material_type}
-                            onChange={(e) => handleChange("line_application", e.target.value)}
+                            onChange={(e) => handleChange("max_yield_material_type", e.target.value)}
                             IconComponent={ArrowDropDown}>
                             {materialTypeOptions["max_yield_material_type"]?.map((option) => (
                                 <MenuItem key={option} value={option}>{option}</MenuItem>
@@ -264,14 +288,14 @@ export default function RFQForm() {
                         <TextField size="small" label={formatLabel(field)} value={rfqForm[field]} onChange={(e) => handleChange(field, e.target.value)} fullWidth />
                     </Grid>
                 ))}
-                <Grid item xs={12} sm={3} key="max_material_material_type">
+                <Grid item xs={12} sm={6} key="max_material_material_type">
                     <FormControl fullWidth>
                         <InputLabel>Material Type</InputLabel>
                         <Select
-                            value={rfqForm.max_yield_material_type}
-                            onChange={(e) => handleChange("line_application", e.target.value)}
+                            value={rfqForm.max_material_material_type}
+                            onChange={(e) => handleChange("max_material_material_type", e.target.value)}
                             IconComponent={ArrowDropDown}>
-                            {materialTypeOptions["max_yield_material_type"]?.map((option) => (
+                            {materialTypeOptions["max_material_material_type"]?.map((option) => (
                                 <MenuItem key={option} value={option}>{option}</MenuItem>
                             ))}
                         </Select>
@@ -284,18 +308,38 @@ export default function RFQForm() {
                         <TextField size="small" label={formatLabel(field)} value={rfqForm[field]} onChange={(e) => handleChange(field, e.target.value)} fullWidth />
                     </Grid>
                 ))}
-                <Grid item xs={12} sm={3} key="min_material_material_type">
-                    <TextField size="small" label={"Material Type"} value={rfqForm.max_material_mat_type} onChange={(e) => handleChange("min_material_mat_type", e.target.value)} fullWidth />
+                <Grid item xs={12} sm={6} key="min_material_material_type">
+                    <FormControl fullWidth>
+                        <InputLabel>Material Type</InputLabel>
+                        <Select
+                            value={rfqForm.min_material_material_type}
+                            onChange={(e) => handleChange("min_material_material_type", e.target.value)}
+                            IconComponent={ArrowDropDown}>
+                            {materialTypeOptions["min_material_material_type"]?.map((option) => (
+                                <MenuItem key={option} value={option}>{option}</MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
                 </Grid>
 
                 <Grid item xs={12}><Divider /><Typography variant="h5">Max Material Thickness to be Run</Typography></Grid>
-                {["max_material_run_thickness", "max_material_run_strength", "max_material_run_at_width", "max_materialrun__tensile_strength"].map((field) => (
+                {["max_material_run_thickness", "max_material_run_strength", "max_material_run_at_width", "max_material_run_tensile_strength"].map((field) => (
                     <Grid item xs={12} sm={5} key={field}>
                         <TextField size="small" label={formatLabel(field)} value={rfqForm[field]} onChange={(e) => handleChange(field, e.target.value)} fullWidth />
                     </Grid>
                 ))}
-                <Grid item xs={12} sm={3} key="max_material_run_material_type">
-                    <TextField size="small" label={"Material Type"} value={rfqForm.max_material_mat_type} onChange={(e) => handleChange("max_material_mat_run_type", e.target.value)} fullWidth />
+                <Grid item xs={12} sm={6} key="max_material_run_material_type">
+                    <FormControl fullWidth>
+                        <InputLabel>Material Type</InputLabel>
+                        <Select
+                            value={rfqForm.max_material_run_material_type}
+                            onChange={(e) => handleChange("max_material_run_material_type", e.target.value)}
+                            IconComponent={ArrowDropDown}>
+                            {materialTypeOptions["max_material_run_material_type"]?.map((option) => (
+                                <MenuItem key={option} value={option}>{option}</MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
                 </Grid>
 
                 <Grid item xs={12}><Divider /></Grid>
@@ -321,7 +365,7 @@ export default function RFQForm() {
                 <Grid item xs={12}><Divider /></Grid>
                 {["tonnage_of_press", "press_bed_area_width", "press_bed_area_length", "press_stroke_length", "window_opening_size", "press_max_spm"].map((field) => (
                     <Grid item xs={12} sm={4} key={field}>
-                        <TextField size="small" label={formatLabel(field)} value={rfqForm[field]} onChange={(e) => handleChange(field, e.target.value)} fullWidth />
+                        <TextField size="small" label={formatLabel(field)} type="number" value={rfqForm[field]} onChange={(e) => handleChange(field, e.target.value)} fullWidth />
                     </Grid>
                 ))}
 
@@ -346,13 +390,33 @@ export default function RFQForm() {
                 </Grid>
                 <Grid item xs={12} sm={4}>
                     <Grid container direction="column" spacing={1}>
-                        {["average_spm", "max_spm", "min_spm"].map((field) => (
-                            <Grid item key={field}>
-                                <TextField size="small" label={formatLabel(field)} value={rfqForm[field]} onChange={(e) => handleChange(field, e.target.value)} fullWidth />
-                            </Grid>
-                        ))}
+                        {[
+                            { length: "average_feed_length", spm: "average_spm", label: "Average" },
+                            { length: "max_feed_length", spm: "max_spm", label: "Max" },
+                            { length: "min_feed_length", spm: "min_spm", label: "Min" }
+                        ].map(({ length, spm, label }) => {
+                            const feedLength = parseFloat(rfqForm[length]);
+                            const spmValue = parseFloat(rfqForm[spm]);
+                            const fpm = (!isNaN(feedLength) && !isNaN(spmValue)) ? ((feedLength * spmValue) / 12).toFixed(2) : "";
+
+                            return (
+                                <Grid item key={spm}>
+                                    <TextField
+                                        size="small"
+                                        label={formatLabel(spm)}
+                                        value={rfqForm[spm]}
+                                        onChange={(e) => handleChange(spm, e.target.value)}
+                                        fullWidth
+                                    />
+                                    <Typography variant="body2" color="textSecondary">
+                                        {label} FPM: {fpm}
+                                    </Typography>
+                                </Grid>
+                            );
+                        })}
                     </Grid>
                 </Grid>
+
                 <Grid item xs={12} sm={4}>
                     <Grid container direction="column" spacing={1}>
                         {["feed_window_degrees", "press_cycle_time"].map((field) => (
