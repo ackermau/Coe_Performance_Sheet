@@ -30,9 +30,12 @@
     <Folder Include="backend\routes\" />
     <Folder Include="frontend\" />
     <Folder Include="backend\" />
+    <Folder Include="frontend\public\" />
     <Folder Include="frontend\src\" />
     <Folder Include="frontend\src\api\" />
     <Folder Include="frontend\src\components\" />
+    <Folder Include="frontend\src\context\" />
+    <Folder Include="frontend\src\hooks\" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="backend\db.py" />
@@ -41,14 +44,26 @@
     <Compile Include="backend\routes\calculations.py" />
     <Compile Include="backend\routes\machine.py" />
     <Compile Include="backend\routes\rfq.py" />
+    <Compile Include="backend\routes\tbdbhd.py" />
     <Compile Include="backend\utils.py" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="backend\requirements.txt" />
     <Content Include="frontend\package.json" />
+    <Content Include="frontend\public\index.html" />
     <Content Include="frontend\src\api\machine.js" />
+    <Content Include="frontend\src\api\rfq.js" />
+    <Content Include="frontend\src\App.js" />
+    <Content Include="frontend\src\components\EquipmentSummary.js" />
     <Content Include="frontend\src\components\MaterialSpecsForm.js" />
+    <Content Include="frontend\src\components\RFQForm.js" />
+    <Content Include="frontend\src\components\TddbhdPage.js" />
+    <Content Include="frontend\src\context\MaterialSpecsContext.js" />
+    <Content Include="frontend\src\context\RFQFormContext.js" />
+    <Content Include="frontend\src\context\TddbhdContext.js" />
+    <Content Include="frontend\src\hooks\useSharedMaterialView.js" />
     <Content Include="frontend\src\index.css" />
+    <Content Include="frontend\src\index.js" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.Web.targets" />
   <!-- Specify pre- and post-build commands in the BeforeBuild and 
