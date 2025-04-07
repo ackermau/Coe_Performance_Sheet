@@ -6,6 +6,7 @@ import { ArrowDropDown } from "../../node_modules/@mui/icons-material/index";
 import { MaterialSpecsContext } from "../context/MaterialSpecsContext";
 import { RFQFormContext } from "../context/RFQFormContext";
 import { useSharedMaterialView } from "../hooks/useSharedMaterialView";
+import { API_URL } from '../config';
 
 const formatLabel = (label) => {
     return label
@@ -21,72 +22,95 @@ export default function MaterialSpecsForm() {
     const { rfqForm } = useContext(RFQFormContext);
     const { activeView, setActiveView, viewConfigs } = useSharedMaterialView();
 
+    // Update state and trigger backend calculation when any field changes.
     const handleChange = (field, value) => {
         const updated = { ...materialSpecs, [field]: value };
         setMaterialSpecs(updated);
         triggerBackendCalculation(updated);
     };
 
+    // Call the backend API to recalculate values when inputs change.
     const triggerBackendCalculation = async (payload) => {
         try {
-            const response = await fetch("/api/material/calculate", {
+            const response = await fetch(`${API_URL}/api/material_specs/calculate`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)
             });
             const data = await response.json();
+            // Merge the computed values from the backend into the current specs.
             setMaterialSpecs((prev) => ({ ...prev, ...data }));
         } catch (err) {
             console.error("Backend calculation failed: ", err);
         }
     };
 
+    // Set default values from rfqForm when it changes.
     useEffect(() => {
-        setMaterialSpecs(prev => ({
-            ...prev,
-            date: rfqForm.rfq_date || prev.date,
-            customer: rfqForm.company_name || prev.customer,
-            coilWidthWidth: rfqForm.max_coil_width || prev.coilWidthWidth,
+        const updatedSpecs = {
+            ...materialSpecs,
+            date: rfqForm.rfq_date || materialSpecs.date,
+            customer: rfqForm.company_name || materialSpecs.customer,
+            coilWidthWidth: rfqForm.max_coil_width || materialSpecs.coilWidthWidth,
 
-            coilWidthMax: rfqForm.max_yield_at_width || prev.coilWidthMax,
-            coilWeightMax: rfqForm.max_coil_weight || prev.coilWeightMax,
-            materialThicknessMax: rfqForm.max_yield_thickness || prev.materialThicknessMax,
-            materialTypeMax: rfqForm.max_yield_material_type || prev.materialTypeMax,
-            yieldStrengthMax: rfqForm.max_yield_strength || prev.yieldStrengthMax,
-            coilIDMax: rfqForm.coil_inner_diameter || prev.coilIDMax,
-            coilODMax: rfqForm.coil_outer_diameter || prev.coilODMax,
+            coilWidthMax: rfqForm.max_yield_at_width || materialSpecs.coilWidthMax,
+            coilWeightMax: rfqForm.max_coil_weight || materialSpecs.coilWeightMax,
+            materialThicknessMax: rfqForm.max_yield_thickness || materialSpecs.materialThicknessMax,
+            materialTypeMax: rfqForm.max_yield_material_type || materialSpecs.materialTypeMax,
+            yieldStrengthMax: rfqForm.max_yield_strength || materialSpecs.yieldStrengthMax,
+            coilIDMax: rfqForm.coil_inner_diameter || materialSpecs.coilIDMax,
+            coilODMax: rfqForm.max_coil_outside_diameter || materialSpecs.coilODMax,
+            requiredMaxFPMMax: rfqForm.max_fpm || materialSpecs.requiredMaxFPMMax,
 
-            coilWidthFull: rfqForm.max_material_at_width || prev.coilWidthFull,
-            coilWeightFull: rfqForm.max_coil_weight || prev.coilWeightFull,
-            materialThicknessFull: rfqForm.max_material_thickness || prev.materialThicknessFull,
-            materialTypeFull: rfqForm.max_material_material_type || prev.materialTypeFull,
-            yieldStrengthFull: rfqForm.max_material_strength || prev.yieldStrengthFull,
-            coilIDFull: rfqForm.coil_inner_diameter || prev.coilIDFull,
-            coilODFull: rfqForm.coil_outer_diameter || prev.coilODFull,
+            coilWidthFull: rfqForm.max_material_at_width || materialSpecs.coilWidthFull,
+            coilWeightFull: rfqForm.max_coil_weight || materialSpecs.coilWeightFull,
+            materialThicknessFull: rfqForm.max_material_thickness || materialSpecs.materialThicknessFull,
+            materialTypeFull: rfqForm.max_material_material_type || materialSpecs.materialTypeFull,
+            yieldStrengthFull: rfqForm.max_material_strength || materialSpecs.yieldStrengthFull,
+            coilIDFull: rfqForm.coil_inner_diameter || materialSpecs.coilIDFull,
+            coilODFull: rfqForm.max_coil_outside_diameter || materialSpecs.coilODFull,
+            requiredMaxFPMFull: rfqForm.max_fpm || materialSpecs.requiredMaxFPMFull,
 
-            coilWidthMin: rfqForm.min_yield_at_width || prev.coilWidthMin,
-            coilWeightMin: rfqForm.max_coil_weight || prev.coilWeightMin,
-            materialThicknessMin: rfqForm.min_material_thickness || prev.materialThicknessMin,
-            materialTypeMin: rfqForm.min_material_material_type || prev.materialTypeMin,
-            yieldStrengthMin: rfqForm.min_material_strength || prev.yieldStrengthMin,
-            coilIDMin: rfqForm.coil_inner_diameter || prev.coilIDMin,
-            coilODMin: rfqForm.coil_outer_diameter || prev.coilODMin,
+            coilWidthMin: rfqForm.min_material_at_width || materialSpecs.coilWidthMin,
+            coilWeightMin: rfqForm.max_coil_weight || materialSpecs.coilWeightMin,
+            materialThicknessMin: rfqForm.min_material_thickness || materialSpecs.materialThicknessMin,
+            materialTypeMin: rfqForm.min_material_material_type || materialSpecs.materialTypeMin,
+            yieldStrengthMin: rfqForm.min_material_strength || materialSpecs.yieldStrengthMin,
+            coilIDMin: rfqForm.coil_inner_diameter || materialSpecs.coilIDMin,
+            coilODMin: rfqForm.max_coil_outside_diameter || materialSpecs.coilODMin,
+            requiredMaxFPMMin: rfqForm.max_fpm || materialSpecs.requiredMaxFPMMin,
 
-            coilWidthWidth: rfqForm.max_material_run_at_width || prev.coilWidthWidth,
-            coilWeightWidth: rfqForm.max_coil_weight || prev.coilWeightWidth,
-            materialThicknessWidth: rfqForm.max_material_run_thickness || prev.materialThicknessWidth,
-            materialTypeWidth: rfqForm.max_material_run_material_type || prev.materialTypeWidth,
-            yieldStengthWidth: rfqForm.max_material_run_strength || prev.yieldStrengthWidth,
-            coilIDWidth: rfqForm.coil_inner_diameter || prev.coilIDWidth,
-            coilODWidth: rfqForm.coil_outer_diameter || prev.coilODWidth,
-        }));
+            coilWidthWidth: rfqForm.max_material_run_at_width || materialSpecs.coilWidthWidth,
+            coilWeightWidth: rfqForm.max_coil_weight || materialSpecs.coilWeightWidth,
+            materialThicknessWidth: rfqForm.max_material_run_thickness || materialSpecs.materialThicknessWidth,
+            materialTypeWidth: rfqForm.max_material_run_material_type || materialSpecs.materialTypeWidth,
+            yieldStrengthWidth: rfqForm.max_material_run_strength || materialSpecs.yieldStrengthWidth,
+            coilIDWidth: rfqForm.coil_inner_diameter || materialSpecs.coilIDWidth,
+            coilODWidth: rfqForm.max_coil_outside_diameter || materialSpecs.coilODWidth,
+            requiredMaxFPMWidth: rfqForm.max_fpm || materialSpecs.requiredMaxFPMWidth,
+        };
+
+        setMaterialSpecs(updatedSpecs);
+        triggerBackendCalculation(updatedSpecs);
     }, [rfqForm]);
 
     const extraFieldsByView = {
-        max: ["materialTensileMax", "requiredMaxFPMMax", "minBendRadiusMax", "minLoopLengthMax", "coilODMax", "coilIDMax", "coilODCalculatedMax"],
-        full: ["materialTensileFull", "requiredMaxFPMFull", "minBendRadiusFull", "minLoopLengthFull", "coilODFull", "coilIDFull", "coilODCalculatedFull"],
-        min: ["materialTensileMin", "requiredMaxFPMMin", "minBendRadiusMin", "minLoopLengthMin", "coilODMin", "coilIDMin", "coilODCalculatedMin"],
-        width: ["materialTensileWidth", "requiredMaxFPMWidth", "minBendRadiusWidth", "minLoopLengthWidth", "coilODWidth", "coilIDWidth", "coilODCalculatedWidth"]
+        max: [
+            "coilWeightMax", "materialTensileMax", "requiredMaxFPMMax",
+            "minBendRadiusMax", "minLoopLengthMax", "coilODMax", "coilIDMax", "coilODCalculatedMax"
+        ],
+        full: [
+            "coilWeightFull", "materialTensileFull", "requiredMaxFPMFull",
+            "minBendRadiusFull", "minLoopLengthFull", "coilODFull", "coilIDFull", "coilODCalculatedFull"
+        ],
+        min: [
+            "coilWeightMin", "materialTensileMin", "requiredMaxFPMMin",
+            "minBendRadiusMin", "minLoopLengthMin", "coilODMin", "coilIDMin", "coilODCalculatedMin"
+        ],
+        width: [
+            "coilWeightWidth", "materialTensileWidth", "requiredMaxFPMWidth",
+            "minBendRadiusWidth", "minLoopLengthWidth", "coilODWidth", "coilIDWidth", "coilODCalculatedWidth"
+        ]
     };
 
     const passlineOptions = [
@@ -118,7 +142,7 @@ export default function MaterialSpecsForm() {
     ];
 
     const materialOptions = [
-         "Aluminum", "Galvanized", "HS Steel", "Hot Rolled Steel", "Dual Phase", "Cold Rolled Steel", "Stainless Steel", "Titanium", "Brass", "Beryl Copper"
+        "Aluminum", "Galvanized", "HS Steel", "Hot Rolled Steel", "Dual Phase", "Cold Rolled Steel", "Stainless Steel", "Titanium", "Brass", "Beryl Copper"
     ];
 
     return (
@@ -177,6 +201,7 @@ export default function MaterialSpecsForm() {
                                 size="small"
                                 label={formatLabel(field)}
                                 value={materialSpecs[field] || ''}
+                                type="number"
                                 onChange={(e) => handleChange(field, e.target.value)}
                                 fullWidth
                             />

@@ -43,6 +43,7 @@
     <Compile Include="backend\models.py" />
     <Compile Include="backend\routes\calculations.py" />
     <Compile Include="backend\routes\machine.py" />
+    <Compile Include="backend\routes\material_specs.py" />
     <Compile Include="backend\routes\rfq.py" />
     <Compile Include="backend\routes\tbdbhd.py" />
     <Compile Include="backend\utils.py" />

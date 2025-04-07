@@ -3,6 +3,7 @@ import { useContext } from "react";
 import { Button, TextField, Grid, Typography, Paper, FormControl, InputLabel, Select, MenuItem, Checkbox, FormControlLabel, Divider } from "@mui/material";
 import { ArrowDropDown } from "../../node_modules/@mui/icons-material/index";
 import { RFQFormContext } from "../context/RFQFormContext";
+import { API_URL } from '../config';
 
 const formatLabel = (label) => {
     return label
@@ -14,10 +15,60 @@ export default function RFQForm() {
     const { rfqForm, setRFQForm } = useContext(RFQFormContext);
 
     const handleChange = (field, value) => {
-        setRFQForm((prev) => ({
-            ...prev,
-            [field]: value
-        }));
+        setRFQForm((prev) => {
+            const updated = { ...prev, [field]: value };
+
+            // FPM mapping
+            const fpmMap = {
+                average_feed_length: ["average_feed_length", "average_spm", "average_fpm"],
+                average_spm: ["average_feed_length", "average_spm", "average_fpm"],
+                max_feed_length: ["max_feed_length", "max_spm", "max_fpm"],
+                max_spm: ["max_feed_length", "max_spm", "max_fpm"],
+                min_feed_length: ["min_feed_length", "min_spm", "min_fpm"],
+                min_spm: ["min_feed_length", "min_spm", "min_fpm"]
+            };
+
+            const fpmParams = fpmMap[field];
+            if (fpmParams) {
+                const [lenField, spmField, resultField] = fpmParams;
+                const feedLength = field === lenField ? parseFloat(value) : parseFloat(prev[lenField]);
+                const spm = field === spmField ? parseFloat(value) : parseFloat(prev[spmField]);
+
+                if (!isNaN(feedLength) && !isNaN(spm)) {
+                    fetchFPM(feedLength, spm, resultField);
+                } else {
+                    // If either input is invalid, clear the FPM
+                    setTimeout(() => {
+                        setRFQForm((prev) => ({
+                            ...prev,
+                            [resultField]: ""
+                        }));
+                    }, 0);
+                }
+            }
+
+            return updated;
+        });
+    };
+
+    const fetchFPM = async (feedLength, spm, resultField) => {
+        try {
+            const response = await fetch(`${API_URL}/api/rfq/calculate_fpm`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ feed_length: feedLength, spm: spm }),
+            });
+
+            const data = await response.json();
+            console.log("Fetched FPM for", resultField, "=", data.fpm);
+
+            setRFQForm((prev) => ({
+                ...prev,
+                [resultField]: data.fpm
+            }));
+        } catch (err) {
+            console.error("Error fetching FPM:", err);
+        }
     };
 
     const [rfqFormContext, setRFQFormContext] = useState({
@@ -108,6 +159,9 @@ export default function RFQForm() {
         alloted_width: "",
         feed_mounted_press: false,
         adequate_support: false,
+        average_fpm: "",
+        max_fpm: "",
+        min_fpm: "",
 
         custom_mounting_plates: false,
         passline_height: "",
@@ -158,7 +212,7 @@ export default function RFQForm() {
                 <Grid item xs={12}><Divider /><Typography variant="h5">Company Information</Typography></Grid>
                 {["company_name", "state_province", "street_address", "zip_code", "city", "country"].map((field) => (
                     <Grid item xs={12} sm={6} key={field}>
-                        <TextField size="small" label={formatLabel(field)} value={rfqForm[field]} onChange={(e) => handleChange(field, e.target.value)} fullWidth />
+                        <TextField size="small" label={formatLabel(field)} value={rfqForm[field] ?? ""} onChange={(e) => handleChange(field, e.target.value)} fullWidth />
                     </Grid>
                 ))}
 
@@ -166,7 +220,7 @@ export default function RFQForm() {
                 <Grid item xs={12}><Divider /><Typography variant="h5">Contact Information</Typography></Grid>
                 {["contact_name", "contact_position", "contact_phone", "contact_email"].map((field) => (
                     <Grid item xs={12} sm={6} key={field}>
-                        <TextField size="small" label={formatLabel(field)} value={rfqForm[field]} onChange={(e) => handleChange(field, e.target.value)} fullWidth />
+                        <TextField size="small" label={formatLabel(field)} value={rfqForm[field] ?? ""} onChange={(e) => handleChange(field, e.target.value)} fullWidth />
                     </Grid>
                 ))}
 
@@ -174,7 +228,7 @@ export default function RFQForm() {
                 <Grid item xs={12}><Divider /><Typography variant="h5">Dealer Information</Typography></Grid>
                 {["dealer_name", "dealer_salesman"].map((field) => (
                     <Grid item xs={12} sm={6} key={field}>
-                        <TextField size="small" label={formatLabel(field)} value={rfqForm[field]} onChange={(e) => handleChange(field, e.target.value)} fullWidth />
+                        <TextField size="small" label={formatLabel(field)} value={rfqForm[field] ?? ""} onChange={(e) => handleChange(field, e.target.value)} fullWidth />
                     </Grid>
                 ))}
             </Grid>
@@ -232,13 +286,13 @@ export default function RFQForm() {
                     <FormControl fullWidth>
                         <InputLabel>{formatLabel("line_type")}</InputLabel>
                         <Select 
-                                value={rfqForm.line_type}
-                                onChange={(e) => handleChange("line_type", e.target.value)}
-                                IconComponent={ArrowDropDown}>
-                                <MenuItem value=""><em>None</em></MenuItem>
-                                {lineTypeOptions[rfqForm.line_application]?.map((option) => (
-                                <MenuItem key={option} value={option}>{option}</MenuItem>
-                            ))}
+                            value={rfqForm.line_type}
+                            onChange={(e) => handleChange("line_type", e.target.value)}
+                            IconComponent={ArrowDropDown}>
+                            <MenuItem value=""><em>None</em></MenuItem>
+                            {lineTypeOptions[rfqForm.line_application]?.map((option) => (
+                            <MenuItem key={option} value={option}>{option}</MenuItem>
+                        ))}
                         </Select>
                     </FormControl>
                 </Grid>
@@ -250,7 +304,7 @@ export default function RFQForm() {
                 <Grid item xs={12}><Divider /><Typography variant="h5">Coil Specifications</Typography></Grid>
                 {["max_coil_width", "min_coil_width", "coil_inner_diameter", "max_coil_weight", "max_coil_outside_diameter", "max_coil_handling_capacity"].map((field) => (
                     <Grid item xs={12} sm={5} key={field}>
-                        <TextField size="small" label={formatLabel(field)} type="number" value={rfqForm[field]} onChange={(e) => handleChange(field, e.target.value)} fullWidth />
+                        <TextField size="small" label={formatLabel(field)} type="number" value={rfqForm[field] ?? ""} onChange={(e) => handleChange(field, e.target.value)} fullWidth />
                     </Grid>
                 ))}
                 {["slit_edge", "mill_edge", "coil_car_required", "running_off_backplate", "require_rewinding"].map((field) => (
@@ -265,7 +319,7 @@ export default function RFQForm() {
                 <Grid item xs={12}><Divider /><Typography variant="h5">Highest Yield</Typography></Grid>
                 {["max_yield_thickness",  "max_yield_strength", "max_yield_at_width", "max_yield_tensile_strength"].map((field) => (
                     <Grid item xs={12} sm={5} key={field}>
-                        <TextField size="small" label={formatLabel(field)} value={rfqForm[field]} onChange={(e) => handleChange(field, e.target.value)} fullWidth />
+                        <TextField size="small" label={formatLabel(field)} type="number" value={rfqForm[field] ?? ""} onChange={(e) => handleChange(field, e.target.value)} fullWidth />
                     </Grid>
                 ))}
                 <Grid item xs={12} sm={6} key="max_yield_material_type">
@@ -285,7 +339,7 @@ export default function RFQForm() {
                 <Grid item xs={12}><Divider /><Typography variant="h5">Max Material Thickness</Typography></Grid>
                 {["max_material_thickness", "max_material_strength", "max_material_at_width", "max_material_tensile_strength"].map((field) => (
                     <Grid item xs={12} sm={5} key={field}>
-                        <TextField size="small" label={formatLabel(field)} value={rfqForm[field]} onChange={(e) => handleChange(field, e.target.value)} fullWidth />
+                        <TextField size="small" label={formatLabel(field)} type="number" value={rfqForm[field] ?? ""} onChange={(e) => handleChange(field, e.target.value)} fullWidth />
                     </Grid>
                 ))}
                 <Grid item xs={12} sm={6} key="max_material_material_type">
@@ -305,7 +359,7 @@ export default function RFQForm() {
                 <Grid item xs={12}><Divider /><Typography variant="h5">Min Material Thickness</Typography></Grid>
                 {["min_material_thickness",  "min_material_strength", "min_material_at_width", "min_material_tensile_strength"].map((field) => (
                     <Grid item xs={12} sm={5} key={field}>
-                        <TextField size="small" label={formatLabel(field)} value={rfqForm[field]} onChange={(e) => handleChange(field, e.target.value)} fullWidth />
+                        <TextField size="small" label={formatLabel(field)} type="number" value={rfqForm[field] ?? ""} onChange={(e) => handleChange(field, e.target.value)} fullWidth />
                     </Grid>
                 ))}
                 <Grid item xs={12} sm={6} key="min_material_material_type">
@@ -325,7 +379,7 @@ export default function RFQForm() {
                 <Grid item xs={12}><Divider /><Typography variant="h5">Max Material Thickness to be Run</Typography></Grid>
                 {["max_material_run_thickness", "max_material_run_strength", "max_material_run_at_width", "max_material_run_tensile_strength"].map((field) => (
                     <Grid item xs={12} sm={5} key={field}>
-                        <TextField size="small" label={formatLabel(field)} value={rfqForm[field]} onChange={(e) => handleChange(field, e.target.value)} fullWidth />
+                        <TextField size="small" label={formatLabel(field)} type="number" value={rfqForm[field] ?? ""} onChange={(e) => handleChange(field, e.target.value)} fullWidth />
                     </Grid>
                 ))}
                 <Grid item xs={12} sm={6} key="max_material_run_material_type">
@@ -365,7 +419,7 @@ export default function RFQForm() {
                 <Grid item xs={12}><Divider /></Grid>
                 {["tonnage_of_press", "press_bed_area_width", "press_bed_area_length", "press_stroke_length", "window_opening_size", "press_max_spm"].map((field) => (
                     <Grid item xs={12} sm={4} key={field}>
-                        <TextField size="small" label={formatLabel(field)} type="number" value={rfqForm[field]} onChange={(e) => handleChange(field, e.target.value)} fullWidth />
+                        <TextField size="small" label={formatLabel(field)} type="number" value={rfqForm[field] ?? ""} onChange={(e) => handleChange(field, e.target.value)} fullWidth />
                     </Grid>
                 ))}
 
@@ -383,7 +437,7 @@ export default function RFQForm() {
                     <Grid container direction="column" spacing={1}>
                         {["average_feed_length", "max_feed_length", "min_feed_length"].map((field) => (
                             <Grid item key={field}>
-                                <TextField size="small" label={formatLabel(field)} value={rfqForm[field]} onChange={(e) => handleChange(field, e.target.value)} fullWidth />
+                                <TextField size="small" label={formatLabel(field)} value={rfqForm[field] ?? ""} onChange={(e) => handleChange(field, e.target.value)} fullWidth />
                             </Grid>
                         ))}
                     </Grid>
@@ -391,29 +445,23 @@ export default function RFQForm() {
                 <Grid item xs={12} sm={4}>
                     <Grid container direction="column" spacing={1}>
                         {[
-                            { length: "average_feed_length", spm: "average_spm", label: "Average" },
-                            { length: "max_feed_length", spm: "max_spm", label: "Max" },
-                            { length: "min_feed_length", spm: "min_spm", label: "Min" }
-                        ].map(({ length, spm, label }) => {
-                            const feedLength = parseFloat(rfqForm[length]);
-                            const spmValue = parseFloat(rfqForm[spm]);
-                            const fpm = (!isNaN(feedLength) && !isNaN(spmValue)) ? ((feedLength * spmValue) / 12).toFixed(2) : "";
-
-                            return (
-                                <Grid item key={spm}>
-                                    <TextField
-                                        size="small"
-                                        label={formatLabel(spm)}
-                                        value={rfqForm[spm]}
-                                        onChange={(e) => handleChange(spm, e.target.value)}
-                                        fullWidth
-                                    />
-                                    <Typography variant="body2" color="textSecondary">
-                                        {label} FPM: {fpm}
-                                    </Typography>
-                                </Grid>
-                            );
-                        })}
+                            { length: "average_feed_length", spm: "average_spm", fpm: "average_fpm", label: "Average" },
+                            { length: "max_feed_length", spm: "max_spm", fpm: "max_fpm", label: "Max" },
+                            { length: "min_feed_length", spm: "min_spm", fpm: "min_fpm", label: "Min" }
+                        ].map(({ length, spm, fpm, label }) => (
+                            <Grid item key={spm}>
+                                <TextField
+                                    size="small"
+                                    label={formatLabel(spm)}
+                                    value={rfqForm[spm] ?? ""}
+                                    onChange={(e) => handleChange(spm, e.target.value)}
+                                    fullWidth
+                                />
+                                <Typography variant="body2" color="textSecondary">
+                                    {label} FPM: {rfqForm[fpm] || ""}
+                                </Typography>
+                            </Grid>
+                        ))}
                     </Grid>
                 </Grid>
 
@@ -421,20 +469,20 @@ export default function RFQForm() {
                     <Grid container direction="column" spacing={1}>
                         {["feed_window_degrees", "press_cycle_time"].map((field) => (
                             <Grid item key={field}>
-                                <TextField size="small" label={formatLabel(field)} value={rfqForm[field]} onChange={(e) => handleChange(field, e.target.value)} fullWidth />
+                                <TextField size="small" label={formatLabel(field)} value={rfqForm[field] ?? ""} onChange={(e) => handleChange(field, e.target.value)} fullWidth />
                             </Grid>
                         ))}
                     </Grid>
                 </Grid>
 
                 <Grid item xs={12} sm={4}>
-                    <TextField size="small" label={formatLabel("voltage_required")} value={rfqForm.voltage_required} onChange={(e) => handleChange("voltage_required", e.target.value)} fullWidth />
+                    <TextField size="small" label={formatLabel("voltage_required")} value={rfqForm.voltage_required ?? ""} onChange={(e) => handleChange("voltage_required", e.target.value)} fullWidth />
                 </Grid>
 
                 <Grid item xs={12}><Divider /></Grid>
                 {["alloted_length", "alloted_width"].map((field) => (
                     <Grid item xs={12} sm={4} key={field}>
-                        <TextField size="small" label={formatLabel(field)} value={rfqForm[field]} onChange={(e) => handleChange(field, e.target.value)} fullWidth key={field} />
+                        <TextField size="small" label={formatLabel(field)} value={rfqForm[field] ?? ""} onChange={(e) => handleChange(field, e.target.value)} fullWidth key={field} />
                         <Typography variant="h5">(ft)</Typography>
                     </Grid>
                 ))}
@@ -459,7 +507,7 @@ export default function RFQForm() {
 
                 {["passline_height"].map((field) => (
                     <Grid item xs={12} sm={4} key={field}>
-                        <TextField size="small" label={formatLabel(field)} value={rfqForm[field]} onChange={(e) => handleChange(field, e.target.value)} fullWidth key={field} />
+                        <TextField size="small" label={formatLabel(field)} value={rfqForm[field] ?? ""} onChange={(e) => handleChange(field, e.target.value)} fullWidth key={field} />
                         <Typography variant="h5">(ft)</Typography>
                     </Grid>
                 ))}
@@ -513,7 +561,7 @@ export default function RFQForm() {
             <Grid container spacing={1}>
                 {["decision_date", "ideal_delivery_date", "earliest_date_excpect_delivery", "latest_date_excpect_delivery"].map((field) => (
                     <Grid item xs={12} sm={6} key={field}>
-                        <TextField size="small" label={formatLabel(field)} type="date" value={rfqForm[field]} onChange={(e) => handleChange(field, e.target.value)} fullWidth InputLabelProps={{ shrink: true }} />
+                        <TextField size="small" label={formatLabel(field)} type="date" value={rfqForm[field] ?? ""} onChange={(e) => handleChange(field, e.target.value)} fullWidth InputLabelProps={{ shrink: true }} />
                     </Grid>
                 ))}
             </Grid>

@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Body
 from models import RFQ, MachineSpec
 from typing import Dict
 
@@ -18,3 +18,11 @@ def create_rfq(rfq: RFQ):
 @router.get("/{rfq_id}")
 def get_rfq(rfq_id: int):
     return db_rfqs.get(rfq_id, {"error": "RFQ not found"})
+
+
+@router.post("/calculate_fpm")
+def calculate_fpm(feed_length: float = Body(...), spm: float = Body(...)):
+    if feed_length > 0 and spm > 0:
+        fpm = round((feed_length * spm) / 12, 2)
+        return {"fpm": fpm}
+    return {"fpm": ""}

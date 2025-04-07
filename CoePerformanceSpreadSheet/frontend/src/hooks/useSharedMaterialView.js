@@ -7,25 +7,25 @@ export function useSharedMaterialView(labelOverrides = {}) {
         max: {
             title: labelOverrides.max || "Maximum Material Specs",
             fields: [
-                "materialTypeMax", "materialWidthMax", "materialThicknessMax", "yieldStrengthMax", "yieldTensileMax"
+                "materialTypeMax", "coilWidthMax", "materialThicknessMax", "yieldStrengthMax", "yieldTensileMax"
             ]
         },
         full: {
             title: labelOverrides.full || "Full Width Specs",
             fields: [
-                "materialTypeFull", "materialWidthFull", "materialThicknessFull", "yieldStrengthFull", "yieldTensileFull"
+                "materialTypeFull", "coilWidthFull", "materialThicknessFull", "yieldStrengthFull", "yieldTensileFull"
             ]
         },
         min: {
             title: labelOverrides.min || "Minimum Material Specs",
             fields: [
-                "materialTypeMin", "materialWidthMin", "materialThicknessMin", "yieldStrengthMin", "yieldTensileMin"
+                "materialTypeMin", "coilWidthMin", "materialThicknessMin", "yieldStrengthMin", "yieldTensileMin"
             ]
         },
         width: {
             title: labelOverrides.width || "Width-Based Specs",
             fields: [
-                "materialTypeWidth", "materialWidthWidth", "materialThicknessWidth", "yieldStrengthWidth", "yieldTensileWidth"
+                "materialTypeWidth", "coilWidthWidth", "materialThicknessWidth", "yieldStrengthWidth", "yieldTensileWidth"
             ]
         }
     };

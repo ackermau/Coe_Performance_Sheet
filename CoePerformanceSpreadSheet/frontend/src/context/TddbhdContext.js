@@ -5,22 +5,22 @@ export const TddbhdContext = createContext();
 export const TddbhdProvider = ({ children }) => {
     const [TddbhdData, setTddbhdData] = useState({
         materialTypeMax: "",
-        materialWidthMax: "",
+        coilWidthMax: "",
         materialThicknessMax: "",
         yieldStrengthMax: "",
 
         materialTypeFull: "",
-        materialWidthFull: "",
+        coilWidthFull: "",
         materialThicknessFull: "",
         yieldStrengthFull: "",
 
         materialTypeMin: "",
-        materialWidthMin: "",
+        coilWidthMin: "",
         materialThicknessMin: "",
         yieldStrengthMin: "",
 
         materialTypeWidth: "",
-        materialWidthWidth: "",
+        coilWidthWidth: "",
         materialThicknessWidth: "",
         yieldStrengthWidth: "",
     });

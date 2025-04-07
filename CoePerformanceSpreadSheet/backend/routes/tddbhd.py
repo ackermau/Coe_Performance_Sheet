@@ -5,7 +5,7 @@ from math import pi, sqrt
 
 router = APIRouter()
 
-class TBDBHDInput(BaseModel):
+class TDDBHDInput(BaseModel):
     type_of_line: str
     drive_torque: Optional[float]
     reel_drive_tqempty: Optional[float]
@@ -38,8 +38,8 @@ class TBDBHDInput(BaseModel):
     press_force_holding: float
     holddown_matrix_label: str
 
-@router.post("/api/tbdbhd/calculate")
-def calculate_tbdbhd(data: TBDBHDInput):
+@router.post("/calculate")
+def calculate_tbdbhd(data: TDDBHDInput):
     # 1. Web Tension
     web_tension_psi = data.yield_strength / 800
     web_tension_lbs = data.thickness * data.width * web_tension_psi
