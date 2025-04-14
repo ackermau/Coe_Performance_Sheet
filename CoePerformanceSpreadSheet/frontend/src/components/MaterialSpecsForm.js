@@ -88,6 +88,10 @@ export default function MaterialSpecsForm() {
             coilIDWidth: rfqForm.coil_inner_diameter || materialSpecs.coilIDWidth,
             coilODWidth: rfqForm.max_coil_outside_diameter || materialSpecs.coilODWidth,
             requiredMaxFPMWidth: rfqForm.max_fpm || materialSpecs.requiredMaxFPMWidth,
+
+            feedDirection: rfqForm.feed_direction || materialSpecs.feedDirection,
+            lineType: rfqForm.line_type || materialSpecs.lineType,
+            maxCoilWeight: rfqForm.max_coil_weight || materialSpecs.maxCoilWeight,
         };
 
         setMaterialSpecs(updatedSpecs);
@@ -211,19 +215,19 @@ export default function MaterialSpecsForm() {
             </Grid>
 
             <Grid item xs={12}><Divider /><Typography variant="h5">Feed System</Typography></Grid>
-            <Grid item xs={12} sm={4}>
+            <Grid item xs={12} sm={6}>
                 <Typography noWrap style={{ minWidth: 200 }}>Feed Direction</Typography>
                 <FormControl fullWidth size="small">
                     <Select value={materialSpecs.feedDirection}
                         onChange={(e) => handleChange("feedDirection", e.target.value)}
                         IconComponent={ArrowDropDown}>
-                        <MenuItem value="LtoR">Left to Right</MenuItem>
-                        <MenuItem value="RtoL">Right to Left</MenuItem>
+                        <MenuItem value="left_to_right">Left to Right</MenuItem>
+                        <MenuItem value="right_to_left">Right to Left</MenuItem>
                     </Select>
                 </FormControl>
             </Grid>
 
-            <Grid item xs={12} sm={4}>
+            <Grid item xs={12} sm={6}>
                 <Typography noWrap style={{ minWidth: 200 }}>Controls Level</Typography>
                 <FormControl fullWidth size="small">
                     <Select
@@ -237,12 +241,12 @@ export default function MaterialSpecsForm() {
                 </FormControl>
             </Grid>
 
-            <Grid item xs={12} sm={4}>
+            <Grid item xs={12} sm={6}>
                 <Typography noWrap style={{ minWidth: 200 }}>Type of Line</Typography>
                 <FormControl fullWidth size="small">
                     <Select
-                        value={materialSpecs.typeOfLine || ""}
-                        onChange={(e) => handleChange("typeOfLine", e.target.value)}
+                        value={materialSpecs.lineType || ""}
+                        onChange={(e) => handleChange("lineType", e.target.value)}
                         IconComponent={ArrowDropDown}>
                         {typeOfLineOptions.map((option) => (
                             <MenuItem key={option} value={option}>{option}</MenuItem>

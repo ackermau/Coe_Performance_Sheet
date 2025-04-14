@@ -28,6 +28,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Folder Include="backend\routes\" />
+    <Folder Include="backend\routes\utils\" />
     <Folder Include="frontend\" />
     <Folder Include="backend\" />
     <Folder Include="frontend\public\" />
@@ -41,15 +42,16 @@
     <Compile Include="backend\db.py" />
     <Compile Include="backend\main.py" />
     <Compile Include="backend\models.py" />
-    <Compile Include="backend\routes\calculations.py" />
     <Compile Include="backend\routes\machine.py" />
     <Compile Include="backend\routes\material_specs.py" />
     <Compile Include="backend\routes\rfq.py" />
-    <Compile Include="backend\routes\tbdbhd.py" />
+    <Compile Include="backend\routes\tddbhd.py" />
+    <Compile Include="backend\routes\utils\lookup_tables.py" />
     <Compile Include="backend\utils.py" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="backend\requirements.txt" />
+    <Content Include="backend\routes\utils\lookup_tables.json" />
     <Content Include="frontend\package.json" />
     <Content Include="frontend\public\index.html" />
     <Content Include="frontend\src\api\machine.js" />
@@ -59,6 +61,7 @@
     <Content Include="frontend\src\components\MaterialSpecsForm.js" />
     <Content Include="frontend\src\components\RFQForm.js" />
     <Content Include="frontend\src\components\TddbhdPage.js" />
+    <Content Include="frontend\src\config.js" />
     <Content Include="frontend\src\context\MaterialSpecsContext.js" />
     <Content Include="frontend\src\context\RFQFormContext.js" />
     <Content Include="frontend\src\context\TddbhdContext.js" />

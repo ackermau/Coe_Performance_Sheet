@@ -1,23 +1,10 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
 import math
+# Import the shared lookup table helper function:
+from .utils.lookup_tables import get_material_data
 
 router = APIRouter()
-
-# Material lookup table with material properties
-MATERIAL_LOOKUP = {
-    "ALUMINUM": {"yield": 20000, "modulus": 10600000, "density": 0.0980},
-    "BERYL COPPER": {"yield": 30000, "modulus": 19000000, "density": 0.3000},
-    "BRASS": {"yield": 20000, "modulus": 15000000, "density": 0.3100},
-    "COLD ROLLED STEEL": {"yield": 60000, "modulus": 29000000, "density": 0.2830},
-    "DUAL PHASE": {"yield": 60000, "modulus": 29000000, "density": 0.2830},
-    "GALVANIZED": {"yield": 60000, "modulus": 29000000, "density": 0.2830},
-    "HOT ROLLED STEEL": {"yield": 60000, "modulus": 29000000, "density": 0.2830},
-    "HS STEEL": {"yield": 60000, "modulus": 29000000, "density": 0.2830},
-    "STAINLESS STEEL": {"yield": 90000, "modulus": 27600000, "density": 0.2900},
-    "STEEL": {"yield": 60000, "modulus": 29000000, "density": 0.2830},
-    "TITANIUM": {"yield": 80000, "modulus": 15500000, "density": 0.1630},
-}
 
 # Expanded payload to support all four views: Max, Full, Min, and Width.
 class MaterialSpecsPayload(BaseModel):
@@ -25,8 +12,8 @@ class MaterialSpecsPayload(BaseModel):
     materialTypeMax: str = None
     materialThicknessMax: float = None  # in inches
     yieldStrengthMax: float = None       # in psi
-    coilWidthMax: float  = None           # in inches
-    coilWeightMax: float  = None          # in lbs
+    coilWidthMax: float = None           # in inches
+    coilWeightMax: float = None          # in lbs
     coilIDMax: float = None              # in inches
 
     # Full view
@@ -54,8 +41,12 @@ class MaterialSpecsPayload(BaseModel):
     coilIDWidth: float = None
 
 def calculate_variant(materialType, thickness, yield_strength, coil_width, coil_weight, coil_id):
-    # Look up material properties if a valid material type is provided.
-    mat = MATERIAL_LOOKUP.get(materialType.upper(), {}) if materialType else {}
+    # Look up material properties using our shared lookup.
+    try:
+        mat = get_material_data(materialType)
+    except ValueError:
+        mat = {}  # Could choose to default to an empty dict if not provided.
+        
     modulus = mat.get("modulus")
     density = mat.get("density")
     

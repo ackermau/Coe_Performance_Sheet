@@ -16,6 +16,7 @@ import {
 } from "@mui/material";
 import { MaterialSpecsContext } from "../context/MaterialSpecsContext";
 import { RFQFormContext } from "../context/RFQFormContext";
+import { API_URL } from '../config';
 
 const formatLabel = (label) => {
     return label
@@ -25,16 +26,11 @@ const formatLabel = (label) => {
         .replace(/\s*(Max|Full|Min|Width)$/i, "");
 };
 
+const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
 const reelModels = [
-    "CPR-040",
-    "CPR-060",
-    "CPR-080",
-    "CPR-100",
-    "CPR-200",
-    "CPR-300",
-    "CPR-400",
-    "CPR-500",
-    "CPR-600"
+    "CPR-040", "CPR-060", "CPR-080", "CPR-100",
+    "CPR-200", "CPR-300", "CPR-400", "CPR-500", "CPR-600"
 ];
 
 const reelWidths = [42, 48, 54, 60, 66, 72];
@@ -42,84 +38,78 @@ const reelWidths = [42, 48, 54, 60, 66, 72];
 const backplateDiameters = [27, 72];
 
 const materialOptions = [
-    "Aluminum",
-    "Galvanized",
-    "HS Steel",
-    "Hot Rolled Steel",
-    "Dual Phase",
-    "Cold Rolled Steel",
-    "Stainless Steel",
-    "Titanium",
-    "Brass",
-    "Beryl Copper"
+    "Aluminum", "Galvanized", "HS Steel", "Hot Rolled Steel",
+    "Dual Phase", "Cold Rolled Steel", "Stainless Steel",
+    "Titanium", "Brass", "Beryl Copper"
 ];
 
-// Define the material field groups for each subpage.
+const baseMaterialFields = [
+    "materialType", "coilWidth", "materialThickness", "yieldStrength",
+    "coilWeight", "coilID", "coilOD"
+];
+
+const extraFields = [
+    "thickness", "density", "calcWeight", "maxWeight", "tensionTorque", "decel", "y",
+    "M", "My", "friction", "airPressure", "maxPsi", "holddownPressure",
+    "holddownForceFactor", "holddownMinWidth", "brakeQty", "noBrakepads",
+    "brakeDist", "pressForceRequired", "pressForceHolding",
+    "holddownMatrixLabel", "webTensionPsi", "webTensionLbs",
+    "dispReelMtr", "torqueAtMandrel", "rewindTorque",
+    "holdDownForceRequired", "holdDownForceAvailable",
+    "minMaterialWidth", "torqueRequired",
+    "failsafeDoubleStage", "failsafeHoldingForce"
+];
+
 const groupFields = {
-    max: ["materialTypeMax", "coilWidthMax", "materialThicknessMax", "yieldStrengthMax"],
-    full: ["materialTypeFull", "coilWidthFull", "materialThicknessFull", "yieldStrengthFull"],
-    min: ["materialTypeMin", "coilWidthMin", "materialThicknessMin", "yieldStrengthMin"],
-    width: ["materialTypeWidth", "coilWidthWidth", "materialThicknessWidth", "yieldStrengthWidth"]
+    max: [...baseMaterialFields.map(f => `${f}Max`), ...extraFields.map(f => `${f}Max`)],
+    full: [...baseMaterialFields.map(f => `${f}Full`), ...extraFields.map(f => `${f}Full`)],
+    min: [...baseMaterialFields.map(f => `${f}Min`), ...extraFields.map(f => `${f}Min`)],
+    width: [...baseMaterialFields.map(f => `${f}Width`), ...extraFields.map(f => `${f}Width`)]
 };
 
-// Helper to build the default state for a given group.
+const brakeQtyOptions = ["1", "2", "3"];
 
 const getDefaultDataForGroup = (group, materialSpecs) => {
-  const defaults = {
-    reel_model: reelModels[0],
-    reel_width: reelWidths[0],
-    backplate_diameter: backplateDiameters[0],
-    // Additional fields needed by the tddbhd payload:
-    type_of_line: "PULLOFF",        // default example
-    drive_torque: "",
-    reel_drive_tqempty: "",
-    // We assume these material-related fields are set per view:
-    ...groupFields[group].reduce((acc, field) => {
-      acc[field] = materialSpecs && materialSpecs[field] ? materialSpecs[field] : "";
-      return acc;
-    }, {}),
-    // Other fields required by the tddbhd payload – you may need to add input fields for these
-    thickness: "",        // e.g. material thickness (inches)
-    width: "",            // overall width value
-    coil_id: "",          // coil ID
-    coil_od: "",          // coil OD if provided
-    coil_weight: "",      // coil weight in lbs
-    density: "",          // material density
-    max_weight: 60000,    // default maximum weight
-    tension_torque: "",
-    decel: "",
-    y: "",
-    M: "",
-    My: "",
-    friction: "",
-    air_pressure: "",
-    max_psi: "",
-    holddown_pressure: "",
-    holddown_force_factor: "",
-    holddown_min_width: "",
-    brake_qty: "",
-    no_brakepads: "",
-    brake_dist: "",
-    press_force_required: "",
-    press_force_holding: "",
-    holddown_matrix_label: "psi air" // example default
-  };
-  return defaults;
+    return {
+        reelModel: reelModels[0],
+        reelWidth: reelWidths[0],
+        backplateDiameter: backplateDiameters[0],
+        typeOfLine: "PULLOFF",
+        driveTorque: "",
+        reelDriveTQEmpty: "",
+
+        maxCoilWeight: materialSpecs.maxCoilWeight,
+
+        ...groupFields[group].reduce((acc, field) => {
+            acc[field] = materialSpecs?.[field] || "";
+            return acc;
+        }, {})
+    };
 };
+
+const CalculatedField = ({ label, value }) => (
+    <>
+        <Grid item xs={6} sm={4}>
+            <Typography variant="body1">{label}</Typography>
+        </Grid>
+        <Grid item xs={6} sm={8}>
+            <TextField
+                value={value}
+                variant="outlined"
+                size="small"
+                fullWidth
+                InputProps={{ readOnly: true }}
+            />
+        </Grid>
+    </>
+);
 
 export default function TddbhdPage() {
     const { rfqForm } = useContext(RFQFormContext);
     const { materialSpecs } = useContext(MaterialSpecsContext);
 
-    // Map subpage keys to group names.
-    const pageMapping = {
-        page1: "max",
-        page2: "full",
-        page3: "min",
-        page4: "width"
-    };
+    const pageMapping = { page1: "max", page2: "full", page3: "min", page4: "width" };
 
-    // Initialize state for each subpage with its corresponding group.
     const [subpageData, setSubpageData] = useState({
         page1: getDefaultDataForGroup("max", materialSpecs),
         page2: getDefaultDataForGroup("full", materialSpecs),
@@ -127,47 +117,105 @@ export default function TddbhdPage() {
         page4: getDefaultDataForGroup("width", materialSpecs)
     });
 
-    // Track the active subpage.
     const [activePage, setActivePage] = useState("page1");
 
-    // Update subpage data if materialSpecs changes.
+    const suffix = pageMapping[activePage];
+    const capSuffix = capitalize(suffix);
+
     useEffect(() => {
-        setSubpageData({
-            page1: getDefaultDataForGroup("max", materialSpecs),
-            page2: getDefaultDataForGroup("full", materialSpecs),
-            page3: getDefaultDataForGroup("min", materialSpecs),
-            page4: getDefaultDataForGroup("width", materialSpecs)
-        });
+        setSubpageData(prev => ({
+            page1: { ...getDefaultDataForGroup("max", materialSpecs), ...prev.page1 },
+            page2: { ...getDefaultDataForGroup("full", materialSpecs), ...prev.page2 },
+            page3: { ...getDefaultDataForGroup("min", materialSpecs), ...prev.page3 },
+            page4: { ...getDefaultDataForGroup("width", materialSpecs), ...prev.page4 },
+        }));
+        const payload = buildTddbhdPayload();
+        console.log("Sending payload:", payload);
+        triggerBackendCalculation(payload);
     }, [materialSpecs]);
 
-    // Update field value for the active subpage.
     const handleChange = (field, value) => {
-        setSubpageData((prev) => ({
+        setSubpageData(prev => ({
             ...prev,
             [activePage]: { ...prev[activePage], [field]: value }
         }));
-        // Optionally trigger a backend calculation with the updated active page data.
-        triggerBackendCalculation({ ...subpageData[activePage], [field]: value });
+        const payload = buildTddbhdPayload();
+        console.log("Sending payload:", payload);
+        triggerBackendCalculation(payload);
+    };
+
+    const buildTddbhdPayload = () => {
+        const data = subpageData[activePage];
+
+        return {
+            type_of_line: data.typeOfLine,
+            drive_torque: Number(data.driveTorque) || 0,
+            reel_drive_tqempty: Number(data.reelDriveTQEmpty) || 0,
+            yield_strength: Number(data[`yieldStrength${capSuffix}`]) || 0,
+            thickness: Number(data[`materialThickness${capSuffix}`]) || 0,
+            width: Number(data[`coilWidth${capSuffix}`]) || 0,
+            coil_id: Number(data[`coilID${capSuffix}`]) || 0,
+            coil_od: Number(data[`coilOD${capSuffix}`]) || 0,
+            coil_weight: Number(data[`calcWeight${capSuffix}`]) || 0,
+            density: Number(data[`density${capSuffix}`]) || 0,
+            tension_torque: Number(data[`tensionTorque${capSuffix}`]) || 0,
+            decel: Number(data[`decel${capSuffix}`]) || 0,
+            y: Number(data[`y${capSuffix}`]) || 0,
+            M: Number(data[`M${capSuffix}`]) || 0,
+            My: Number(data[`My${capSuffix}`]) || 0,
+            friction: Number(data[`friction${capSuffix}`]) || 0,
+            air_pressure: Number(data[`airPressure${capSuffix}`]) || 0,
+            max_psi: Number(data[`maxPsi${capSuffix}`]) || 0,
+            holddown_pressure: Number(data[`holddownPressure${capSuffix}`]) || 0,
+            holddown_force_factor: Number(data[`holddownForceFactor${capSuffix}`]) || 0,
+            holddown_min_width: Number(data[`holddownMinWidth${capSuffix}`]) || 0,
+            brake_qty: Number(data[`brakeQty${capSuffix}`]) || 0,
+            no_brakepads: Number(data[`noBrakepads${capSuffix}`]) || 0,
+            brake_dist: Number(data[`brakeDist${capSuffix}`]) || 0,
+            press_force_required: Number(data[`pressForceRequired${capSuffix}`]) || 0,
+            press_force_holding: Number(data[`pressForceHolding${capSuffix}`]) || 0,
+            holddown_matrix_label: data[`holddownMatrixLabel${capSuffix}`] || "",
+            materialType: data[`materialType${capSuffix}`] || "COLD ROLLED STEEL",
+            reel_model: data.reelModel || "",
+
+            max_weight: data.maxCoilWeight || 0,
+        };
+    };
+
+    const snakeToCamel = (str) => {
+        return str.replace(/(_\w)/g, m => m[1].toUpperCase());
     };
 
     const triggerBackendCalculation = async (payload) => {
         try {
-            const response = await fetch("/api/tddbhd/calculate", {
+            const response = await fetch(`${API_URL}/api/tddbhd/calculate`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)
             });
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error("Backend calculation error:", errorData);
+                return;
+            }
             const data = await response.json();
-            setSubpageData((prev) => ({
+            console.log("Backend response data:", data);
+            // Transform result keys: convert each from snake_case to camelCase then append current page suffix (e.g., 'Max')
+            const transformedData = {};
+            for (const key in data) {
+                const camelKey = snakeToCamel(key); // converts "web_tension_psi" to "webTensionPsi"
+                transformedData[`${camelKey}${capSuffix}`] = data[key];
+            }
+            console.log("Transformed data:", transformedData);
+            setSubpageData(prev => ({
                 ...prev,
-                [activePage]: { ...prev[activePage], ...data }
+                [activePage]: { ...prev[activePage], ...transformedData }
             }));
         } catch (err) {
             console.error("Backend calculation failed:", err);
         }
     };
 
-    // Define the subpages.
     const pages = [
         { key: "page1", title: "Max" },
         { key: "page2", title: "Full" },
@@ -177,19 +225,14 @@ export default function TddbhdPage() {
 
     const goToPreviousPage = () => {
         const currentIndex = pages.findIndex((page) => page.key === activePage);
-        if (currentIndex > 0) {
-            setActivePage(pages[currentIndex - 1].key);
-        }
+        if (currentIndex > 0) setActivePage(pages[currentIndex - 1].key);
     };
 
     const goToNextPage = () => {
         const currentIndex = pages.findIndex((page) => page.key === activePage);
-        if (currentIndex < pages.length - 1) {
-            setActivePage(pages[currentIndex + 1].key);
-        }
+        if (currentIndex < pages.length - 1) setActivePage(pages[currentIndex + 1].key);
     };
 
-    // Determine which material fields to render based on the active subpage.
     const currentGroup = pageMapping[activePage];
     const currentGroupFields = groupFields[currentGroup];
 
@@ -207,8 +250,8 @@ export default function TddbhdPage() {
                     <Typography noWrap style={{ minWidth: 200 }}>Reel Model</Typography>
                     <FormControl fullWidth size="small">
                         <Select
-                            value={subpageData[activePage].reel_model}
-                            onChange={(e) => handleChange("reel_model", e.target.value)}
+                            value={subpageData[activePage].reelModel}
+                            onChange={(e) => handleChange("reelModel", e.target.value)}
                             name="reel_model"
                         >
                             {reelModels.map((model) => (
@@ -224,9 +267,9 @@ export default function TddbhdPage() {
                     <Typography noWrap style={{ minWidth: 200 }}>Reel Width</Typography>
                     <FormControl fullWidth size="small">
                         <Select
-                            value={subpageData[activePage].reel_width}
-                            onChange={(e) => handleChange("reel_width", e.target.value)}
-                            name="reel_width"
+                            value={subpageData[activePage].reelWidth}
+                            onChange={(e) => handleChange("reelWidth", e.target.value)}
+                            name="reelWidth"
                         >
                             {reelWidths.map((width) => (
                                 <MenuItem key={width} value={width}>
@@ -241,9 +284,9 @@ export default function TddbhdPage() {
                     <Typography noWrap style={{ minWidth: 200 }}>Backplate Diameter</Typography>
                     <FormControl fullWidth size="small">
                         <Select
-                            value={subpageData[activePage].backplate_diameter}
-                            onChange={(e) => handleChange("backplate_diameter", e.target.value)}
-                            name="backplate_diameter"
+                            value={subpageData[activePage].backplateDiameter}
+                            onChange={(e) => handleChange("backplateDiameter", e.target.value)}
+                            name="backplateDiameter"
                         >
                             {backplateDiameters.map((diameter) => (
                                 <MenuItem key={diameter} value={diameter}>
@@ -255,13 +298,52 @@ export default function TddbhdPage() {
                 </Grid>
             </Grid>
 
+            <Grid item xs={6} md={4}>
+                <Typography noWrap style={{ minWidth: 200 }}>Brake Quantity</Typography>
+                <FormControl fullWidth size="small">
+                    <Select
+                        value={subpageData[activePage][`brakeQty${capSuffix}`] || ""}
+                        onChange={(e) => handleChange(`brakeQty${capSuffix}`, e.target.value)}
+                        name={`brakeQty${capSuffix}`}
+                    >
+                        {brakeQtyOptions.map((option) => (
+                            <MenuItem key={option} value={option}>
+                                {option}
+                            </MenuItem>
+                        ))}
+                    </Select>
+                </FormControl>
+            </Grid>
+
+            <Grid container spacing={2} sx={{ mt: 1 }}>
+                <Grid item xs={12} md={6}>
+                    <Typography noWrap style={{ minWidth: 200 }}>Air Pressure Available</Typography>
+                    <TextField size="small"
+                        type="number"
+                        value={subpageData[activePage][`airPressure${capSuffix}`] || ""}
+                        onChange={(e) => handleChange(`airPressure${capSuffix}`, e.target.value)}
+                        fullWidth
+                    />
+                </Grid>
+
+                <Grid item xs={12} md={6}>
+                    <Typography noWrap style={{ minWidth: 200 }}>Required Deceleration Rate</Typography>
+                    <TextField size="small"
+                        type="number"
+                        value={subpageData[activePage][`decel${capSuffix}`] || ""}
+                        onChange={(e) => handleChange(`decel${capSuffix}`, e.target.value)}
+                        fullWidth
+                    />
+                </Grid>
+            </Grid>
+
             {/* Material Fields for the current subpage */}
             <Typography variant="h6" sx={{ mt: 2 }}>
                 {pages.find((p) => p.key === activePage)?.title} Material Properties
             </Typography>
-            <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid container spacing={1} xs={12} sx={{ mt: 1 }}>
                 {currentGroupFields.map((field) => (
-                    <Grid item xs={12} sm={4} key={field}>
+                    <Grid item xs={12} sm={6} key={field}>
                         {field.startsWith("materialType") ? (
                             <Grid container spacing={1}>
                                 <Grid item xs={12}>
@@ -285,107 +367,15 @@ export default function TddbhdPage() {
                                 </Grid>
                             </Grid>
                         ) : (
-                            <TextField
-                                size="small"
+                            <CalculatedField
                                 label={formatLabel(field)}
-                                value={subpageData[activePage][field] || ""}
-                                onChange={(e) => handleChange(field, e.target.value)}
-                                type="number"
-                                fullWidth
-                            />
+                                value={subpageData[activePage][field] || ""} />
                         )}
                     </Grid>
                 ))}
             </Grid>
 
-            <Grid container spacing={2} sx={{ mt: 1 }}>
-                <Grid item xs={12} md={4}>
-                    <Typography noWrap style={{ minWidth: 200 }}>Air Pressure Available</Typography>
-                    <TextField size="small"
-                        type="number"
-                        value={subpageData[activePage].air_pressure_available || ""}
-                        onChange={(e) => handleChange("air_pressure_available", e.target.value)}
-                        fullWidth
-                    />
-                </Grid>
-
-                <Grid item xs={12} md={4}>
-                    <Typography noWrap style={{ minWidth: 200 }}>Required Deceleration Rate</Typography>
-                    <TextField size="small"
-                        type="number"
-                        value={subpageData[activePage].req_decel_rate || ""}
-                        onChange={(e) => handleChange("req_decel_rate", e.target.value)}
-                        fullWidth
-                    />
-                </Grid>
-            </Grid>
-
             <Divider sx={{ my: 2 }} />
-
-            {/* Calculated fields for the current subpage */}
-            {subpageData[activePage].web_tension_psi !== "" && (
-                <>
-                    <Typography variant="h6" sx={{ mt: 4 }}>
-                        Calculated Values
-                    </Typography>
-                    <Table>
-                        <TableBody>
-                            <TableRow>
-                                <TableCell>Web Tension PSI</TableCell>
-                                <TableCell>{subpageData[activePage].web_tension_psi}</TableCell>
-                            </TableRow>
-                            <TableRow>
-                                <TableCell>Web Tension Lbs</TableCell>
-                                <TableCell>{subpageData[activePage].web_tension_lbs}</TableCell>
-                            </TableRow>
-                            <TableRow>
-                                <TableCell>Coil Weight</TableCell>
-                                <TableCell>{subpageData[activePage].coil_weight}</TableCell>
-                            </TableRow>
-                            <TableRow>
-                                <TableCell>Coil OD</TableCell>
-                                <TableCell>{subpageData[activePage].coil_od}</TableCell>
-                            </TableRow>
-                            <TableRow>
-                                <TableCell>Display Reel Motor</TableCell>
-                                <TableCell>{subpageData[activePage].disp_reel_mtr}</TableCell>
-                            </TableRow>
-                            <TableRow>
-                                <TableCell>Torque At Mandrel</TableCell>
-                                <TableCell>{subpageData[activePage].torque_at_mandrel}</TableCell>
-                            </TableRow>
-                            <TableRow>
-                                <TableCell>Rewind Torque</TableCell>
-                                <TableCell>{subpageData[activePage].rewind_torque}</TableCell>
-                            </TableRow>
-                            <TableRow>
-                                <TableCell>Hold Down Force Required</TableCell>
-                                <TableCell>{subpageData[activePage].hold_down_force_required}</TableCell>
-                            </TableRow>
-                            <TableRow>
-                                <TableCell>Hold Down Force Available</TableCell>
-                                <TableCell>{subpageData[activePage].hold_down_force_available}</TableCell>
-                            </TableRow>
-                            <TableRow>
-                                <TableCell>Min Material Width</TableCell>
-                                <TableCell>{subpageData[activePage].min_material_width}</TableCell>
-                            </TableRow>
-                            <TableRow>
-                                <TableCell>Torque Required</TableCell>
-                                <TableCell>{subpageData[activePage].torque_required}</TableCell>
-                            </TableRow>
-                            <TableRow>
-                                <TableCell>Failsafe Double Stage</TableCell>
-                                <TableCell>{subpageData[activePage].failsafe_double_stage}</TableCell>
-                            </TableRow>
-                            <TableRow>
-                                <TableCell>Failsafe Holding Force</TableCell>
-                                <TableCell>{subpageData[activePage].failsafe_holding_force}</TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
-                </>
-            )}
 
             {/* Navigation Buttons */}
             <Grid

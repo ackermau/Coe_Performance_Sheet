@@ -20,13 +20,12 @@ app.add_middleware(
 
 app.include_router(rfq.router, prefix="/api/rfq")
 app.include_router(material_specs.router, prefix="/api/material_specs")
-app.include_router(tddbhd.router, prefix="/api/tddbdhd")
+app.include_router(tddbhd.router, prefix="/api/tddbhd")
 
 # Include routers from different modules
 app.include_router(rfq.router, prefix="/rfq", tags=["RFQ"])
 app.include_router(machine.router, prefix="/machine", tags=["Machine"])
 app.include_router(material_specs.router, prefix="/material_specs", tags=["Material Specs"])
-app.include_router(tddbhd.router, prefix="/tddbhd", tags=["TDDBHD"])
 
 @app.get("/")
 def home():
