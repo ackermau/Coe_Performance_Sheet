@@ -6,6 +6,7 @@ import "./index.css";
 import { RFQFormProvider } from "./context/RFQFormContext";
 import { MaterialSpecsProvider } from "./context/MaterialSpecsContext";
 import { TddbhdProvider } from "./context/TddbhdContext";
+import { ReelDriveProvider } from "./context/ReelDriveContext";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
@@ -13,9 +14,11 @@ root.render(
         <BrowserRouter>
             <RFQFormProvider>
                 <MaterialSpecsProvider>
-                    <TddbhdProvider>
-                        <App />
-                    </TddbhdProvider>
+                    <ReelDriveProvider>
+                        <TddbhdProvider>
+                            <App />
+                        </TddbhdProvider>
+                    </ReelDriveProvider>
                 </MaterialSpecsProvider>
             </RFQFormProvider>
         </BrowserRouter>

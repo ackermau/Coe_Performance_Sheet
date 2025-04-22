@@ -56,24 +56,14 @@
       "density": 0.1630
     }
   },
-  "lookup_reels": {
-    "CPR-040": 4000,
-    "CPR-060": 6000,
-    "CPR-080": 8000,
-    "CPR-100": 10000,
-    "CPR-150": 15000,
-    "CPR-200": 20000,
-    "CPR-300": 30000,
-    "CPR-400": 40000,
-    "CPR-500": 50000,
-    "CPR-600": 60000
-  },
   "lookup_friction": {
     "DEFAULT": 0.5
   },
-  "lookup_type_of_line": [
-    {
-      "type_of_line": "Compact",
+  "lookup_fpm_buffer": {
+    "DEFAULT": 1.2
+  },
+  "lookup_type_of_line": {
+    "Compact":  {
       "application": "Press Feed",
       "reel_type": "Motorized",
       "pull_thru_used": "No",
@@ -83,8 +73,7 @@
       "stacker_used": "No",
       "shear_used": "No"
     },
-    {
-      "type_of_line": "Compact CTL",
+    "Compact CTL": {
       "application": "Cut To Length",
       "reel_type": "Motorized",
       "pull_thru_used": "No",
@@ -94,8 +83,7 @@
       "stacker_used": "Yes",
       "shear_used": "Yes"
     },
-    {
-      "type_of_line": "Conventional",
+    "Conventional": {
       "application": "Press Feed",
       "reel_type": "PullOff",
       "pull_thru_used": "No",
@@ -105,8 +93,7 @@
       "stacker_used": "No",
       "shear_used": "No"
     },
-    {
-      "type_of_line": "Conventional CTL",
+    "Conventional CTL": {
       "application": "Cut To Length",
       "reel_type": "PullOff",
       "pull_thru_used": "No",
@@ -116,8 +103,7 @@
       "stacker_used": "Yes",
       "shear_used": "Yes"
     },
-    {
-      "type_of_line": "Feed",
+    "Feed": {
       "application": "Press Feed",
       "reel_type": "NoReel",
       "pull_thru_used": "No",
@@ -127,8 +113,7 @@
       "stacker_used": "No",
       "shear_used": "No"
     },
-    {
-      "type_of_line": "Feed-Pull Through",
+    "Feed-Pull Through": {
       "application": "Press Feed",
       "reel_type": "NoReel",
       "pull_thru_used": "Yes",
@@ -138,8 +123,7 @@
       "stacker_used": "No",
       "shear_used": "No"
     },
-    {
-      "type_of_line": "Feed-Pull Through-Shear",
+    "Feed-Pull Through-Shear": {
       "application": "Press Feed",
       "reel_type": "NoReel",
       "pull_thru_used": "Yes",
@@ -149,8 +133,7 @@
       "stacker_used": "No",
       "shear_used": "Yes"
     },
-    {
-      "type_of_line": "Feed-Shear",
+    "Feed-Shear": {
       "application": "Press Feed",
       "reel_type": "NoReel",
       "pull_thru_used": "No",
@@ -160,8 +143,7 @@
       "stacker_used": "No",
       "shear_used": "Yes"
     },
-    {
-      "type_of_line": "Other",
+    "Other": {
       "application": "Press Feed",
       "reel_type": "PullOff",
       "pull_thru_used": "No",
@@ -171,8 +153,17 @@
       "stacker_used": "No",
       "shear_used": "Yes"
     },
-    {
-      "type_of_line": "Pull Through",
+    "Pull Through": {
+    "application": "Press Feed",
+      "reel_type": "Motorized",
+      "pull_thru_used": "Yes",
+      "reel_used": "Yes",
+      "str_used": "No",
+      "feed_used": "Yes",
+      "stacker_used": "No",
+      "shear_used": "No"
+    },
+    "Pull Through Compact": {
       "application": "Press Feed",
       "reel_type": "Motorized",
       "pull_thru_used": "Yes",
@@ -182,19 +173,7 @@
       "stacker_used": "No",
       "shear_used": "No"
     },
-    {
-      "type_of_line": "Pull Through Compact",
-      "application": "Press Feed",
-      "reel_type": "Motorized",
-      "pull_thru_used": "Yes",
-      "reel_used": "Yes",
-      "str_used": "No",
-      "feed_used": "Yes",
-      "stacker_used": "No",
-      "shear_used": "No"
-    },
-    {
-      "type_of_line": "Pull Through CTL",
+    "Pull Through CTL": {
       "application": "Cut To Length",
       "reel_type": "Motorized",
       "pull_thru_used": "Yes",
@@ -204,8 +183,7 @@
       "stacker_used": "No",
       "shear_used": "Yes"
     },
-    {
-      "type_of_line": "Reel-Motorized",
+    "Reel-Motorized": {
       "application": "Press Feed",
       "reel_type": "Motorized",
       "pull_thru_used": "No",
@@ -215,8 +193,7 @@
       "stacker_used": "No",
       "shear_used": "No"
     },
-    {
-      "type_of_line": "Reel-Pull Off",
+    "Reel-Pull Off": {
       "application": "Press Feed",
       "reel_type": "PullOff",
       "pull_thru_used": "No",
@@ -226,8 +203,7 @@
       "stacker_used": "No",
       "shear_used": "No"
     },
-    {
-      "type_of_line": "Straightener",
+    "Straightener": {
       "application": "Press Feed",
       "reel_type": "NoReel",
       "pull_thru_used": "No",
@@ -237,8 +213,7 @@
       "stacker_used": "No",
       "shear_used": "No"
     },
-    {
-      "type_of_line": "Straightener-Reel Combination",
+    "Straightener-Reel Combination": {
       "application": "Press Feed",
       "reel_type": "PullOff",
       "pull_thru_used": "No",
@@ -248,8 +223,7 @@
       "stacker_used": "No",
       "shear_used": "No"
     },
-    {
-      "type_of_line": "Threading Table",
+    "Threading Table": {
       "application": "Press Feed",
       "reel_type": "NoReel",
       "pull_thru_used": "No",
@@ -259,7 +233,7 @@
       "stacker_used": "No",
       "shear_used": "No"
     }
-  ],
+  },
   "lookup_application": [
     "Cut to Length",
     "Press Feed"
@@ -789,6 +763,44 @@
       "MaxPSI": 350
     }
   ],
+  "lookup_motor_inertia": {
+    "2": {
+      "motor_inertia": 0.078
+    },
+    "3": {
+      "motor_inertia": 0.112
+    },
+    "5": {
+      "motor_inertia": 0.142
+    },
+    "7.5": {
+      "motor_inertia": 0.32
+    },
+    "10": {
+      "motor_inertia": 0.44
+    },
+    "15": {
+      "motor_inertia": 0.686
+    },
+    "20": {
+      "motor_inertia": 0.846
+    },
+    "30": {
+      "motor_inertia": 1.778
+    },
+    "40": {
+      "motor_inertia": 3.179
+    },
+    "50": {
+      "motor_inertia": 3.876
+    },
+    "60": {
+      "motor_inertia": 5.377
+    },
+    "75": {
+      "motor_inertia": 5.855
+    }
+  },
   "lookup_str_model": {
     "CPPS-175": {
       "roll_diameter": 1.75,
@@ -1083,11 +1095,105 @@
     "No (0)": 0
   },
   "lookup_drive_key": {
+    "D1+No+None": {
+      "family": "D1",
+      "air_clutch": "No",
+      "drive": "None",
+      "torque": 1000
+    },
+    "D2+No+22 cu in (D-15125)": {
+      "family": "D2",
+      "air_clutch": "No",
+      "drive": "22 cu in (D-15125)",
+      "torque": 6500
+    },
+    "D2+No+38 cu in (D-15125)": {
+      "family": "D2",
+      "air_clutch": "No",
+      "drive": "38 cu in (D-15125)",
+      "torque": 12025
+    },
+    "D2+No+None": {
+      "family": "D2",
+      "air_clutch": "No",
+      "drive": "None",
+      "torque": 1000
+    },
+    "D2+Yes+22 cu in (D-15125)": {
+      "family": "D2",
+      "air_clutch": "Yes",
+      "drive": "22 cu in (D-15125)",
+      "torque": 6500
+    },
+    "D2+Yes+38 cu in (D-15125)": {
+      "family": "D2",
+      "air_clutch": "Yes",
+      "drive": "38 cu in (D-15125)",
+      "torque": 11452
+    },
+    "D3+No+22 cu in (D-12689)": {
+      "family": "D3",
+      "air_clutch": "No",
+      "drive": "22 cu in (D-12689)",
+      "torque": 12627
+    },
+    "D3+No+38 cu in (D-13374)": {
+      "family": "D3",
+      "air_clutch": "No",
+      "drive": "38 cu in (D-13374)",
+      "torque": 22151
+    },
+    "D3+No+60 cu in (D-13374)": {
+      "family": "D3",
+      "air_clutch": "No",
+      "drive": "60 cu in (D-13374)",
+      "torque": 37883
+    },
+    "D3+Yes+22 cu in (D-12689)": {
+      "family": "D3",
+      "air_clutch": "Yes",
+      "drive": "22 cu in (D-12689)",
+      "torque": 10260
+    },
+    "D3+Yes+38 cu in (D-13374)": {
+      "family": "D3",
+      "air_clutch": "Yes",
+      "drive": "38 cu in (D-13374)",
+      "torque": 15156
+    },
     "D3+Yes+60 cu in (D-13374)": {
       "family": "D3",
       "air_clutch": "Yes",
       "drive": "60 cu in (D-13374)",
       "torque": 25920
+    },
+    "D3+Yes+60 cu in (D-13382)": {
+      "family": "D3",
+      "air_clutch": "Yes",
+      "drive": "60 cu in (D-13382)",
+      "torque": 54720
+    }
+  },
+  "lookup_press_required": {
+    "Single Stage": {
+      "pressure_required": 112.42,
+      "fs_spring_force": "0000 lbs"
+    },
+    "Double Stage": {
+      "pressure_required": 57.36,
+      "fs_spring_force": "0000 lbs"
+    },
+    "Triple Stage": {
+      "pressure_required": 38.50,
+      "fs_spring_force": "0000 lbs"
+    },
+    "Failsafe - Single Stage": {
+      "pressure_required": 112.42,
+      "fs_spring_force": "1000 lbs"
+    },
+    "Failsafe - Double Stage": {
+      "pressure_required": 57.36,
+      "fs_spring_force": "2385 lbs"
     }
   },
   "lookup_sigma5_feed": {
@@ -1259,10 +1365,90 @@
   "BackbendOKText": "OK",
   "BackbendNCText": "BACKBEND YIELD NOT CONFIRMED",
   "BackbendNOText": "BACKBEND YIELD NOT OK",
-  "DriveFamily": "D3",
-  "HolddownFamily": "H3",
-  "DriveKey_Example": "D3+Yes+60 cu in (D-13374)",
-  "HolddownMatrixKey_Example": "H3+J+XD+Hydraulic",
+  "lookup_model_families": {
+    "CPR-040": {
+      "drive_family": "D1",
+      "holddown_family": "H1",
+      "brake_family": "B1"
+    },
+    "CPR-060": {
+      "drive_family": "D2",
+      "holddown_family": "H2",
+      "brake_family": "B2"
+    },
+    "CPR-080": {
+      "drive_family": "D2",
+      "holddown_family": "H2",
+      "brake_family": "B2"
+    },
+    "CPR-100": {
+      "drive_family": "D3",
+      "holddown_family": "H3",
+      "brake_family": "B2"
+    },
+    "CPR-150": {
+      "drive_family": "D3",
+      "holddown_family": "H3",
+      "brake_family": "B2"
+    },
+    "CPR-200": {
+      "drive_family": "D3",
+      "holddown_family": "H3",
+      "brake_family": "B2"
+    },
+    "CPR-300": {
+      "drive_family": "D3",
+      "holddown_family": "H3",
+      "brake_family": "B2"
+    },
+    "CPR-400": {
+      "drive_family": "D3",
+      "holddown_family": "H3",
+      "brake_family": "B2"
+    },
+    "CPR-500": {
+      "drive_family": "D3",
+      "holddown_family": "H4",
+      "brake_family": "B2"
+    },
+    "CPR-600": {
+      "drive_family": "D3",
+      "holddown_family": "H4",
+      "brake_family": "B2"
+    }
+  },
+  "lookup_holddown_sort": {
+    "HD_Single": {
+      "sort": "H"
+    },
+    "HD_Dual": {
+      "sort": "I"
+    },
+    "LD_MOTORIZED": {
+      "sort": "D"
+    },
+    "LD_NARROW": {
+      "sort": "C"
+    },
+    "MD": {
+      "sort": "G"
+    },
+    "SD_MOTORIZED": {
+      "sort": "F"
+    },
+    "SD": {
+      "sort": "E"
+    },
+    "XD": {
+      "sort": "J"
+    },
+    "XXD": {
+      "sort": "K"
+    },
+    "None": {
+      "sort": "A"
+    }
+  },
   "lookup_hyd_thd_drive_disp": [
     {
       "hyd_thd_drive_disp": 22.6,
@@ -1301,9 +1487,8 @@
       "pd_reel": 3.236
     }
   ],
-  "lookup_reel_dimensions": [
-    {
-      "model": "CPR-040",
+  "lookup_reel_dimensions": {
+    "CPR-040": {
       "bearing_dist": 7,
       "fbearing_dia": 4.5,
       "rbearing_dia": 4.5,
@@ -1313,8 +1498,7 @@
       "full_od_backplate": 23,
       "backplate_thickness": 0.625
     },
-    {
-      "model": "CPR-060",
+    "CPR-060": {
       "bearing_dist": 10.5,
       "fbearing_dia": 6,
       "rbearing_dia": 6,
@@ -1324,8 +1508,7 @@
       "full_od_backplate": 23,
       "backplate_thickness": 1
     },
-    {
-      "model": "CPR-080",
+    "CPR-080": {
       "bearing_dist": 10.5,
       "fbearing_dia": 6,
       "rbearing_dia": 6,
@@ -1335,8 +1518,7 @@
       "full_od_backplate": 23,
       "backplate_thickness": 1
     },
-    {
-      "model": "CPR-100",
+    "CPR-100": {
       "bearing_dist": 24.69,
       "fbearing_dia": 8.23,
       "rbearing_dia": 8.23,
@@ -1346,8 +1528,7 @@
       "full_od_backplate": 72,
       "backplate_thickness": 1.5
     },
-    {
-      "model": "CPR-150",
+    "CPR-150": {
       "bearing_dist": 24.69,
       "fbearing_dia": 9.02,
       "rbearing_dia": 8.23,
@@ -1357,8 +1538,7 @@
       "full_od_backplate": 72,
       "backplate_thickness": 1.5
     },
-    {
-      "model": "CPR-200",
+    "CPR-200": {
       "bearing_dist": 24.69,
       "fbearing_dia": 11.26,
       "rbearing_dia": 11.26,
@@ -1368,8 +1548,7 @@
       "full_od_backplate": 72,
       "backplate_thickness": 1.5
     },
-    {
-      "model": "CPR-300",
+    "CPR-300" :  {
       "bearing_dist": 29.8,
       "fbearing_dia": 13.19,
       "rbearing_dia": 11.65,
@@ -1379,8 +1558,7 @@
       "full_od_backplate": 72,
       "backplate_thickness": 1.5
     },
-    {
-      "model": "CPR-400",
+    "CPR-400":  {
       "bearing_dist": 29.8,
       "fbearing_dia": 15.43,
       "rbearing_dia": 12.68,
@@ -1390,8 +1568,7 @@
       "full_od_backplate": 72,
       "backplate_thickness": 1.5
     },
-    {
-      "model": "CPR-500",
+    "CPR-500": {
       "bearing_dist": 29.8,
       "fbearing_dia": 15.35,
       "rbearing_dia": 13.19,
@@ -1401,8 +1578,7 @@
       "full_od_backplate": 72,
       "backplate_thickness": 1.5
     },
-    {
-      "model": "CPR-600",
+    "CPR-600":  {
       "bearing_dist": 29.8,
       "fbearing_dia": 15.35,
       "rbearing_dia": 13.19,
@@ -1412,5 +1588,5 @@
       "full_od_backplate": 72,
       "backplate_thickness": 1.5
     }
-  ]
+  }
 }

@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from routes import rfq, machine, material_specs, tddbhd
+from routes import rfq, machine, material_specs, tddbhd, reel_drive
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
@@ -21,6 +21,7 @@ app.add_middleware(
 app.include_router(rfq.router, prefix="/api/rfq")
 app.include_router(material_specs.router, prefix="/api/material_specs")
 app.include_router(tddbhd.router, prefix="/api/tddbhd")
+app.include_router(reel_drive.router, prefix="/api/reel_drive", tags=["Reel Drive"])
 
 # Include routers from different modules
 app.include_router(rfq.router, prefix="/rfq", tags=["RFQ"])

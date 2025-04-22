@@ -44,6 +44,7 @@
     <Compile Include="backend\models.py" />
     <Compile Include="backend\routes\machine.py" />
     <Compile Include="backend\routes\material_specs.py" />
+    <Compile Include="backend\routes\reel_drive.py" />
     <Compile Include="backend\routes\rfq.py" />
     <Compile Include="backend\routes\tddbhd.py" />
     <Compile Include="backend\routes\utils\lookup_tables.py" />
@@ -59,10 +60,12 @@
     <Content Include="frontend\src\App.js" />
     <Content Include="frontend\src\components\EquipmentSummary.js" />
     <Content Include="frontend\src\components\MaterialSpecsForm.js" />
+    <Content Include="frontend\src\components\ReelDrive.js" />
     <Content Include="frontend\src\components\RFQForm.js" />
     <Content Include="frontend\src\components\TddbhdPage.js" />
     <Content Include="frontend\src\config.js" />
     <Content Include="frontend\src\context\MaterialSpecsContext.js" />
+    <Content Include="frontend\src\context\ReelDriveContext.js" />
     <Content Include="frontend\src\context\RFQFormContext.js" />
     <Content Include="frontend\src\context\TddbhdContext.js" />
     <Content Include="frontend\src\hooks\useSharedMaterialView.js" />

@@ -2,7 +2,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 import math
 # Import the shared lookup table helper function:
-from .utils.lookup_tables import get_material_data
+from .utils.lookup_tables import get_material
 
 router = APIRouter()
 
@@ -43,7 +43,7 @@ class MaterialSpecsPayload(BaseModel):
 def calculate_variant(materialType, thickness, yield_strength, coil_width, coil_weight, coil_id):
     # Look up material properties using our shared lookup.
     try:
-        mat = get_material_data(materialType)
+        mat = get_material(materialType)
     except ValueError:
         mat = {}  # Could choose to default to an empty dict if not provided.
         
