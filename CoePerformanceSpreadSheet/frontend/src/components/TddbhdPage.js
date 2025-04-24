@@ -17,25 +17,79 @@ const formatLabel = (label) => label
 
 const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
+const green = "#4caf50";
+const red = "#f44336";
+
+const reelModels = [
+    "CPR-040", "CPR-060", "CPR-080", "CPR-100",
+    "CPR-200", "CPR-300", "CPR-400", "CPR-500", "CPR-600"
+];
+
+const reelWidths = [42, 48, 54, 60, 66, 72];
+
+const backplateDiameterOptions = [27, 72];
+
+const materialOptions = [
+    "Aluminum", "Galvanized", "HS Steel", "Hot Rolled Steel",
+    "Dual Phase", "Cold Rolled Steel", "Stainless Steel",
+    "Titanium", "Brass", "Beryl Copper"
+];
+
+const baseMaterialFields = [
+    "materialType", "coilWidth", "materialThickness", "yieldStrength",
+    "coilWeight", "coilID", "coilOD"
+];
+
+const extraFields = [
+    "calculatedCoilWeight", "holddownPressure",
+     "webTensionPsi", "webTensionLbs",
+    "dispReelMtr", "torqueAtMandrel", "rewindTorque",
+    "holdDownForceRequired", "holdDownForceAvailable",
+    "minMaterialWidth", "torqueRequired",
+    "brakePressHoldingForce", "brakePressRequired"
+];
+
+const typeOfLineOptions = [
+    "Compact", "Compact CTL", "Conventional", "Conventional CTL", "Pull Through", "Pull Through Compact",
+    "Pull Through CTL", "Feed", "Feed-Pull Through", "Feed-Pull Through-Shear", "Feed-Shear",
+    "Straightener", "Straightener-Reel Combination", "Reel-Motorized", "Reel-Pull Off",
+    "Threading Table", "Other"
+];
+
+const horsepowerOptions = [5, 7.5, 10, 15, 20];
+
 const pageMapping = { page1: "max", page2: "full", page3: "min", page4: "width" };
-const brakeQtyOptions = ["1", "2", "3"];
 const brakeModelOptions = ["Single Stage", "Double Stage", "Triple Stage", "Failsafe - Single Stage", "Failsafe - Double Stage"];
 const airClutchOptions = ["Yes", "No"];
 const hydThreadingDriveOptions = ["22 cu in (D-12689)", "38 cu in (D-13374)", "60 cu in (D-13374)", "60 cu in (D-13382)"];
 const holdDownAssyOptions = ["SD", "SD_MOTORIZED", "MD", "HD_SINGLE", "HD_DUAL", "XD", "XXD"];
 const cylinderOptions = ["Hydraulic"];
-const materialOptions = ["Aluminum", "Galvanized", "HS Steel", "Hot Rolled Steel", "Dual Phase", "Cold Rolled Steel", "Stainless Steel", "Titanium", "Brass", "Beryl Copper"];
+
+const brakeQtyOptions = ["1", "2", "3"];
 
 const groupFields = {
-    max: ["coilWidthMax", "materialThicknessMax", "yieldStrengthMax", "coilIDMax", "coilODMax", "frictionMax", "webTensionPsiMax", "torqueRequiredMax", "brakePressRequiredMax", "brakePressHoldingForceMax"],
-    full: ["coilWidthFull", "materialThicknessFull", "yieldStrengthFull", "coilIDFull", "coilODFull", "frictionFull", "webTensionPsiFull", "torqueRequiredFull", "brakePressRequiredFull", "brakePressHoldingForceFull"],
-    min: ["coilWidthMin", "materialThicknessMin", "yieldStrengthMin", "coilIDMin", "coilODMin", "frictionMin", "webTensionPsiMin", "torqueRequiredMin", "brakePressRequiredMin", "brakePressHoldingForceMin"],
-    width: ["coilWidthWidth", "materialThicknessWidth", "yieldStrengthWidth", "coilIDWidth", "coilODWidth", "frictionWidth", "webTensionPsiWidth", "torqueRequiredWidth", "brakePressRequiredWidth", "brakePressHoldingForceWidth"]
+    max: [...baseMaterialFields.map(f => `${f}Max`), ...extraFields.map(f => `${f}Max`)],
+    full: [...baseMaterialFields.map(f => `${f}Full`), ...extraFields.map(f => `${f}Full`)],
+    min: [...baseMaterialFields.map(f => `${f}Min`), ...extraFields.map(f => `${f}Min`)],
+    width: [...baseMaterialFields.map(f => `${f}Width`), ...extraFields.map(f => `${f}Width`)]
 };
-const reelModels = [
-    "CPR-040", "CPR-060", "CPR-080", "CPR-100",
-    "CPR-200", "CPR-300", "CPR-400", "CPR-500", "CPR-600"
-];
+
+const CalculatedField = ({ label, value }) => (
+    <>
+        <Grid item xs={6} sm={4}>
+            <Typography variant="body1">{label}</Typography>
+        </Grid>
+        <Grid item xs={6} sm={8}>
+            <TextField
+                value={value}
+                variant="outlined"
+                size="small"
+                fullWidth
+                InputProps={{ readOnly: true }}
+            />
+        </Grid>
+    </>
+);
 
 export default function TddbhdPage() {
     const { materialSpecs } = useContext(MaterialSpecsContext);
@@ -47,15 +101,16 @@ export default function TddbhdPage() {
     const [loading, setLoading] = useState(false);
 
     const getDefaultDataForGroup = (group) => {
-        const suffix = capitalize(group);
         return {
-            reelModel: "CPR-200",
-            reelWidth: 42,
-            backplateDiameter: 27,
-            typeOfLine: "PULLOFF",
-            driveTorque: "",
+            reelModel: reelModels[0],
+            reelWidth: reelWidths[0],
+            backplateDiameter: backplateDiameterOptions[0],
+            typeOfLine: typeOfLineOptions[0],
+            horsepower: horsepowerOptions[0],
             reelDriveTQEmpty: "",
-            brakeQty: "1",
+            emptyHorsepower: "",
+            fullHorsepower: "",
+            brakeQty: brakeQtyOptions[0],
             brakeModel: brakeModelOptions[0],
             airClutch: airClutchOptions[0],
             hydThreadingDrive: hydThreadingDriveOptions[0],
@@ -63,126 +118,239 @@ export default function TddbhdPage() {
             cylinder: cylinderOptions[0],
             airPressure: "",
             decel: "",
+
+            maxCoilWeight: materialSpecs.maxCoilWeight,
             ...Object.fromEntries(
                 groupFields[group].map(f => [f, materialSpecs?.[f] || ""])
             )
         };
     };
 
-    const calculateReelDrive = async () => {
-        const form = {
-            model: "CPR-200",
-            material_type: materialSpecs.materialTypeMax || "Cold Rolled Steel",
-            coil_weight: parseFloat(materialSpecs.coilWeightMax) || 20000,
-            coil_id: parseFloat(materialSpecs.coilIDMax) || 20,
-            coil_od: parseFloat(materialSpecs.coilODMax) || 72,
-            reel_width: parseFloat(materialSpecs.coilWidthMax) || 42,
-            backplate_diameter: 27,
-            motor_hp: 5,
-            type_of_line: materialSpecs.lineType || "Motorized",
-            required_max_fpm: parseFloat(materialSpecs.requiredMaxFPMMax) || 35,
-        };
-        try {
-            const res = await fetch(`${API_URL}/api/reel_drive/calculate`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(form)
+    useEffect(() => {
+        const updateDataAndTriggerCalculations = async () => {
+            // Avoids triggering before data is ready
+            if (!materialSpecs || !activePage) return;
+
+            // Initialize subpageData only once
+            setSubpageData(prev => {
+                const newData = {
+                    page1: { ...getDefaultDataForGroup("max"), ...prev.page1 },
+                    page2: { ...getDefaultDataForGroup("full"), ...prev.page2 },
+                    page3: { ...getDefaultDataForGroup("min"), ...prev.page3 },
+                    page4: { ...getDefaultDataForGroup("width"), ...prev.page4 }
+                };
+                return JSON.stringify(prev) !== JSON.stringify(newData) ? newData : prev;
             });
-            const result = await res.json();
-            setReelDriveData(prev => ({ ...prev, torque_empty: result?.torque?.empty || 0 }));
-        } catch (err) {
-            console.error("ReelDrive calculation failed:", err);
-        }
-    };
 
-    useEffect(() => {
-        setSubpageData(prev => {
-            const updated = { ...prev };
-            Object.keys(pageMapping).forEach(key => {
-                if (!updated[key]) updated[key] = getDefaultDataForGroup(pageMapping[key]);
-            });
-            return updated;
-        });
-    }, []);
+            // Run ReelDrive Calculation
+            const form = {
+                model: subpageData[activePage].reelModel,
+                material_type: materialSpecs.materialTypeMax,
+                coil_weight: parseFloat(materialSpecs.coilWeightMax),
+                coil_id: parseFloat(materialSpecs.coilIDMax),
+                coil_od: parseFloat(materialSpecs.coilODMax),
+                reel_width: parseFloat(materialSpecs.coilWidthMax),
+                backplate_diameter: subpageData[activePage].backplateDiameter,
+                motor_hp: subpageData[activePage].horsepower,
+                type_of_line: materialSpecs.lineType,
+                required_max_fpm: parseFloat(materialSpecs.requiredMaxFPMMax),
+            };
 
-    useEffect(() => {
-        const runCalc = async () => {
-            setLoading(true);
-            await calculateReelDrive();
-            setLoading(false);
+            try {
+                console.log("ReelDrive calculation form:", form);
+                const res = await fetch(`${API_URL}/api/reel_drive/calculate`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(form)
+                });
+                const result = await res.json();
+                console.log("ReelDrive calculation result:", result);
+                setReelDriveData(prev => ({ ...prev, torque_empty: result?.torque?.empty || 0 }));
+
+                // Update reelDrive torque in subpage
+                setSubpageData(prev => ({
+                    ...prev,
+                    [activePage]: {
+                        ...prev[activePage],
+                        reelDriveTQEmpty: (result?.torque?.empty || 0).toFixed(2),
+                        emptyHorsepower: (result?.horsepower?.empty || 0).toFixed(2),
+                        fullHorsepower: (result?.horsepower?.full || 0).toFixed(2)
+                    }
+                }));
+
+                const payload = buildTddbhdPayload();
+                if (validatePayload(payload)) {
+                    console.log("Sending payload:", payload);
+                    triggerBackendCalculation(payload);
+                } else {
+                    console.warn("Payload invalid on init load, not sending.");
+                }
+            } catch (err) {
+                console.error("ReelDrive calculation failed:", err);
+            }
         };
-        runCalc();
-    }, []);
 
-    useEffect(() => {
-        if (reelDriveData?.torque_empty !== undefined) {
+        updateDataAndTriggerCalculations();
+    }, [materialSpecs, activePage]);
+
+    const handleChange = (field, value) => {
+        if (sharedFields.includes(field)) {
+            setSubpageData(prev => {
+                const updated = {};
+                for (const page of Object.keys(prev)) {
+                    updated[page] = { ...prev[page], [field]: value };
+                }
+                return updated;
+            });
+        } else {
             setSubpageData(prev => ({
                 ...prev,
                 [activePage]: {
                     ...prev[activePage],
-                    reelDriveTQEmpty: reelDriveData.torque_empty.toFixed(2)
+                    [field]: value
                 }
             }));
         }
-    }, [reelDriveData?.torque_empty, activePage]);
 
-    const handleChange = (field, value) => {
-        setSubpageData(prev => ({
-            ...prev,
-            [activePage]: {
-                ...prev[activePage],
-                [field]: value
+        const payload = buildTddbhdPayload();
+        if (validatePayload(payload)) {
+            triggerBackendCalculation(payload);
+        } else {
+            console.warn("Payload invalid, not sending.");
+        }
+    };
+
+    const passConditions = {
+        rewindTorque: (v) => v != null && v !== 0 && v >= 100,
+        coilWidth: (v) => v != null && v !== 0 && v >= Number(subpageData[activePage][`materialThickness${capSuffix}`]),
+        holdDownForceRequired: (v) => v != null && v !== 0 && v <= Number(subpageData[activePage][`holdDownForceAvailable${capSuffix}`]),
+        brakePressRequired: (v) => v != null && v !== 0 && v <= Number(subpageData[activePage][`airPressure`]),
+        torqueRequired: (v) => v != null && v !== 0 && v <= Number(subpageData[activePage][`brakePressHoldingForce${capSuffix}`])
+    };
+
+    const evaluateCondition = (field, pageKey) => {
+        const suffix = capitalize(pageMapping[pageKey]);
+        const value = Number(subpageData[pageKey]?.[`${field}${suffix}`]);
+        const fieldCondition = passConditions[field];
+
+        if (typeof fieldCondition === "function") {
+            return fieldCondition(value);
+        } else if (typeof fieldCondition === "object" && fieldCondition[suffix]) {
+            return fieldCondition[suffix](value);
+        }
+        return true; // If no condition is defined
+    };
+
+    const validatePayload = (payload) => {
+        const requiredFields = [
+            "type_of_line", "reel_drive_tqempty", "yield_strength",
+            "thickness", "width", "coil_id", "coil_od", "coil_weight",
+            "decel", "friction", "air_pressure", "holddown_pressure",
+            "brake_qty", "brake_model", "cylinder", "hold_down_assy",
+            "hyd_threading_drive", "air_clutch", "material_type", "reel_model"
+        ];
+
+        for (const field of requiredFields) {
+            if (
+                payload[field] === undefined ||
+                payload[field] === null ||
+                payload[field] === "" ||
+                (typeof payload[field] === "number" && isNaN(payload[field]))
+            ) {
+                console.warn(`Validation failed: Missing or invalid ${field}`);
+                return false;
             }
-        }));
+        }
+        return true;
+    };
+
+    const snakeToCamel = (str) => {
+        return str.replace(/(_\w)/g, m => m[1].toUpperCase());
     };
 
     const buildTddbhdPayload = () => {
         const data = subpageData[activePage];
         return {
             type_of_line: data.typeOfLine,
-            drive_torque: Number(data.driveTorque) || 0,
             reel_drive_tqempty: Number(data.reelDriveTQEmpty || 0),
+            motor_hp: Number(data.horsepower) || 0,
+            empty_hp: Number(data.emptyHorsepower) || 0,
+            full_hp: Number(data.fullHorsepower) || 0,
+
             yield_strength: Number(data[`yieldStrength${capSuffix}`]) || 0,
             thickness: Number(data[`materialThickness${capSuffix}`]) || 0,
             width: Number(data[`coilWidth${capSuffix}`]) || 0,
             coil_id: Number(data[`coilID${capSuffix}`]) || 0,
             coil_od: Number(data[`coilOD${capSuffix}`]) || 0,
+            coil_weight: data.maxCoilWeight || 0,
+
+            decel: Number(data.decel) || 0,
             friction: Number(data[`friction${capSuffix}`]) || 0,
-            air_pressure: Number(data[`airPressure`]) || 0,
-            max_psi: Number(data[`maxPsi${capSuffix}`]) || 0,
+            air_pressure: Number(data.airPressure) || 0,
             holddown_pressure: Number(data[`holddownPressure${capSuffix}`]) || 0,
+
             brake_qty: Number(data[`brakeQty`]) || 1,
             brake_model: data[`brakeModel`] || "",
+
             cylinder: data[`cylinder`] || "",
             hold_down_assy: data[`holdDownAssy`] || "",
             hyd_threading_drive: data[`hydThreadingDrive`] || "",
             air_clutch: data[`airClutch`] || "",
+
             material_type: data[`materialType${capSuffix}`] || "Cold Rolled Steel",
             reel_model: data.reelModel || "",
-            coil_weight: data.maxCoilWeight || 0,
         };
     };
 
-    const triggerBackendCalculation = async () => {
-        const payload = buildTddbhdPayload();
+    const triggerBackendCalculation = async (payload) => {
         try {
-            const res = await fetch(`${API_URL}/api/tddbhd/calculate`, {
+            const response = await fetch(`${API_URL}/api/tddbhd/calculate`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)
             });
-            const result = await res.json();
-            console.log("Tddbhd result:", result);
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error("Backend calculation error:", errorData);
+                return;
+            }
+            const data = await response.json();
+            console.log("Backend response data:", data);
+            // Transform result keys: convert each from snake_case to camelCase then append current page suffix (e.g., 'Max')
+            const transformedData = {};
+            for (const key in data) {
+                const camelKey = snakeToCamel(key); // converts "web_tension_psi" to "webTensionPsi"
+                transformedData[`${camelKey}${capSuffix}`] = data[key];
+            }
+            console.log("Transformed data:", transformedData);
+            setSubpageData(prev => ({
+                ...prev,
+                [activePage]: { ...prev[activePage], ...transformedData }
+            }));
         } catch (err) {
             console.error("Tddbhd backend calculation failed:", err);
         }
     };
 
-    useEffect(() => {
-        if (subpageData[activePage]?.reelDriveTQEmpty) {
-            triggerBackendCalculation();
-        }
-    }, [subpageData, activePage]);
+    const pages = [
+        { key: "page1", title: "Max" },
+        { key: "page2", title: "Full" },
+        { key: "page3", title: "Min" },
+        { key: "page4", title: "Width" }
+    ];
+
+    const goToPreviousPage = () => {
+        const currentIndex = pages.findIndex((page) => page.key === activePage);
+        if (currentIndex > 0) setActivePage(pages[currentIndex - 1].key);
+    };
+
+    const goToNextPage = () => {
+        const currentIndex = pages.findIndex((page) => page.key === activePage);
+        if (currentIndex < pages.length - 1) setActivePage(pages[currentIndex + 1].key);
+    };
+
+    const currentGroup = pageMapping[activePage];
+    const currentGroupFields = groupFields[currentGroup];
 
     const renderTextField = (field) => (
         <Grid item xs={12} sm={6} key={field}>
@@ -190,6 +358,20 @@ export default function TddbhdPage() {
                 label={formatLabel(field)}
                 value={subpageData[activePage][field] || ""}
                 type="text"
+                onChange={(e) => handleChange(field, e.target.value)}
+                fullWidth
+                size="small"
+            />
+        </Grid>
+    );
+
+    const renderNumberField = (field) => (
+        <Grid item xs={12} sm={6} key={field}>
+            <Typography noWrap style={{ minWidth: 200 }}>field</Typography>
+            <TextField
+                label={formatLabel(field)}
+                value={subpageData[activePage][field] || ""}
+                type="number"
                 onChange={(e) => handleChange(field, e.target.value)}
                 fullWidth
                 size="small"
@@ -216,65 +398,307 @@ export default function TddbhdPage() {
     return (
         <Paper sx={{ p: 4 }}>
             <Typography variant="h4" gutterBottom>
-                TB/DB/HD Machine Simulation - {capitalize(suffix)}
+                TB/DB/HD Machine Simulation - {`${capSuffix}`}
             </Typography>
             <Divider sx={{ my: 2 }} />
 
-            {loading ? <CircularProgress /> : (
-                <>
-                    <Typography variant="h6">Reel Setup</Typography>
-                    <Grid container spacing={2}>
-                        {renderSelect("reelModel", ["CPR-040", "CPR-060", "CPR-080", "CPR-100", "CPR-200"])}
-                        {renderSelect("reelWidth", [42, 48, 54, 60, 66, 72])}
-                        {renderSelect("backplateDiameter", [27, 72])}
-                    </Grid>
+            {/* Common Reel Fields */}
+            <Typography variant="h6">Reel Model & Properties</Typography>
+            <Grid container spacing={2}>
+                <Grid item xs={6} md={4}>
+                    <Typography noWrap style={{ minWidth: 200 }}>Reel Model</Typography>
+                    <FormControl fullWidth size="small">
+                        <Select
+                            value={subpageData[activePage].reelModel}
+                            onChange={(e) => handleChange("reelModel", e.target.value)}
+                            name="reelModel"
+                        >
+                            {reelModels.map((model) => (
+                                <MenuItem key={model} value={model}>
+                                    {model}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+                </Grid>
 
-                    <Divider sx={{ my: 2 }} />
-                    <Typography variant="h6">Material + Mechanical Inputs</Typography>
-                    <Grid container spacing={2}>
-                        {groupFields[suffix].map(renderTextField)}
-                        {renderTextField("driveTorque")}
-                        {renderTextField("reelDriveTQEmpty")}
-                    </Grid>
+                <Grid item xs={6} md={4}>
+                    <Typography noWrap style={{ minWidth: 200 }}>Reel Width</Typography>
+                    <FormControl fullWidth size="small">
+                        <Select
+                            value={subpageData[activePage].reelWidth}
+                            onChange={(e) => handleChange("reelWidth", e.target.value)}
+                            name="reelWidth"
+                        >
+                            {reelWidths.map((width) => (
+                                <MenuItem key={width} value={width}>
+                                    {width}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+                </Grid>
 
-                    <Divider sx={{ my: 2 }} />
-                    <Typography variant="h6">Brake, Cylinder, Hold Down</Typography>
-                    <Grid container spacing={2}>
-                        {renderSelect("brakeQty", brakeQtyOptions)}
-                        {renderSelect("brakeModel", brakeModelOptions)}
-                        {renderSelect("airClutch", airClutchOptions)}
-                        {renderSelect("hydThreadingDrive", hydThreadingDriveOptions)}
-                        {renderSelect("holdDownAssy", holdDownAssyOptions)}
-                        {renderSelect("cylinder", cylinderOptions)}
-                        {renderTextField("airPressure")}
-                        {renderTextField("decel")}
-                    </Grid>
-                </>
-            )}
+                <Grid item xs={6} md={4}>
+                    <Typography noWrap style={{ minWidth: 200 }}>Backplate Diameter</Typography>
+                    <FormControl fullWidth size="small">
+                        <Select
+                            value={subpageData[activePage].backplateDiameter}
+                            onChange={(e) => handleChange("backplateDiameter", e.target.value)}
+                            name="backplateDiameter"
+                        >
+                            {backplateDiameterOptions.map((diameter) => (
+                                <MenuItem key={diameter} value={diameter}>
+                                    {diameter}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+                </Grid>
 
-            <Divider sx={{ my: 3 }} />
-            <Grid container spacing={2} justifyContent="space-between">
+                <Grid item xs={6} md={4}>
+                    <Typography noWrap style={{ minWidth: 200 }}>Type of Line</Typography>
+                    <FormControl fullWidth size="small">
+                        <Select
+                            value={subpageData[activePage].typeOfLine}
+                            onChange={(e) => handleChange("typeOfLine", e.target.value)}
+                            name="typeOfLine"
+                        >
+                            {typeOfLineOptions.map((type) => (
+                                <MenuItem key={type} value={type}>
+                                    {type}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+                </Grid>
+
+                <Grid item xs={6} md={4}>
+                    <Typography noWrap style={{ minWidth: 200 }}>Horsepower</Typography>
+                    <FormControl fullWidth size="small">
+                        <Select
+                            value={subpageData[activePage].horsepower}
+                            onChange={(e) => handleChange("horsepower", e.target.value)}
+                            name="horsepower"
+                        >
+                            {horsepowerOptions.map((hp) => (
+                                <MenuItem key={hp} value={hp}>
+                                    {hp}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+                </Grid>
+            </Grid>
+
+            <Grid container spacing={2} sx={{ mt: 1 }}>
+                <Grid item xs={6} md={4}>
+                    <Typography noWrap style={{ minWidth: 200 }}>Air Clutch</Typography>
+                    <FormControl fullWidth size="small">
+                        <Select
+                            value={subpageData[activePage].airClutch}
+                            onChange={(e) => handleChange("airClutch", e.target.value)}
+                            name="airClutch"
+                        >
+                            {airClutchOptions.map((option) => (
+                                <MenuItem key={option} value={option}>
+                                    {option}
+                                    </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+                </Grid>
+
+                <Grid item xs={6} md={4}>
+                    <Typography noWrap style={{ minWidth: 200 }}>Hyd Threading Drive</Typography>
+                    <FormControl fullWidth size="small">
+                        <Select
+                            value={subpageData[activePage].hydThreadingDrive}
+                            onChange={(e) => handleChange("hydThreadingDrive", e.target.value)}
+                            name="hydThreadingDrive"
+                        >
+                            {hydThreadingDriveOptions.map((option) => (
+                                <MenuItem key={option} value={option}>
+                                    {option}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+                </Grid>
+            </Grid>
+
+            <Grid container spacing={2} sx={{ mt: 1 }}>
+                <Grid item xs={6} md={4}>
+                    <Typography noWrap style={{ minWidth: 200 }}>Hold Down Assembly</Typography>
+                    <FormControl fullWidth size="small">
+                        <Select
+                            value={subpageData[activePage].holdDownAssy}
+                            onChange={(e) => handleChange("holdDownAssy", e.target.value)}
+                            name="holdDownAssy"
+                        >
+                            {holdDownAssyOptions.map((option) => (
+                                <MenuItem key={option} value={option}>
+                                    {option}
+                                    </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+                </Grid>
+
+                <Grid item xs={6} md={4}>
+                    <Typography noWrap style={{ minWidth: 200 }}>Cylinder</Typography>
+                    <FormControl fullWidth size="small">
+                        <Select
+                            value={subpageData[activePage].cylinder}
+                            onChange={(e) => handleChange("cylinder", e.target.value)}
+                            name="cylinder"
+                        >
+                            {cylinderOptions.map((option) => (
+                                <MenuItem key={option} value={option}>
+                                    {option}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+                </Grid>
+            </Grid>
+
+            <Grid container spacing={2} sx={{ mt: 1 }}>
+                <Grid item xs={6} md={4}>
+                    <Typography noWrap style={{ minWidth: 200 }}>Brake Quantity</Typography>
+                    <FormControl fullWidth size="small">
+                        <Select
+                            value={subpageData[activePage].brakeQty || ""}
+                            onChange={(e) => handleChange("brakeQty", e.target.value)}
+                            name={"brakeQty"}
+                        >
+                            {brakeQtyOptions.map((option) => (
+                                <MenuItem key={option} value={option}>
+                                    {option}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+                </Grid>
+
+                <Grid item xs={6} md={4}>
+                    <Typography noWrap style={{ minWidth: 200 }}>Brake Model</Typography>
+                    <FormControl fullWidth size="small">
+                        <Select
+                            value={subpageData[activePage].brakeModel || ""}
+                            onChange={(e) => handleChange("brakeModel", e.target.value)}
+                            name={"brakeModel"}
+                        >
+                            {brakeModelOptions.map((option) => (
+                                <MenuItem key={option} value={option}>
+                                    {option}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+                </Grid>
+            </Grid>
+
+            <Grid container spacing={2} sx={{ mt: 1 }}>
+                <Grid item xs={12} md={6}>
+                    <Typography noWrap style={{ minWidth: 200 }}>Air Pressure Available</Typography>
+                    <TextField size="small"
+                        type="number"
+                        value={subpageData[activePage].airPressure || ""}
+                        onChange={(e) => handleChange("airPressure", e.target.value)}
+                        fullWidth
+                    />
+                </Grid>
+
+                <Grid item xs={12} md={6}>
+                    <Typography noWrap style={{ minWidth: 200 }}>Required Deceleration Rate</Typography>
+                    <TextField size="small"
+                        type="number"
+                        value={subpageData[activePage].decel || ""}
+                        onChange={(e) => handleChange("decel", e.target.value)}
+                        fullWidth
+                    />
+                </Grid>
+
+                <Grid item xs={12} md={6}>
+                    <Typography noWrap style={{ minWidth: 200 }}>Friction</Typography>
+                    <TextField size="small"
+                        type="number"
+                        value={subpageData[activePage].friction || ""}
+                        onChange={(e) => handleChange("friction", e.target.value)}
+                        fullWidth
+                    />
+                </Grid>
+            </Grid>
+
+            {/* Material Fields for the current subpage */}
+            <Typography variant="h6" sx={{ mt: 2 }}>
+                {pages.find((p) => p.key === activePage)?.title} Material Properties
+            </Typography>
+            <Grid container spacing={1} xs={12} sx={{ mt: 1 }}>
+                {currentGroupFields.map((field) => (
+                    <Grid item xs={12} sm={6} key={field}>
+                        {field.startsWith("materialType") ? (
+                            <Grid container spacing={1}>
+                                <Grid item xs={12}>
+                                    <Typography noWrap style={{ minWidth: 200 }}>
+                                        {formatLabel(field)}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <FormControl fullWidth size="small">
+                                        <Select
+                                            value={subpageData[activePage][field] || ""}
+                                            onChange={(e) => handleChange(field, e.target.value)}
+                                        >
+                                            {materialOptions.map((option) => (
+                                                <MenuItem key={option} value={option}>
+                                                    {option}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+                            </Grid>
+                        ) : (
+                            <CalculatedField
+                                label={formatLabel(field)}
+                                value={subpageData[activePage][field] || ""} />
+                        )}
+                    </Grid>
+                ))}
+            </Grid>
+
+            {/* Navigation Buttons */}
+            <Grid
+                container
+                spacing={2}
+                justifyContent="space-between"
+                alignItems="center"
+                sx={{ mt: 4 }}
+            >
                 <Grid item>
                     <Button
                         variant="contained"
+                        onClick={goToPreviousPage}
                         disabled={activePage === "page1"}
-                        onClick={() => {
-                            const keys = Object.keys(pageMapping);
-                            const current = keys.indexOf(activePage);
-                            if (current > 0) setActivePage(keys[current - 1]);
-                        }}
-                    >Back</Button>
+                    >
+                        Back
+                    </Button>
+                </Grid>
+                <Grid item>
+                    <Typography variant="subtitle1">
+                        {pages.find((p) => p.key === activePage)?.title}
+                    </Typography>
                 </Grid>
                 <Grid item>
                     <Button
                         variant="contained"
+                        onClick={goToNextPage}
                         disabled={activePage === "page4"}
-                        onClick={() => {
-                            const keys = Object.keys(pageMapping);
-                            const current = keys.indexOf(activePage);
-                            if (current < keys.length - 1) setActivePage(keys[current + 1]);
-                        }}
-                    >Next</Button>
+                    >
+                        Next
+                    </Button>
                 </Grid>
             </Grid>
 
@@ -296,9 +720,15 @@ export default function TddbhdPage() {
                             {Object.keys(pageMapping).map((key) => {
                                 const suffix = capitalize(pageMapping[key]);
                                 const value = subpageData[key]?.[`${field}${suffix}`];
+                                const isPass = evaluateCondition(field, key);
                                 return (
-                                    <TableCell key={key}>
-                                        {value !== undefined ? value : "–"}
+                                    <TableCell
+                                        key={key}
+                                        sx={{
+                                            backgroundColor: isPass ? `${green}` : `${red}`
+                                        }}
+                                    >
+                                        {value !== undefined ? value : "0"}
                                     </TableCell>
                                 );
                             })}

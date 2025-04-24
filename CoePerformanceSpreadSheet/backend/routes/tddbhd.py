@@ -6,14 +6,16 @@ from math import pi, sqrt
 import re
 
 # Import your lookup functions
-from .utils.lookup_tables import get_cylinder_bore, get_hold_down_matrix_label, get_material_density, get_material_modulus, get_reel_max_weight, get_friction, get_pressure_psi, get_holddown_force_available, get_min_material_width, get_press_required, get_failsafe_holding_force
+from .utils.lookup_tables import get_cylinder_bore, get_hold_down_matrix_label, get_material_density, get_material_modulus, get_reel_max_weight, get_friction, get_pressure_psi, get_holddown_force_available, get_min_material_width, get_press_required, get_failsafe_holding_force, get_type_of_line, get_drive_key, get_drive_torque
 
 router = APIRouter()
 
 class TDDBHDInput(BaseModel):
     type_of_line: str
-    drive_torque: Optional[float]
     reel_drive_tqempty: Optional[float]
+    motor_hp: Optional[float]
+    empty_hp: Optional[float]
+    full_hp: Optional[float]
 
     yield_strength: float
     thickness: float
@@ -25,7 +27,6 @@ class TDDBHDInput(BaseModel):
     decel: float
     friction: float
     air_pressure: float
-    max_psi: float
     holddown_pressure: Optional[float]
 
     brake_qty: int
@@ -116,6 +117,18 @@ def calculate_tbdbhd(data: TDDBHDInput):
         failsafe_holding_force_calc = get_failsafe_holding_force(data.brake_model, data.brake_qty, friction_frontend, num_brakepads, brake_dist)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+    try:
+        reel_type_lookup = get_type_of_line(data.type_of_line)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    try:
+        drive_key_lookup = get_drive_key(data.reel_model, data.air_clutch, data.hyd_threading_drive)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    try:
+        drive_torque_lookup = get_drive_torque(drive_key_lookup)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
     density = density_lookup
     max_weight = reel_max_weight
@@ -127,6 +140,8 @@ def calculate_tbdbhd(data: TDDBHDInput):
     min_material_width = min_material_width_lookup
     brake_press_required = brake_press_required_lookup
     failsafe_holding_force = failsafe_holding_force_calc
+    reel_type = reel_type_lookup
+    drive_torque = drive_torque_lookup
 
     # Precalculation for needed values
     M = (modulus * data.width * data.thickness**3) / (12 * (data.coil_id/2))
@@ -163,8 +178,10 @@ def calculate_tbdbhd(data: TDDBHDInput):
     disp_reel_mtr = {22: 22.6, 38: 38, 60: 60}.get(hyd_drive_number, hyd_drive_number)
 
     # 5. Torque At Mandrel
-    torque_at_mandrel = (data.drive_torque if data.type_of_line.upper() == "PULLOFF" 
-                          else data.reel_drive_tqempty)
+    if reel_type.upper() == "PULLOFF":
+        torque_at_mandrel = drive_torque
+    else: 
+        torque_at_mandrel = data.reel_drive_tqempty
 
     # 6. Rewind Torque Calculation
     rewind_torque = web_tension_lbs * coil_od / 2

@@ -34,7 +34,7 @@ export const ReelDriveProvider = ({ children }) => {
         accel_rate: 1,
         accel_time: null,
 
-        torque_empty: ""
+        torque_empty: 0
     });
 
     return (

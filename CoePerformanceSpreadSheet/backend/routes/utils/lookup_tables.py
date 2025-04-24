@@ -18,7 +18,7 @@ lookup_model_families = LOOKUP_DATA.get("lookup_model_families", {})
 lookup_holddown_sort = LOOKUP_DATA.get("lookup_holddown_sort", {})
 lookup_brake_type = LOOKUP_DATA.get("lookup_brake_type", {})
 lookup_holddown_matrix = LOOKUP_DATA.get("lookup_holddown_matrix", {})
-lookup_drive_key = LOOKUP_DATA.get("lookup_drive_key", {})
+lookup_drive_torque = LOOKUP_DATA.get("lookup_drive_key", {})
 lookup_press_required = LOOKUP_DATA.get("lookup_press_required", {})
 lookup_motor_inertia = LOOKUP_DATA.get("lookup_motor_inertia", {})
 lookup_type_of_line = LOOKUP_DATA.get("lookup_type_of_line", {})
@@ -130,13 +130,20 @@ def get_cylinder_bore(brake_model: str) -> float:
     except KeyError:
         raise ValueError(f"Unknown brake model: {brake_model}")
 
-def get_torque_at_mandrel(model: str, air_clutch: str, hydThreadingDrive: str) -> str:
+def get_drive_key(model: str, air_clutch: str, hydThreadingDrive: str) -> str:
     """Return Torque at mandrel based off drive key"""
     try:
         drive_family = lookup_model_families[model]["drive_family"]
+        return drive_family + "+" + air_clutch + "+" + hydThreadingDrive
     except KeyError:
         raise ValueError(f"Unknown family: {model}")
 
+def get_drive_torque(drive_key: str) -> float:
+    """Return Torque at mandrel based off drive key"""
+    try:
+        return lookup_drive_torque[drive_key]["torque"]
+    except KeyError:
+        raise ValueError(f"Unknown drive key: {drive_key}")
 
 def get_press_required(brake_model: str, brake_qty: int, ) -> float:
     """Return Press Required based off Brake Model"""
@@ -168,8 +175,6 @@ def get_motor_inertia(motor_hp: str) -> float:
 
 def get_type_of_line(type_of_line: str) -> float:
     """Return Type of Line based off Type of Line"""
-    if type_of_line == "Motorized":
-        type_of_line = "Pull Through"
     try:
         return lookup_type_of_line[type_of_line]["reel_type"]
     except KeyError:
