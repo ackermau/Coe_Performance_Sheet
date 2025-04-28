@@ -48,6 +48,7 @@
     <Compile Include="backend\routes\rfq.py" />
     <Compile Include="backend\routes\tddbhd.py" />
     <Compile Include="backend\routes\utils\lookup_tables.py" />
+    <Compile Include="backend\routes\str_utility.py" />
     <Compile Include="backend\utils.py" />
   </ItemGroup>
   <ItemGroup>
@@ -62,11 +63,13 @@
     <Content Include="frontend\src\components\MaterialSpecsForm.js" />
     <Content Include="frontend\src\components\ReelDrive.js" />
     <Content Include="frontend\src\components\RFQForm.js" />
+    <Content Include="frontend\src\components\StrUtility.js" />
     <Content Include="frontend\src\components\TddbhdPage.js" />
     <Content Include="frontend\src\config.js" />
     <Content Include="frontend\src\context\MaterialSpecsContext.js" />
     <Content Include="frontend\src\context\ReelDriveContext.js" />
     <Content Include="frontend\src\context\RFQFormContext.js" />
+    <Content Include="frontend\src\context\StrUtilityContext.js" />
     <Content Include="frontend\src\context\TddbhdContext.js" />
     <Content Include="frontend\src\hooks\useSharedMaterialView.js" />
     <Content Include="frontend\src\index.css" />

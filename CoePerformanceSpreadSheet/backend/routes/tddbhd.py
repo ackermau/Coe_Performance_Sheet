@@ -161,13 +161,13 @@ def calculate_tbdbhd(data: TDDBHDInput):
 
     # 3. Coil OD Calculation
     try:
-        od_denominator = density * data.width
+        od_denominator = density * data.width * pi
         if od_denominator == 0:
             raise ZeroDivisionError
-        od_calc = sqrt((4 * coil_weight) / od_denominator + data.coil_id**2)
+        od_calc = sqrt(((4 * coil_weight) / od_denominator) + (data.coil_id**2))
     except ZeroDivisionError:
         raise HTTPException(status_code=400, detail="Density or width cannot be zero for OD calculation.")
-    coil_od = min(od_calc, data.coil_od) if not data.coil_od else data.coil_od
+    coil_od = min(od_calc, data.coil_od) 
 
     # 4. Display Reel Motor (simulate mapping)
     match = re.match(r"\d+", data.hyd_threading_drive)

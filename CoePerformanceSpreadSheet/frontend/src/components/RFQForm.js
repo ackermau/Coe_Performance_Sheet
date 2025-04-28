@@ -5,12 +5,18 @@ import { ArrowDropDown } from "../../node_modules/@mui/icons-material/index";
 import { RFQFormContext } from "../context/RFQFormContext";
 import { API_URL } from '../config';
 
+//
+// Utility function to format labels
+//
 const formatLabel = (label) => {
     return label
         .replace(/_/g, " ") // Replace underscores with spaces
         .replace(/\b\w/g, (char) => char.toUpperCase()); // Capitalize the first letter of each word
 };
 
+//
+// RFQForm component
+//
 export default function RFQForm() {
     const { rfqForm, setRFQForm } = useContext(RFQFormContext);
 

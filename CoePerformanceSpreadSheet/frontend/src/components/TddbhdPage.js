@@ -1,5 +1,3 @@
-// FULL VERSION: TddbhdPage restored to original layout with full field logic and integrated ReelDrive + backend calculation
-
 import { useState, useEffect, useContext } from "react";
 import {
     Paper, Typography, Grid, Divider, TextField, FormControl, Select, MenuItem, Button, Table, TableBody, TableRow, TableCell, CircularProgress
@@ -141,82 +139,38 @@ export default function TddbhdPage() {
                 };
                 return JSON.stringify(prev) !== JSON.stringify(newData) ? newData : prev;
             });
-
-            // Run ReelDrive Calculation
-            const form = {
-                model: subpageData[activePage].reelModel,
-                material_type: materialSpecs.materialTypeMax,
-                coil_weight: parseFloat(materialSpecs.coilWeightMax),
-                coil_id: parseFloat(materialSpecs.coilIDMax),
-                coil_od: parseFloat(materialSpecs.coilODMax),
-                reel_width: parseFloat(materialSpecs.coilWidthMax),
-                backplate_diameter: subpageData[activePage].backplateDiameter,
-                motor_hp: subpageData[activePage].horsepower,
-                type_of_line: materialSpecs.lineType,
-                required_max_fpm: parseFloat(materialSpecs.requiredMaxFPMMax),
-            };
-
-            try {
-                console.log("ReelDrive calculation form:", form);
-                const res = await fetch(`${API_URL}/api/reel_drive/calculate`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(form)
-                });
-                const result = await res.json();
-                console.log("ReelDrive calculation result:", result);
-                setReelDriveData(prev => ({ ...prev, torque_empty: result?.torque?.empty || 0 }));
-
-                // Update reelDrive torque in subpage
-                setSubpageData(prev => ({
-                    ...prev,
-                    [activePage]: {
-                        ...prev[activePage],
-                        reelDriveTQEmpty: (result?.torque?.empty || 0).toFixed(2),
-                        emptyHorsepower: (result?.horsepower?.empty || 0).toFixed(2),
-                        fullHorsepower: (result?.horsepower?.full || 0).toFixed(2)
-                    }
-                }));
-
-                const payload = buildTddbhdPayload();
-                if (validatePayload(payload)) {
-                    console.log("Sending payload:", payload);
-                    triggerBackendCalculation(payload);
-                } else {
-                    console.warn("Payload invalid on init load, not sending.");
-                }
-            } catch (err) {
-                console.error("ReelDrive calculation failed:", err);
-            }
         };
 
         updateDataAndTriggerCalculations();
     }, [materialSpecs, activePage]);
 
     const handleChange = (field, value) => {
-        if (sharedFields.includes(field)) {
-            setSubpageData(prev => {
-                const updated = {};
-                for (const page of Object.keys(prev)) {
-                    updated[page] = { ...prev[page], [field]: value };
-                }
-                return updated;
-            });
-        } else {
-            setSubpageData(prev => ({
-                ...prev,
-                [activePage]: {
-                    ...prev[activePage],
-                    [field]: value
-                }
-            }));
-        }
+        setSubpageData(prev => ({
+            ...prev,
+            [activePage]: {
+                ...prev[activePage],
+                [field]: value
+            }
+        }));
 
-        const payload = buildTddbhdPayload();
-        if (validatePayload(payload)) {
-            triggerBackendCalculation(payload);
-        } else {
-            console.warn("Payload invalid, not sending.");
+        try {
+            const form = buildReelDriveForm();
+            if (validateForm(form)) {
+                console.log("Sending form:", form);
+                triggerReelDriveCalculation(form);
+            } else {
+                console.warn("Form invalid on init load, not sending.");
+            }
+
+            const payload = buildTddbhdPayload();
+            if (validatePayload(payload)) {
+                console.log("Sending payload:", payload);
+                triggerBackendCalculation(payload);
+            } else {
+                console.warn("Payload invalid on init load, not sending.");
+            }
+        } catch (err) {
+            console.error("ReelDrive calculation failed:", err);
         }
     };
 
@@ -241,15 +195,7 @@ export default function TddbhdPage() {
         return true; // If no condition is defined
     };
 
-    const validatePayload = (payload) => {
-        const requiredFields = [
-            "type_of_line", "reel_drive_tqempty", "yield_strength",
-            "thickness", "width", "coil_id", "coil_od", "coil_weight",
-            "decel", "friction", "air_pressure", "holddown_pressure",
-            "brake_qty", "brake_model", "cylinder", "hold_down_assy",
-            "hyd_threading_drive", "air_clutch", "material_type", "reel_model"
-        ];
-
+    const validateField = (requiredFields, payload) => {
         for (const field of requiredFields) {
             if (
                 payload[field] === undefined ||
@@ -260,6 +206,36 @@ export default function TddbhdPage() {
                 console.warn(`Validation failed: Missing or invalid ${field}`);
                 return false;
             }
+        }
+        return true;
+    }
+
+    const validateForm = (form) => {
+        const requiredFields = [
+            "model", "material_type", "coil_weight", "coil_id",
+            "coil_od", "reel_width", "backplate_diameter", "motor_hp",
+            "type_of_line", "required_max_fpm"
+        ];
+
+        if (!validateField(requiredFields, form)) {
+            console.warn("Form validation failed");
+            return false;
+        }
+        return true;
+    }
+
+    const validatePayload = (payload) => {
+        const requiredFields = [
+            "type_of_line", "reel_drive_tqempty", "yield_strength",
+            "thickness", "width", "coil_id", "coil_od", "coil_weight",
+            "decel", "friction", "air_pressure", "holddown_pressure",
+            "brake_qty", "brake_model", "cylinder", "hold_down_assy",
+            "hyd_threading_drive", "air_clutch", "material_type", "reel_model"
+        ];
+
+        if (!validateField(requiredFields, payload)) {
+            console.warn("Payload validation failed");
+            return false;
         }
         return true;
     };
@@ -277,12 +253,12 @@ export default function TddbhdPage() {
             empty_hp: Number(data.emptyHorsepower) || 0,
             full_hp: Number(data.fullHorsepower) || 0,
 
-            yield_strength: Number(data[`yieldStrength${capSuffix}`]) || 0,
-            thickness: Number(data[`materialThickness${capSuffix}`]) || 0,
-            width: Number(data[`coilWidth${capSuffix}`]) || 0,
-            coil_id: Number(data[`coilID${capSuffix}`]) || 0,
-            coil_od: Number(data[`coilOD${capSuffix}`]) || 0,
-            coil_weight: data.maxCoilWeight || 0,
+            yield_strength: Number(materialSpecs[`yieldStrength${capSuffix}`]) || 0,
+            thickness: Number(materialSpecs[`materialThickness${capSuffix}`]) || 0,
+            width: Number(materialSpecs[`coilWidth${capSuffix}`]) || 0,
+            coil_id: Number(materialSpecs[`coilID${capSuffix}`]) || 0,
+            coil_od: Number(materialSpecs[`coilOD${capSuffix}`]) || 0,
+            coil_weight: materialSpecs.maxCoilWeight || 0,
 
             decel: Number(data.decel) || 0,
             friction: Number(data[`friction${capSuffix}`]) || 0,
@@ -297,8 +273,24 @@ export default function TddbhdPage() {
             hyd_threading_drive: data[`hydThreadingDrive`] || "",
             air_clutch: data[`airClutch`] || "",
 
-            material_type: data[`materialType${capSuffix}`] || "Cold Rolled Steel",
+            material_type: materialSpecs[`materialType${capSuffix}`] || "Cold Rolled Steel",
             reel_model: data.reelModel || "",
+        };
+    };
+
+    const buildReelDriveForm = () => {
+        const data = subpageData[activePage];
+        return {
+            model: data.reelModel,
+            material_type: materialSpecs.materialTypeMax,
+            coil_weight: parseFloat(materialSpecs.coilWeightMax),
+            coil_id: parseFloat(materialSpecs.coilIDMax),
+            coil_od: parseFloat(materialSpecs.coilODMax),
+            reel_width: parseFloat(materialSpecs.coilWidthMax),
+            backplate_diameter: data.backplateDiameter,
+            motor_hp: data.horsepower,
+            type_of_line: materialSpecs.lineType,
+            required_max_fpm: parseFloat(materialSpecs.requiredMaxFPMMax),
         };
     };
 
@@ -329,6 +321,34 @@ export default function TddbhdPage() {
             }));
         } catch (err) {
             console.error("Tddbhd backend calculation failed:", err);
+        }
+    };
+
+    const triggerReelDriveCalculation = async (form) => {
+        try {
+            const response = await fetch(`${API_URL}/api/reel_drive/calculate`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(form)
+            });
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error("ReelDrive calculation error:", errorData);
+                return;
+            }
+            const data = await response.json();
+            console.log("ReelDrive response data:", data);
+            setSubpageData(prev => ({
+                ...prev,
+                [activePage]: {
+                    ...prev[activePage],
+                    reelDriveTQEmpty: (data?.torque?.empty || 0).toFixed(2),
+                    emptyHorsepower: (data?.hp_req?.empty || 0).toFixed(2),
+                    fullHorsepower: (data?.hp_req?.full || 0).toFixed(2)
+                }
+            }));
+        } catch (err) {
+            console.error("ReelDrive calculation failed:", err);
         }
     };
 
@@ -409,7 +429,7 @@ export default function TddbhdPage() {
                     <Typography noWrap style={{ minWidth: 200 }}>Reel Model</Typography>
                     <FormControl fullWidth size="small">
                         <Select
-                            value={subpageData[activePage].reelModel}
+                            value={subpageData[activePage].reelModel || ""}
                             onChange={(e) => handleChange("reelModel", e.target.value)}
                             name="reelModel"
                         >
@@ -426,7 +446,7 @@ export default function TddbhdPage() {
                     <Typography noWrap style={{ minWidth: 200 }}>Reel Width</Typography>
                     <FormControl fullWidth size="small">
                         <Select
-                            value={subpageData[activePage].reelWidth}
+                            value={subpageData[activePage].reelWidth || ""}
                             onChange={(e) => handleChange("reelWidth", e.target.value)}
                             name="reelWidth"
                         >
@@ -443,7 +463,7 @@ export default function TddbhdPage() {
                     <Typography noWrap style={{ minWidth: 200 }}>Backplate Diameter</Typography>
                     <FormControl fullWidth size="small">
                         <Select
-                            value={subpageData[activePage].backplateDiameter}
+                            value={subpageData[activePage].backplateDiameter || ""}
                             onChange={(e) => handleChange("backplateDiameter", e.target.value)}
                             name="backplateDiameter"
                         >
@@ -460,7 +480,7 @@ export default function TddbhdPage() {
                     <Typography noWrap style={{ minWidth: 200 }}>Type of Line</Typography>
                     <FormControl fullWidth size="small">
                         <Select
-                            value={subpageData[activePage].typeOfLine}
+                            value={subpageData[activePage].typeOfLine || ""}
                             onChange={(e) => handleChange("typeOfLine", e.target.value)}
                             name="typeOfLine"
                         >
@@ -477,7 +497,7 @@ export default function TddbhdPage() {
                     <Typography noWrap style={{ minWidth: 200 }}>Horsepower</Typography>
                     <FormControl fullWidth size="small">
                         <Select
-                            value={subpageData[activePage].horsepower}
+                            value={subpageData[activePage].horsepower || ""}
                             onChange={(e) => handleChange("horsepower", e.target.value)}
                             name="horsepower"
                         >
@@ -496,7 +516,7 @@ export default function TddbhdPage() {
                     <Typography noWrap style={{ minWidth: 200 }}>Air Clutch</Typography>
                     <FormControl fullWidth size="small">
                         <Select
-                            value={subpageData[activePage].airClutch}
+                            value={subpageData[activePage].airClutch || ""}
                             onChange={(e) => handleChange("airClutch", e.target.value)}
                             name="airClutch"
                         >
@@ -513,7 +533,7 @@ export default function TddbhdPage() {
                     <Typography noWrap style={{ minWidth: 200 }}>Hyd Threading Drive</Typography>
                     <FormControl fullWidth size="small">
                         <Select
-                            value={subpageData[activePage].hydThreadingDrive}
+                            value={subpageData[activePage].hydThreadingDrive || ""}
                             onChange={(e) => handleChange("hydThreadingDrive", e.target.value)}
                             name="hydThreadingDrive"
                         >
@@ -532,7 +552,7 @@ export default function TddbhdPage() {
                     <Typography noWrap style={{ minWidth: 200 }}>Hold Down Assembly</Typography>
                     <FormControl fullWidth size="small">
                         <Select
-                            value={subpageData[activePage].holdDownAssy}
+                            value={subpageData[activePage].holdDownAssy || ""}
                             onChange={(e) => handleChange("holdDownAssy", e.target.value)}
                             name="holdDownAssy"
                         >
@@ -549,7 +569,7 @@ export default function TddbhdPage() {
                     <Typography noWrap style={{ minWidth: 200 }}>Cylinder</Typography>
                     <FormControl fullWidth size="small">
                         <Select
-                            value={subpageData[activePage].cylinder}
+                            value={subpageData[activePage].cylinder || ""}
                             onChange={(e) => handleChange("cylinder", e.target.value)}
                             name="cylinder"
                         >
@@ -635,7 +655,7 @@ export default function TddbhdPage() {
             <Typography variant="h6" sx={{ mt: 2 }}>
                 {pages.find((p) => p.key === activePage)?.title} Material Properties
             </Typography>
-            <Grid container spacing={1} xs={12} sx={{ mt: 1 }}>
+            <Grid container spacing={1} sx={{ mt: 1 }}>
                 {currentGroupFields.map((field) => (
                     <Grid item xs={12} sm={6} key={field}>
                         {field.startsWith("materialType") ? (
@@ -648,7 +668,7 @@ export default function TddbhdPage() {
                                 <Grid item xs={12}>
                                     <FormControl fullWidth size="small">
                                         <Select
-                                            value={subpageData[activePage][field] || ""}
+                                            value={materialSpecs[field] || ""}
                                             onChange={(e) => handleChange(field, e.target.value)}
                                         >
                                             {materialOptions.map((option) => (
