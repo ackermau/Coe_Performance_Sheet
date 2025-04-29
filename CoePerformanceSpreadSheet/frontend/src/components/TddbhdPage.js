@@ -98,26 +98,29 @@ export default function TddbhdPage() {
     const capSuffix = capitalize(suffix);
     const [loading, setLoading] = useState(false);
 
-    const getDefaultDataForGroup = (group) => {
-        return {
-            reelModel: reelModels[0],
-            reelWidth: reelWidths[0],
-            backplateDiameter: backplateDiameterOptions[0],
-            typeOfLine: typeOfLineOptions[0],
-            horsepower: horsepowerOptions[0],
-            reelDriveTQEmpty: "",
-            emptyHorsepower: "",
-            fullHorsepower: "",
-            brakeQty: brakeQtyOptions[0],
-            brakeModel: brakeModelOptions[0],
-            airClutch: airClutchOptions[0],
-            hydThreadingDrive: hydThreadingDriveOptions[0],
-            holdDownAssy: holdDownAssyOptions[0],
-            cylinder: cylinderOptions[0],
-            airPressure: "",
-            decel: "",
+    const sharedFields = [
+        "reelModel",
+        "reelWidth",
+        "backplateDiameter",
+        "typeOfLine",
+        "horsepower",
+        "reelDriveTQEmpty",
+        "emptyHorsepower",
+        "fullHorsepower",
+        "brakeQty",
+        "brakeModel",
+        "airClutch",
+        "hydThreadingDrive",
+        "holdDownAssy",
+        "cylinder",
+        "airPressure",
+        "decel",
+        "friction",
+    ];
 
-            maxCoilWeight: materialSpecs.maxCoilWeight,
+    const getDefaultDataForGroup = (group, sharedDefaults, materialSpecs) => {
+        return {
+            ...sharedDefaults,
             ...Object.fromEntries(
                 groupFields[group].map(f => [f, materialSpecs?.[f] || ""])
             )
@@ -126,16 +129,35 @@ export default function TddbhdPage() {
 
     useEffect(() => {
         const updateDataAndTriggerCalculations = async () => {
-            // Avoids triggering before data is ready
             if (!materialSpecs || !activePage) return;
 
-            // Initialize subpageData only once
+            const sharedDefaults = {
+                reelModel: reelModels[0],
+                reelWidth: reelWidths[0],
+                backplateDiameter: backplateDiameterOptions[0],
+                typeOfLine: typeOfLineOptions[0],
+                horsepower: horsepowerOptions[0],
+                reelDriveTQEmpty: "",
+                emptyHorsepower: "",
+                fullHorsepower: "",
+                brakeQty: brakeQtyOptions[0],
+                brakeModel: brakeModelOptions[0],
+                airClutch: airClutchOptions[0],
+                hydThreadingDrive: hydThreadingDriveOptions[0],
+                holdDownAssy: holdDownAssyOptions[0],
+                cylinder: cylinderOptions[0],
+                airPressure: "",
+                decel: "",
+                friction: "",
+                maxCoilWeight: materialSpecs.maxCoilWeight,
+            };
+
             setSubpageData(prev => {
                 const newData = {
-                    page1: { ...getDefaultDataForGroup("max"), ...prev.page1 },
-                    page2: { ...getDefaultDataForGroup("full"), ...prev.page2 },
-                    page3: { ...getDefaultDataForGroup("min"), ...prev.page3 },
-                    page4: { ...getDefaultDataForGroup("width"), ...prev.page4 }
+                    page1: { ...getDefaultDataForGroup("max", sharedDefaults, materialSpecs), ...prev.page1 },
+                    page2: { ...getDefaultDataForGroup("full", sharedDefaults, materialSpecs), ...prev.page2 },
+                    page3: { ...getDefaultDataForGroup("min", sharedDefaults, materialSpecs), ...prev.page3 },
+                    page4: { ...getDefaultDataForGroup("width", sharedDefaults, materialSpecs), ...prev.page4 }
                 };
                 return JSON.stringify(prev) !== JSON.stringify(newData) ? newData : prev;
             });
@@ -145,33 +167,49 @@ export default function TddbhdPage() {
     }, [materialSpecs, activePage]);
 
     const handleChange = (field, value) => {
-        setSubpageData(prev => ({
-            ...prev,
-            [activePage]: {
-                ...prev[activePage],
-                [field]: value
-            }
-        }));
+        setSubpageData(prev => {
+            const updatedData = { ...prev };
 
-        try {
-            const form = buildReelDriveForm();
-            if (validateForm(form)) {
-                console.log("Sending form:", form);
-                triggerReelDriveCalculation(form);
+            if (sharedFields.includes(field)) {
+                // Update all pages if shared field
+                Object.keys(prev).forEach(pageKey => {
+                    updatedData[pageKey] = {
+                        ...prev[pageKey],
+                        [field]: value
+                    };
+                });
             } else {
-                console.warn("Form invalid on init load, not sending.");
+                // Update only active page otherwise
+                updatedData[activePage] = {
+                    ...prev[activePage],
+                    [field]: value
+                };
             }
 
-            const payload = buildTddbhdPayload();
-            if (validatePayload(payload)) {
-                console.log("Sending payload:", payload);
-                triggerBackendCalculation(payload);
-            } else {
-                console.warn("Payload invalid on init load, not sending.");
+            try {
+                Object.keys(updatedData).forEach(pageKey => {
+                    const form = buildReelDriveForm(updatedData, pageKey);
+                    if (validateForm(form)) {
+                        console.log("Sending form:", form);
+                        triggerReelDriveCalculation(form, pageKey);
+                    } else {
+                        console.warn("Form invalid on init load, not sending.");
+                    }
+
+                    const payload = buildTddbhdPayload(updatedData, pageKey);
+                    if (validatePayload(payload)) {
+                        console.log("Sending payload:", payload);
+                        triggerBackendCalculation(payload, pageKey);
+                    } else {
+                        console.warn("Payload invalid on init load, not sending.");
+                    }
+                });
+            } catch (err) {
+                console.error("ReelDrive calculation failed:", err);
             }
-        } catch (err) {
-            console.error("ReelDrive calculation failed:", err);
-        }
+
+            return updatedData;
+        });
     };
 
     const passConditions = {
@@ -244,14 +282,15 @@ export default function TddbhdPage() {
         return str.replace(/(_\w)/g, m => m[1].toUpperCase());
     };
 
-    const buildTddbhdPayload = () => {
-        const data = subpageData[activePage];
+    const buildTddbhdPayload = (subpageData, pageKey) => {
+        const capSuffix = capitalize(pageMapping[pageKey]);
+        const data = subpageData[pageKey];
         return {
             type_of_line: data.typeOfLine,
             reel_drive_tqempty: Number(data.reelDriveTQEmpty || 0),
-            motor_hp: Number(data.horsepower) || 0,
-            empty_hp: Number(data.emptyHorsepower) || 0,
-            full_hp: Number(data.fullHorsepower) || 0,
+            motor_hp: parseFloat(data.horsepower) || 0,
+            empty_hp: parseFloat(data.emptyHorsepower) || 0,
+            full_hp: parseFloat(data.fullHorsepower) || 0,
 
             yield_strength: Number(materialSpecs[`yieldStrength${capSuffix}`]) || 0,
             thickness: Number(materialSpecs[`materialThickness${capSuffix}`]) || 0,
@@ -278,8 +317,8 @@ export default function TddbhdPage() {
         };
     };
 
-    const buildReelDriveForm = () => {
-        const data = subpageData[activePage];
+    const buildReelDriveForm = (subpageData, pageKey) => {
+        const data = subpageData[pageKey];
         return {
             model: data.reelModel,
             material_type: materialSpecs.materialTypeMax,
@@ -294,7 +333,7 @@ export default function TddbhdPage() {
         };
     };
 
-    const triggerBackendCalculation = async (payload) => {
+    const triggerBackendCalculation = async (payload, pageKey) => {
         try {
             const response = await fetch(`${API_URL}/api/tddbhd/calculate`, {
                 method: "POST",
@@ -307,6 +346,7 @@ export default function TddbhdPage() {
                 return;
             }
             const data = await response.json();
+            const capSuffix = capitalize(pageMapping[pageKey]);
             console.log("Backend response data:", data);
             // Transform result keys: convert each from snake_case to camelCase then append current page suffix (e.g., 'Max')
             const transformedData = {};
@@ -317,14 +357,14 @@ export default function TddbhdPage() {
             console.log("Transformed data:", transformedData);
             setSubpageData(prev => ({
                 ...prev,
-                [activePage]: { ...prev[activePage], ...transformedData }
+                [pageKey]: { ...prev[pageKey], ...transformedData }
             }));
         } catch (err) {
             console.error("Tddbhd backend calculation failed:", err);
         }
     };
 
-    const triggerReelDriveCalculation = async (form) => {
+    const triggerReelDriveCalculation = async (form, pageKey) => {
         try {
             const response = await fetch(`${API_URL}/api/reel_drive/calculate`, {
                 method: "POST",
@@ -340,8 +380,8 @@ export default function TddbhdPage() {
             console.log("ReelDrive response data:", data);
             setSubpageData(prev => ({
                 ...prev,
-                [activePage]: {
-                    ...prev[activePage],
+                [pageKey]: {
+                    ...prev[pageKey],
                     reelDriveTQEmpty: (data?.torque?.empty || 0).toFixed(2),
                     emptyHorsepower: (data?.hp_req?.empty || 0).toFixed(2),
                     fullHorsepower: (data?.hp_req?.full || 0).toFixed(2)
@@ -432,6 +472,7 @@ export default function TddbhdPage() {
                             value={subpageData[activePage].reelModel || ""}
                             onChange={(e) => handleChange("reelModel", e.target.value)}
                             name="reelModel"
+                            disabled={sharedFields.includes("reelModel") && activePage !== "page1"}
                         >
                             {reelModels.map((model) => (
                                 <MenuItem key={model} value={model}>
@@ -449,6 +490,7 @@ export default function TddbhdPage() {
                             value={subpageData[activePage].reelWidth || ""}
                             onChange={(e) => handleChange("reelWidth", e.target.value)}
                             name="reelWidth"
+                            disabled={sharedFields.includes("reelWidth") && activePage !== "page1"}
                         >
                             {reelWidths.map((width) => (
                                 <MenuItem key={width} value={width}>
@@ -466,6 +508,7 @@ export default function TddbhdPage() {
                             value={subpageData[activePage].backplateDiameter || ""}
                             onChange={(e) => handleChange("backplateDiameter", e.target.value)}
                             name="backplateDiameter"
+                            disabled={sharedFields.includes("backplateDiameter") && activePage !== "page1"}
                         >
                             {backplateDiameterOptions.map((diameter) => (
                                 <MenuItem key={diameter} value={diameter}>
@@ -483,6 +526,7 @@ export default function TddbhdPage() {
                             value={subpageData[activePage].typeOfLine || ""}
                             onChange={(e) => handleChange("typeOfLine", e.target.value)}
                             name="typeOfLine"
+                            disabled={sharedFields.includes("typeOfLine") && activePage !== "page1"}
                         >
                             {typeOfLineOptions.map((type) => (
                                 <MenuItem key={type} value={type}>
@@ -500,6 +544,7 @@ export default function TddbhdPage() {
                             value={subpageData[activePage].horsepower || ""}
                             onChange={(e) => handleChange("horsepower", e.target.value)}
                             name="horsepower"
+                            disabled={sharedFields.includes("horsepower") && activePage !== "page1"}
                         >
                             {horsepowerOptions.map((hp) => (
                                 <MenuItem key={hp} value={hp}>
@@ -519,6 +564,7 @@ export default function TddbhdPage() {
                             value={subpageData[activePage].airClutch || ""}
                             onChange={(e) => handleChange("airClutch", e.target.value)}
                             name="airClutch"
+                            disabled={sharedFields.includes("airClutch") && activePage !== "page1"}
                         >
                             {airClutchOptions.map((option) => (
                                 <MenuItem key={option} value={option}>
@@ -536,6 +582,7 @@ export default function TddbhdPage() {
                             value={subpageData[activePage].hydThreadingDrive || ""}
                             onChange={(e) => handleChange("hydThreadingDrive", e.target.value)}
                             name="hydThreadingDrive"
+                            disabled={sharedFields.includes("hydThreadingDrive") && activePage !== "page1"}
                         >
                             {hydThreadingDriveOptions.map((option) => (
                                 <MenuItem key={option} value={option}>
@@ -555,6 +602,7 @@ export default function TddbhdPage() {
                             value={subpageData[activePage].holdDownAssy || ""}
                             onChange={(e) => handleChange("holdDownAssy", e.target.value)}
                             name="holdDownAssy"
+                            disabled={sharedFields.includes("holdDownAssy") && activePage !== "page1"}
                         >
                             {holdDownAssyOptions.map((option) => (
                                 <MenuItem key={option} value={option}>
@@ -572,6 +620,7 @@ export default function TddbhdPage() {
                             value={subpageData[activePage].cylinder || ""}
                             onChange={(e) => handleChange("cylinder", e.target.value)}
                             name="cylinder"
+                            disabled={sharedFields.includes("cylinder") && activePage !== "page1"}
                         >
                             {cylinderOptions.map((option) => (
                                 <MenuItem key={option} value={option}>
@@ -591,6 +640,7 @@ export default function TddbhdPage() {
                             value={subpageData[activePage].brakeQty || ""}
                             onChange={(e) => handleChange("brakeQty", e.target.value)}
                             name={"brakeQty"}
+                            disabled={sharedFields.includes("brakeQty") && activePage !== "page1"}
                         >
                             {brakeQtyOptions.map((option) => (
                                 <MenuItem key={option} value={option}>
@@ -608,6 +658,7 @@ export default function TddbhdPage() {
                             value={subpageData[activePage].brakeModel || ""}
                             onChange={(e) => handleChange("brakeModel", e.target.value)}
                             name={"brakeModel"}
+                            disabled={sharedFields.includes("brakeModel") && activePage !== "page1"}
                         >
                             {brakeModelOptions.map((option) => (
                                 <MenuItem key={option} value={option}>
@@ -627,6 +678,7 @@ export default function TddbhdPage() {
                         value={subpageData[activePage].airPressure || ""}
                         onChange={(e) => handleChange("airPressure", e.target.value)}
                         fullWidth
+                        disabled={sharedFields.includes("airPressure") && activePage !== "page1"}
                     />
                 </Grid>
 
@@ -637,6 +689,7 @@ export default function TddbhdPage() {
                         value={subpageData[activePage].decel || ""}
                         onChange={(e) => handleChange("decel", e.target.value)}
                         fullWidth
+                        disabled={sharedFields.includes("decel") && activePage !== "page1"}
                     />
                 </Grid>
 
@@ -647,6 +700,7 @@ export default function TddbhdPage() {
                         value={subpageData[activePage].friction || ""}
                         onChange={(e) => handleChange("friction", e.target.value)}
                         fullWidth
+                        disabled={sharedFields.includes("friction") && activePage !== "page1"}
                     />
                 </Grid>
             </Grid>
