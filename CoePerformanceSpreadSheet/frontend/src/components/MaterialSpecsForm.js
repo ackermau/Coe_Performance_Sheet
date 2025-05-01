@@ -92,6 +92,8 @@ export default function MaterialSpecsForm() {
             feedDirection: rfqForm.feed_direction || materialSpecs.feedDirection,
             lineType: rfqForm.line_type || materialSpecs.lineType,
             maxCoilWeight: rfqForm.max_coil_weight || materialSpecs.maxCoilWeight,
+            feedControls: "Sigma 5 Feed",
+            selectedRoll: rfqForm.selected_roll || materialSpecs.selectedRoll,
         };
 
         setMaterialSpecs(updatedSpecs);
@@ -290,8 +292,8 @@ export default function MaterialSpecsForm() {
             <Grid item xs={12} sm={4}>
                 <Typography noWrap style={{ minWidth: 200 }}>Select Roll</Typography>
                 <FormControl fullWidth size="small">
-                    <Select value={materialSpecs.selectRoll || ""}
-                        onChange={(e) => handleChange("selectRoll", e.target.value)}
+                    <Select value={materialSpecs.selectedRoll || ""}
+                        onChange={(e) => handleChange("selectedRoll", e.target.value)}
                         IconComponent={ArrowDropDown}>
                         {rollOptions.map((option) => (
                             <MenuItem key={option} value={option}>{option}</MenuItem>

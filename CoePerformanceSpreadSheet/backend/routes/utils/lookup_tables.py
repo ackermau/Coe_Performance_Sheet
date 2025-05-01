@@ -10,6 +10,9 @@ with open(_JSON_FILE, "r") as f:
     LOOKUP_DATA = json.load(f)
 
 # Now extract the individual lookup dictionaries
+#####
+# TDDBHD
+#####
 lookup_material = LOOKUP_DATA.get("lookup_material", {})
 lookup_reel_dimensions = LOOKUP_DATA.get("lookup_reel_dimensions", {})
 lookup_friction = LOOKUP_DATA.get("lookup_friction", {})
@@ -22,7 +25,14 @@ lookup_drive_torque = LOOKUP_DATA.get("lookup_drive_key", {})
 lookup_press_required = LOOKUP_DATA.get("lookup_press_required", {})
 lookup_motor_inertia = LOOKUP_DATA.get("lookup_motor_inertia", {})
 lookup_type_of_line = LOOKUP_DATA.get("lookup_type_of_line", {})
+#####
+# STR Utility
+#####
+lookup_str_model = LOOKUP_DATA.get("lookup_str_model", {})
 
+######
+# TDDBHD methods
+######
 def get_material_density(material: str) -> float:
     """Return the density for a given material from the JSON lookup."""
     material_key = material.upper()
@@ -47,14 +57,6 @@ def get_reel_max_weight(reel_model: str) -> int:
         return lookup_reel_dimensions[reel_model_key]["coil_weight"]
     except KeyError:
         raise ValueError(f"Unknown reel model: {reel_model}")
-
-def get_friction(key: str = "DEFAULT") -> float:
-    """Return a friction value from the JSON lookup."""
-    key = key.upper()
-    try:
-        return lookup_friction[key]
-    except KeyError:
-        raise ValueError(f"Unknown friction key: {key}")
 
 def get_fpm_buffer(key: str = "DEFAULT") -> float:
     """Return a FPM buffer value from the JSON lookup."""
@@ -145,27 +147,6 @@ def get_drive_torque(drive_key: str) -> float:
     except KeyError:
         raise ValueError(f"Unknown drive key: {drive_key}")
 
-def get_press_required(brake_model: str, brake_qty: int, ) -> float:
-    """Return Press Required based off Brake Model"""
-    try:
-        press_required = lookup_press_required[brake_model]["pressure_required"]
-    except KeyError:
-        raise ValueError(f"Unknown brake model: {brake_model} or {brake_qty}")
-    if brake_qty < 1 or brake_qty > 4:
-        raise ValueError(f"Brake quantity {brake_qty} out of range (1-4)")
-    return press_required / brake_qty
-
-def get_failsafe_holding_force(brake_model: str, brake_qty: int, friction: int, num_brakepads: int, brake_dist: int) -> float:
-    """Return Failsafe Holding Force based off Brake Model"""
-    try:
-        failsafe_holding_force = lookup_press_required[brake_model]["fs_spring_force"]
-        holding_force = int(failsafe_holding_force.split(" ")[0])
-    except KeyError:
-        raise ValueError(f"Unknown brake model: {brake_model} or {brake_qty}")
-    if brake_qty < 1 or brake_qty > 4:
-        raise ValueError(f"Brake quantity {brake_qty} out of range (1-4)")
-    return holding_force * friction * num_brakepads * brake_dist * brake_qty
-
 def get_motor_inertia(motor_hp: str) -> float:
     """Return Motor Inertia based off Motor HP"""
     try:
@@ -221,4 +202,45 @@ def get_material(material: str) -> dict:
     except KeyError:
         raise ValueError(f"Unknown material: {material}")
 
-# You can add similar functions for any additional lookup tables if necessary.
+#####
+# STR Utility methods
+#####
+def get_center_dist(model: str) -> float:
+    """Return Center Dist for a given model from the JSON lookup."""
+    model_key = model.upper()
+    try:
+        return lookup_str_model[model_key]["center_distance"]
+    except KeyError:
+        raise ValueError(f"Unknown model: {model}")
+
+def get_str_roll_dia(model: str) -> float:
+    """Return Str Roll Dia for a given model from the JSON lookup."""
+    model_key = model.upper()
+    try:
+        return lookup_str_model[model_key]["roll_diameter"]
+    except KeyError:
+        raise ValueError(f"Unknown model: {model}")
+
+def get_pinch_roll_dia(model: str) -> float:
+    """Return Pinch Roll Dia for a given model from the JSON lookup."""
+    model_key = model.upper()
+    try:
+        return lookup_str_model[model_key]["pinch_roll_dia"]
+    except KeyError:
+        raise ValueError(f"Unknown model: {model}")
+
+def get_jack_force_available(model: str) -> float:
+    """Return Jack Force Available for a given model from the JSON lookup."""
+    model_key = model.upper()
+    try:
+        return lookup_str_model[model_key]["jack_force_avail"]
+    except KeyError:
+        raise ValueError(f"Unknown model: {model}")
+
+def get_max_roll_depth(model: str) -> float:
+    """Return Max Roll Depth for a given model from the JSON lookup."""
+    model_key = model.upper()
+    try:
+        return lookup_str_model[model_key]["min_roll_depth"]
+    except KeyError:
+        raise ValueError(f"Unknown model: {model}")

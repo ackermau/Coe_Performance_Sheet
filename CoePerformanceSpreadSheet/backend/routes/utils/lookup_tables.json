@@ -55,10 +55,7 @@
       "modulus": 15500000,
       "density": 0.1630
     }
-  },
-  "lookup_friction": {
-    "DEFAULT": 0.5
-  },
+  }, 
   "lookup_fpm_buffer": {
     "DEFAULT": 1.2
   },

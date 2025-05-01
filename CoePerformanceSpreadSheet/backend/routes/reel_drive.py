@@ -21,7 +21,7 @@ class ReelDriveInput(BaseModel):
     coil_od: float
     reel_width: float
     backplate_diameter: float
-    motor_hp: int
+    motor_hp: float
     type_of_line: str
     required_max_fpm: float
 
@@ -31,7 +31,10 @@ def calculate_reeldrive(data: ReelDriveInput):
     try:
         reel = get_reel_dimensions(data.model)
         material = get_material(data.material_type)
-        motor_inertia = get_motor_inertia(str(data.motor_hp))
+        if (data.motor_hp == 7.5) :
+            motor_inertia = get_motor_inertia(str(data.motor_hp))
+        else:
+            motor_inertia = get_motor_inertia(str(int(data.motor_hp)))
         reel_type = get_type_of_line(data.type_of_line)
         fpm_buffer = get_fpm_buffer("DEFAULT")
     except ValueError as e:

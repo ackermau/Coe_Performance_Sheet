@@ -299,9 +299,9 @@ export default function TddbhdPage() {
             coil_od: Number(materialSpecs[`coilOD${capSuffix}`]) || 0,
             coil_weight: materialSpecs.maxCoilWeight || 0,
 
-            decel: Number(data.decel) || 0,
-            friction: Number(data[`friction${capSuffix}`]) || 0,
-            air_pressure: Number(data.airPressure) || 0,
+            decel: parseFloat(data.decel) || 0,
+            friction: parseFloat(data.friction) || 0,
+            air_pressure: parseFloat(data.airPressure) || 0,
             holddown_pressure: Number(data[`holddownPressure${capSuffix}`]) || 0,
 
             brake_qty: Number(data[`brakeQty`]) || 1,

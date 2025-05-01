@@ -6,7 +6,7 @@ from math import pi, sqrt
 import re
 
 # Import your lookup functions
-from .utils.lookup_tables import get_cylinder_bore, get_hold_down_matrix_label, get_material_density, get_material_modulus, get_reel_max_weight, get_friction, get_pressure_psi, get_holddown_force_available, get_min_material_width, get_press_required, get_failsafe_holding_force, get_type_of_line, get_drive_key, get_drive_torque
+from .utils.lookup_tables import get_cylinder_bore, get_hold_down_matrix_label, get_material_density, get_material_modulus, get_reel_max_weight, get_pressure_psi, get_holddown_force_available, get_min_material_width, get_type_of_line, get_drive_key, get_drive_torque
 
 router = APIRouter()
 
@@ -66,80 +66,47 @@ class TDDBHDOutput(BaseModel):
 def calculate_tbdbhd(data: TDDBHDInput):
     num_brakepads = 2
     brake_dist = 12
-    friction_frontend = 0.6
+    cyl_rod = 1
 
     # Lookups
     # density, max weight, friction, modulus, cylinder bore, holddown pressure, holddown force available
     try:
         density_lookup = get_material_density(data.material_type)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    try:
+
         reel_max_weight = get_reel_max_weight(data.reel_model)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    try:
-        if data.friction == 0:
-            friction_lookup = get_friction()
-        else:
-            friction_lookup = data.friction
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    try:
+
         modulus_lookup = get_material_modulus(data.material_type)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    try:
+
         cylinder_bore_lookup = get_cylinder_bore(data.brake_model)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    try:
+
         holddown_matrix_key = get_hold_down_matrix_label(data.reel_model ,data.hold_down_assy, data.cylinder)
+
         holddown_pressure_calc = get_pressure_psi(holddown_matrix_key, data.air_pressure)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    try:
+
         holddown_matrix_key = get_hold_down_matrix_label(data.reel_model ,data.hold_down_assy, data.cylinder)
+
         hold_down_force_available_calc = get_holddown_force_available(holddown_matrix_key, data.holddown_pressure)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    try:
+
         holddown_matrix_key = get_hold_down_matrix_label(data.reel_model ,data.hold_down_assy, data.cylinder)
+
         min_material_width_lookup = get_min_material_width(holddown_matrix_key)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    try:
-        brake_press_required_lookup = get_press_required(data.brake_model, data.brake_qty)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    try:
-        friction = get_friction()
-        failsafe_holding_force_calc = get_failsafe_holding_force(data.brake_model, data.brake_qty, friction_frontend, num_brakepads, brake_dist)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    try:
+
         reel_type_lookup = get_type_of_line(data.type_of_line)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    try:
+
         drive_key_lookup = get_drive_key(data.reel_model, data.air_clutch, data.hyd_threading_drive)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    try:
+
         drive_torque_lookup = get_drive_torque(drive_key_lookup)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
     density = density_lookup
     max_weight = reel_max_weight
-    friction = friction_lookup
+    friction = data.friction
     modulus = modulus_lookup
     cylinder_bore = cylinder_bore_lookup
     holddown_pressure = holddown_pressure_calc
     hold_down_force_available = hold_down_force_available_calc
     min_material_width = min_material_width_lookup
-    brake_press_required = brake_press_required_lookup
-    failsafe_holding_force = failsafe_holding_force_calc
     reel_type = reel_type_lookup
     drive_torque = drive_torque_lookup
 
@@ -206,6 +173,34 @@ def calculate_tbdbhd(data: TDDBHDInput):
     if coil_od == 0:
         raise HTTPException(status_code=400, detail="Calculated coil OD must be non-zero for torque calculation.")
     torque_required = ((3 * data.decel * coil_weight * (coil_od**2 + data.coil_id**2)) / (386 * coil_od)) + rewind_torque
+
+    # 11. Brake Press Required Calculation
+    numerator = 4 * torque_required
+    denominator = pi * friction * brake_dist * num_brakepads 
+    if data.brake_model == "Single Stage" or data.brake_model == "Failsafe - Single Stage":
+        denominator = pi * friction * brake_dist * num_brakepads * cylinder_bore ** 2
+    elif data.brake_model == "Double Stage" or data.brake_model == "Failsafe - Double Stage":
+        denominator = pi * friction * brake_dist * num_brakepads * 2 * (cylinder_bore ** 2) - (cyl_rod ** 2)
+    elif data.brake_model == "Triple Stage":
+        denominator = pi * friction * brake_dist * num_brakepads * 3 * (cylinder_bore ** 2) - 2 * (cyl_rod ** 2)
+    else:
+        raise HTTPException(status_code=400, detail="Invalid brake model.")
+
+    press_required = numerator / denominator
+    brake_press_required = press_required / data.brake_qty
+
+    # 12. Brake Press Holding Force Calculation
+    if data.brake_model == "Failsafe - Single Stage":
+        hold_force = 1000
+    elif data.brake_model == "Failsafe - Double Stage":
+        hold_force = 2385
+    else:
+        hold_force = 0
+
+    if data.brake_qty < 1 or data.brake_qty > 4:
+        raise HTTPException(status_code=400, detail="Brake quantity must be between 1 and 4.")
+
+    failsafe_holding_force = hold_force * friction * num_brakepads * data.brake_qty * brake_dist 
 
     return {
         "friction": round(friction, 3),

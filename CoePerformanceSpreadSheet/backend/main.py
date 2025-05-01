@@ -22,6 +22,7 @@ app.include_router(rfq.router, prefix="/api/rfq")
 app.include_router(material_specs.router, prefix="/api/material_specs")
 app.include_router(tddbhd.router, prefix="/api/tddbhd")
 app.include_router(reel_drive.router, prefix="/api/reel_drive", tags=["Reel Drive"])
+app.include_router(machine.router, prefix="/api/str_utility", tags=["Str Utility"])
 
 # Include routers from different modules
 app.include_router(rfq.router, prefix="/rfq", tags=["RFQ"])
