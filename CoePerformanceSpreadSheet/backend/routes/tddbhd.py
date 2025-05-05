@@ -1,3 +1,4 @@
+from functools import partial
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
@@ -176,16 +177,17 @@ def calculate_tbdbhd(data: TDDBHDInput):
 
     # 11. Brake Press Required Calculation
     numerator = 4 * torque_required
-    denominator = pi * friction * brake_dist * num_brakepads 
+    partial_denominator = pi * friction * brake_dist * num_brakepads 
     if data.brake_model == "Single Stage" or data.brake_model == "Failsafe - Single Stage":
-        denominator = pi * friction * brake_dist * num_brakepads * cylinder_bore ** 2
+        last = (cylinder_bore ** 2)
     elif data.brake_model == "Double Stage" or data.brake_model == "Failsafe - Double Stage":
-        denominator = pi * friction * brake_dist * num_brakepads * 2 * (cylinder_bore ** 2) - (cyl_rod ** 2)
+        last = (2 * (cylinder_bore ** 2) - (cyl_rod ** 2))
     elif data.brake_model == "Triple Stage":
-        denominator = pi * friction * brake_dist * num_brakepads * 3 * (cylinder_bore ** 2) - 2 * (cyl_rod ** 2)
+        last = (3 * (cylinder_bore ** 2) - 2 * (cyl_rod ** 2))
     else:
         raise HTTPException(status_code=400, detail="Invalid brake model.")
 
+    denominator = partial_denominator * last
     press_required = numerator / denominator
     brake_press_required = press_required / data.brake_qty
 
@@ -200,7 +202,7 @@ def calculate_tbdbhd(data: TDDBHDInput):
     if data.brake_qty < 1 or data.brake_qty > 4:
         raise HTTPException(status_code=400, detail="Brake quantity must be between 1 and 4.")
 
-    failsafe_holding_force = hold_force * friction * num_brakepads * data.brake_qty * brake_dist 
+    failsafe_holding_force = hold_force * friction * num_brakepads * brake_dist * data.brake_qty 
 
     return {
         "friction": round(friction, 3),

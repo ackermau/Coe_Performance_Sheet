@@ -4,12 +4,22 @@ import {
 } from "@mui/material";
 import { API_URL } from '../config';
 import { StrUtilityContext } from "../context/StrUtilityContext";
-import { MaterialSpecsContexr } from "../context/MaterialSpecsContext";
+import { MaterialSpecsContext } from "../context/MaterialSpecsContext";
 
-const formatLabel = (label) => label
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (char) => char.toUpperCase())
-    .replace(/([a-z])([A-Z])/g, "$1 $2");
+const formatLabel = (label) => {
+    const suffixes = ["Max", "Min", "Full", "Width"];
+    const suffixRegex = new RegExp(`(${suffixes.join("|")})$`, "i");
+
+    // Remove suffix if present
+    const stripped = label.replace(suffixRegex, "");
+
+    // Then apply formatting
+    return stripped
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, (char) => char.toUpperCase())
+        .replace(/([a-z])([A-Z])/g, "$1 $2")
+        .trim();
+};
 
 const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -38,27 +48,27 @@ const autoBrakeCompenOptions = [
 ];
 
 const pulledFields = [
-    "coilWeightCap", "coilID", "coilWidth", "thickness", "yieldStrength", "materialType"
-];
-
-const lookupFields = [
-    "strRollDia", "pinchRollDia", "centerDist", "jackForceAvailable", "maxRollDepth", "modulus",
-    "pinchRollGearTeeth", "pinchRollGearDP", "strRollGearTeeth", "strRollGearDP", "faceWidthTeeth", "contAngleTeeth"
+    "coilID", "coilWidth", "materialThickness", "yieldStrength", "materialType"
 ];
 
 const calculatedFields = [
-    "requiredForce", "pinchRoll", "strRoll", "horsepowerRequired", "actualCoilWeight", "coilOD", "strTorque", "accelerationTorque", "brakeTorque"
+    "requiredForce", "pinchRollDia", "strRollDia", "pinchRollReqTorque", "pinchRollRatedTorque", "strRollReqTorque", "strRollRatedTorque", "horsepowerRequired", 
+    "centerDist", "jackForceAvailable", "maxRollDepth", "modulus", "pinchRollTeeth", "pinchRollDP", "strRollTeeth", "strRollDP", "contAngle" ,
+    "actualCoilWeight", "coilOD", "strTorque", "accelerationTorque", "brakeTorque",
 ];
 
+const pageMapping = { page1: "max", page2: "full", page3: "min", page4: "width" };
+
 const groupFields = {
-    max: [...pulledFields.map(field => `${field}Max`), ...lookupFields.map(field => `${field}Max`), ...calculatedFields.map(field => `${field}Max`)],
-    full: [...pulledFields.map(field => `${field}Full`), ...lookupFields.map(field => `${field}Full`), ...calculatedFields.map(field => `${field}Full`)],
-    min: [...pulledFields.map(field => `${field}Min`), ...lookupFields.map(field => `${field}Min`), ...lookupFields.map(field => `${field}Min`), ...calculatedFields.map(field => `${field}Min`)],
-    width: [...pulledFields.map(field => `${field}Width`), ...lookupFields.map(field => `${field}Width`), ...calculatedFields.map(field => `${field}Width`)]
+    max: [...pulledFields.map(field => `${field}Max`), ...calculatedFields.map(field => `${field}Max`)],
+    full: [...pulledFields.map(field => `${field}Full`), ...calculatedFields.map(field => `${field}Full`)],
+    min: [...pulledFields.map(field => `${field}Min`), ...calculatedFields.map(field => `${field}Min`)],
+    width: [...pulledFields.map(field => `${field}Width`), ...calculatedFields.map(field => `${field}Width`)]
 };
 
 export default function StrUtility() {
-    const { subpageData, setSubpageData, activePage, setActivePage } = StrUtilityContext();
+    const { materialSpecs } = useContext(MaterialSpecsContext);
+    const { subpageData, setSubpageData, activePage, setActivePage } = useContext(StrUtilityContext);
 
     const suffix = pageMapping[activePage];
     const capSuffix = capitalize(suffix);
@@ -68,10 +78,11 @@ export default function StrUtility() {
         "payoff", "strModel", "strWidth", "horsepower", "feedRate", "autoBrakeCompensation", "acceleration"
     ];
 
-    const getDefaultDataForGroup = (group) => {
+    const getDefaultDataForGroup = (group, sharedFields, materialSpecs) => {
         return {
+            ...sharedFields,
             ...Object.fromEntries(
-                groupFields[group].map(field => [field, materialSpecs?.[f] || ""])
+                groupFields[group].map(field => [field, materialSpecs?.[field] || ""])
             )
         };
     };
@@ -87,15 +98,16 @@ export default function StrUtility() {
                 horsepower: horsepowerOptions[0],
                 feedRate: feedRateOptions[0],
                 autoBrakeCompensation: autoBrakeCompenOptions[0],
-                acceleration: 1
+                acceleration: 1,
+                maxCoilWeight: materialSpecs.maxCoilWeight
             }
 
             setSubpageData(prev => {
                 const newData = {
-                    page1: { ...getDefaultDataForGroup("max"), ...prev.page1 },
-                    page2: { ...getDefaultDataForGroup("full"), ...prev.page2 },
-                    page3: { ...getDefaultDataForGroup("min"), ...prev.page3 },
-                    page4: { ...getDefaultDataForGroup("width"), ...prev.page4 }
+                    page1: { ...getDefaultDataForGroup("max", sharedDefaults, materialSpecs), ...prev.page1 },
+                    page2: { ...getDefaultDataForGroup("full", sharedDefaults, materialSpecs), ...prev.page2 },
+                    page3: { ...getDefaultDataForGroup("min", sharedDefaults, materialSpecs), ...prev.page3 },
+                    page4: { ...getDefaultDataForGroup("width", sharedDefaults, materialSpecs), ...prev.page4 }
                 };
                 return JSON.stringify(prev) !== JSON.stringify(newData) ? newData : prev; 
             });
@@ -105,45 +117,118 @@ export default function StrUtility() {
     }, [materialSpecs, activePage]);
 
     const handleChange = (field, value) => {
-        const updatedData = { ...prev };
+        setSubpageData(prev => {
+            const updatedData = { ...prev };
 
-        if (sharedFields.includes(field)) {
-            // Update all pages if shared field
-            Object.keys(prev).forEach(pageKey => {
-                updatedData[pageKey] = {
-                    ...prev[pageKey],
+            if (sharedFields.includes(field)) {
+                // Update all pages if shared field
+                Object.keys(prev).forEach(pageKey => {
+                    updatedData[pageKey] = {
+                        ...prev[pageKey],
+                        [field]: value
+                    };
+                });
+            } else {
+                // Update only active page otherwise
+                updatedData[activePage] = {
+                    ...prev[activePage],
                     [field]: value
                 };
-            });
-        } else {
-            // Update only active page otherwise
-            updatedData[activePage] = {
-                ...prev[activePage],
-                [field]: value
-            };
-        }
+            }
 
-    }
+            try {
+                Object.keys(updatedData).forEach(pageKey => {
+                    const payload = buildStrUtilityPayload(updatedData, pageKey);
+                    console.log("Payload being sent:", payload);
+                    triggerBackendCalculation(payload, pageKey);
+                });
+            }
+            catch (error) {
+                console.error("Error updating data:", error);
+            }
+
+            return updatedData;
+        });
+    };
 
     const buildStrUtilityPayload = (subpageData, pageKey) => {
         const capSuffix = capitalize(pageMapping[pageKey]);
         const data = subpageData[pageKey];
         return {
-            coil_weight_cap: Number(materialSpecs[`coilWeightCap${capSuffix}`]),
-            coil_id: Number(materialSpecs[`coilID${capSuffix}`]),
-            coil_width: Number(materialSpecs[`coilWidth${capSuffix}`]),
-            thickness: Number(materialSpecs[`thickness${capSuffix}`]),
-            yield_strength: Number(materialSpecs[`yieldStrength${capSuffix}`]),
-            material_type: materialSpecs[`materialType${capSuffix}`],
-            selected_roll: materialSpecs.selected_roll,
-            str_model: data.strModel,
-            str_width: data.strWidth,
-            horsepower: data.horsepower,
-            feed_rate: data.feedRate,
-            auto_brake_compensation: data.autoBrakeCompensation,
-            acceleration: data.acceleration,
+            max_coil_weight: parseFloat(materialSpecs.maxCoilWeight) || 0,
+            coil_id: parseFloat(materialSpecs[`coilID${capSuffix}`]) || 0,
+            coil_od: parseFloat(materialSpecs[`coilOD${capSuffix}`]) || 0,
+            coil_width: parseFloat(materialSpecs[`coilWidth${capSuffix}`]) || 0,
+            material_thickness: parseFloat(materialSpecs[`materialThickness${capSuffix}`]) || 0,
+            yield_strength: parseFloat(materialSpecs[`yieldStrength${capSuffix}`]) || 0,
+            material_type: materialSpecs[`materialType${capSuffix}`] || "",
+
+            selected_roll: materialSpecs.selectedRoll || "",
+            str_model: data.strModel || "",
+            str_width: parseFloat(data.strWidth) || 0,
+            horsepower: parseFloat(data.horsepower) || 0,
+
+            feed_rate: parseFloat(data.feedRate) || 0,
+            auto_brake_compensation: data.autoBrakeCompensation || "",
+            acceleration: parseFloat(data.acceleration) || 0,
+            num_str_rolls: Number(data.numStrRolls) || 0,
         };
     };
+
+    const snakeToCamel = (str) => {
+        return str.replace(/(_\w)/g, m => m[1].toUpperCase());
+    };
+
+    const triggerBackendCalculation = async (payload, pageKey) => {
+        try {
+            const response = await fetch(`${API_URL}/api/str_utility/calculate`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+            if (!response.ok) {
+                throw new Error("Failed to fetch data");
+                console.error("Backend calculation error:", errorData);
+                return;
+            }
+            const data = await response.json();
+            const capSuffix = capitalize(pageMapping[pageKey]);
+            console.log("Backend response data:", data);
+            // Transform result keys: convert each from snake_case to camelCase then append current page suffix (e.g., 'Max')
+            const transformedData = {};
+            for (const key in data) {
+                const camelKey = snakeToCamel(key); // converts "web_tension_psi" to "webTensionPsi"
+                transformedData[`${camelKey}${capSuffix}`] = data[key];
+            }
+            console.log("Transformed data:", transformedData);
+            setSubpageData(prev => ({
+                ...prev,
+                [pageKey]: { ...prev[pageKey], ...transformedData }
+            }));
+        } catch (error) {
+            console.error("Error fetching data:", error);
+        }
+    };
+
+    const pages = [
+        { key: "page1", title: "Max" },
+        { key: "page2", title: "Full" },
+        { key: "page3", title: "Min" },
+        { key: "page4", title: "Width" }
+    ];
+
+    const goToPreviousPage = () => {
+        const currentIndex = pages.findIndex((page) => page.key === activePage);
+        if (currentIndex > 0) setActivePage(pages[currentIndex - 1].key);
+    };
+
+    const goToNextPage = () => {
+        const currentIndex = pages.findIndex((page) => page.key === activePage);
+        if (currentIndex < pages.length - 1) setActivePage(pages[currentIndex + 1].key);
+    };
+
+    const currentGroup = pageMapping[activePage];
+    const currentGroupFields = groupFields[currentGroup];
 
     return (
         <Paper sx={{ p: 4 }}>
@@ -156,7 +241,7 @@ export default function StrUtility() {
             <Typography variant="h6">Str Utility & Properties</Typography>
             <Grid container spacing={2} sx={{ mb: 4 }}>
                 <Grid item xs={12} md={4}>
-                    <Typography nowrap style={{ minWidth: 200 }}>Payoff</Typography>
+                    <Typography noWrap style={{ minWidth: 200 }}>Payoff</Typography>
                     <FormControl fullWidth size="small">
                         <Select
                             value={subpageData[activePage].payoff || ""}
@@ -174,7 +259,7 @@ export default function StrUtility() {
                 </Grid>
 
                 <Grid item xs={12} md={4}>
-                    <Typography nowrap style={{ minWidth: 200 }}>Str Model</Typography>
+                    <Typography noWrap style={{ minWidth: 200 }}>Str Model</Typography>
                     <FormControl fullWidth size="small">
                         <Select
                             value={subpageData[activePage].strModel || ""}
@@ -192,7 +277,7 @@ export default function StrUtility() {
                 </Grid>
 
                 <Grid item xs={12} md={4}>
-                    <Typography nowrap style={{ minWidth: 200 }}>Str Width</Typography>
+                    <Typography noWrap style={{ minWidth: 200 }}>Str Width</Typography>
                     <FormControl fullWidth size="small">
                         <Select
                             value={subpageData[activePage].strWidth || ""}
@@ -208,11 +293,22 @@ export default function StrUtility() {
                         </Select>
                     </FormControl>
                 </Grid>
+
+                <Grid item xs={12} md={4}>
+                    <Typography noWrap style={{ minWidth: 200 }}>Number of Str Rolls</Typography>
+                    <TextField size="small"
+                        value={subpageData[activePage].numStrRolls || ""}
+                        onChange={(e) => handleChange("numStrRolls", e.target.value)}
+                        name="numStrRolls"
+                        type="number"
+                        disabled={sharedFields.includes("numStrRolls") && activePage !== "page1"}
+                    />
+                </Grid>
             </Grid>
 
             <Grid container spacing={2} sx={{ mb: 4 }}>
                 <Grid item xs={12} md={4}>
-                    <Typography nowrap style={{ minWidth: 200 }}>Horsepower</Typography>
+                    <Typography noWrap style={{ minWidth: 200 }}>Horsepower</Typography>
                     <FormControl fullWidth size="small">
                         <Select
                             value={subpageData[activePage].horsepower || ""}
@@ -230,7 +326,7 @@ export default function StrUtility() {
                 </Grid>
 
                 <Grid item xs={12} md={4}>
-                    <Typography nowrap style={{ minWidth: 200 }}>Acceleration</Typography>
+                    <Typography noWrap style={{ minWidth: 200 }}>Acceleration</Typography>
                     <TextField size="small"
                         value={subpageData[activePage].acceleration || ""}
                         onChange={(e) => handleChange("acceleration", e.target.value)}
@@ -241,7 +337,7 @@ export default function StrUtility() {
                 </Grid>
 
                 <Grid item xs={12} md={4}>
-                    <Typography nowrap style={{ minWidth: 200 }}>Feed Rate</Typography>
+                    <Typography noWrap style={{ minWidth: 200 }}>Feed Rate</Typography>
                     <FormControl fullWidth size="small">
                         <Select
                             value={subpageData[activePage].feedRate || ""}
@@ -259,7 +355,7 @@ export default function StrUtility() {
                 </Grid>
 
                 <Grid item xs={12} md={4}>
-                    <Typography nowrap style={{ minWidth: 200 }}>Auto Brake Compensation</Typography>
+                    <Typography noWrap style={{ minWidth: 200 }}>Auto Brake Compensation</Typography>
                     <FormControl fullWidth size="small">
                         <Select
                             value={subpageData[activePage].autoBrakeCompensation || ""}
@@ -277,52 +373,65 @@ export default function StrUtility() {
                 </Grid>
             </Grid>
 
-            <Divider sx={{ my: 2 }} />
-            <Typography variant="h6">Material Specs</Typography>
-            <Grid container spacing={2} sx={{ mb: 4 }}>
-                {pulledFields.map((field) => (
-                    <Grid item xs={12} md={4} key={field}>
-                        <Typography nowrap style={{ minWidth: 200 }}>{formatLabel(field)}</Typography>
-                        <TextField size="small"
-                            value={subpageData[activePage][field] || ""}
-                            onChange={(e) => handleChange(field, e.target.value)}
-                            name={field}
-                            disabled={pulledFields.includes(field) && activePage !== "page1"}
-                        />
-                    </Grid>
-                ))}
-            </Grid>
-
-            <Divider sx={{ my: 2 }} />
-            <Typography variant="h6">Lookup Values</Typography>
-            <Grid container spacing={2} sx={{ mb: 4 }}>
-                {lookupFields.map((field) => (
-                    <Grid item xs={12} md={4} key={field}>
-                        <Typography nowrap style={{ minWidth: 200 }}>{formatLabel(field)}</Typography>
-                        <TextField size="small"
-                            value={subpageData[activePage][field] || ""}
-                            onChange={(e) => handleChange(field, e.target.value)}
-                            name={field}
-                            disabled={lookupFields.includes(field) && activePage !== "page1"}
-                        />
-                    </Grid>
-                ))}
-            </Grid>
-
+            {/* Calculated Fields */}
             <Divider sx={{ my: 2 }} />
             <Typography variant="h6">Calculated Values</Typography>
-            <Grid container spacing={2} sx={{ mb: 4 }}>
-                {calculatedFields.map((field) => (
-                    <Grid item xs={12} md={4} key={field}>
-                        <Typography nowrap style={{ minWidth: 200 }}>{formatLabel(field)}</Typography>
+            <Grid container spacing={1} sx={{ mt: 1 }}>
+                <Grid item xs={12} md={6}>
+                    <Typography noWrap style={{ minWidth: 200 }}>Max Coil Weight</Typography>
+                    <TextField size="small"
+                        value={subpageData[activePage].maxCoilWeight || ""}
+                        onChange={(e) => handleChange("maxCoilWeight", e.target.value)}
+                        name="maxCoilWeight"
+                        type="number"
+                        disabled={sharedFields.includes("maxCoilWeight") && activePage !== "page1"}
+                    />
+                </Grid>
+
+                {currentGroupFields.map((field) => (
+                    <Grid item xs={12} md={6} key={field}>
+                        <Typography noWrap style={{ minWidth: 200 }}>{formatLabel(field)}</Typography>
                         <TextField size="small"
                             value={subpageData[activePage][field] || ""}
                             onChange={(e) => handleChange(field, e.target.value)}
                             name={field}
-                            disabled={calculatedFields.includes(field) && activePage !== "page1"}
+                            disabled={currentGroupFields.includes(field) && activePage !== "page1"}
                         />
                     </Grid>
                 ))}
+            </Grid>
+
+            {/* Navigation Buttons */}
+            <Grid
+                container
+                spacing={2}
+                justifyContent="space-between"
+                alignItems="center"
+                sx={{ mt: 4 }}
+            >
+                <Grid item>
+                    <Button
+                        variant="contained"
+                        onClick={goToPreviousPage}
+                        disabled={activePage === "page1"}
+                    >
+                        Back
+                    </Button>
+                </Grid>
+                <Grid item>
+                    <Typography variant="subtitle1">
+                        {pages.find((p) => p.key === activePage)?.title}
+                    </Typography>
+                </Grid>
+                <Grid item>
+                    <Button
+                        variant="contained"
+                        onClick={goToNextPage}
+                        disabled={activePage === "page4"}
+                    >
+                        Next
+                    </Button>
+                </Grid>
             </Grid>
         </Paper>
     );

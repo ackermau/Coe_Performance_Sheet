@@ -8,10 +8,20 @@ import { TddbhdContext } from "../context/TddbhdContext";
 import { ReelDriveContext } from "../context/ReelDriveContext";
 import { API_URL } from '../config';
 
-const formatLabel = (label) => label
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (char) => char.toUpperCase())
-    .replace(/([a-z])([A-Z])/g, "$1 $2");
+const formatLabel = (label) => {
+    const suffixes = ["Max", "Min", "Full", "Width"];
+    const suffixRegex = new RegExp(`(${suffixes.join("|")})$`, "i");
+
+    // Remove suffix if present
+    const stripped = label.replace(suffixRegex, "");
+
+    // Then apply formatting
+    return stripped
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, (char) => char.toUpperCase())
+        .replace(/([a-z])([A-Z])/g, "$1 $2")
+        .trim();
+};
 
 const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 

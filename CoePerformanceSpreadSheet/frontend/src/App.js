@@ -5,17 +5,19 @@ import MaterialSpecsForm from "./components/MaterialSpecsForm";
 import EquipmentSummary from "./components/EquipmentSummary";
 import TddbhdPage from "./components/TddbhdPage";
 import ReelDrive from "./components/ReelDrive";
+import StrUtility from "./components/StrUtility";
 
 function App() {
     return (
         <div>
             <nav>
-                <Link to="/"> Home</Link> |
-                <Link to="/rfq"> Create RFQ</Link> |
-                <Link to="/specs"> Machine Specs</Link> |
-                <Link to="/summary"> Equipment Summary</Link> |
-                <Link to="/tddbhd"> TDDBHD</Link> |
-                <Link to="/reeldrive"> Reel Drive</Link>
+                <Link to="/"> Home</Link> | 
+                <Link to="/rfq"> Create RFQ</Link> | 
+                <Link to="/specs"> Machine Specs</Link> | 
+                <Link to="/summary"> Equipment Summary</Link> | 
+                <Link to="/tddbhd"> TDDBHD</Link> | 
+                <Link to="/reeldrive"> Reel Drive</Link> | 
+                <Link to="/strutility"> STR Utility</Link>
             </nav>
 
             <Routes>
@@ -25,6 +27,7 @@ function App() {
                 <Route path="/summary" element={<EquipmentSummary rfqId={1} />} />
                 <Route path="/tddbhd" element={<TddbhdPage rfqId={1} />} />
                 <Route path="/reeldrive" element={<ReelDrive rfqID={1} />} />
+                <Route path="/strutility" element={<StrUtility rfqId={1} />} />
             </Routes>
         </div>
     );

@@ -7,45 +7,52 @@ from math import e, pi, sqrt
 from typing import Optional
 
 from .utils.lookup_tables import (
-    get_center_dist, get_str_roll_dia, get_pinch_roll_dia, get_jack_force_available, get_max_roll_depth, get_material_density
+    get_center_dist, get_str_roll_dia, get_pinch_roll_dia, get_jack_force_available, get_max_roll_depth, 
+    get_face_width, get_material_density, get_str_gear_torque, get_pinch_roll_teeth, get_pinch_roll_dp, 
+    get_str_roll_teeth, get_str_roll_dp, get_material_modulus
 )
 
 router = APIRouter()
 
 class StrUtilityInput(BaseModel):
-    coil_weight_cap: float
+    max_coil_weight: float
     coil_id: float
+    coil_od: float
     coil_width: float
-    thickness: float
+    material_thickness: float
     yield_strength: float
     material_type: str
+
     selected_roll: str
     str_model: str
     str_width: float
     horsepower: float
+
     feed_rate: float
     auto_brake_compensation: str
     acceleration: float
-
-class Lookups(BaseModel):
-    strRollDia : float
-    pinchRollDia : float
-    centerDist : float
-    jackForceAvailable : float
-    maxRollDepth : float
-    modulus : float
-    pinchRollGearTeeth : int
-    pinchRollGearDP : int
-    strRollGearTeeth : int
-    strRollGearDP : int
-    faceWidthTeeth : int
-    contAngleTeeth : int
+    num_str_rolls: int
 
 class StrUtilityOutput(BaseModel):
     requiredForce: float = Field(..., alias="required_force")
-    pinchRoll: float = Field(..., alias="pinch_roll")
-    strRoll: float = Field(..., alias="str_roll")
+    pinchRollDia: float = Field(..., alias="pinch_roll_dia")
+    strRollDia: float = Field(..., alias="str_roll_dia")
+    pinchRollReqTorque: float = Field(..., alias="pinch_roll_req_torque")
+    pinchRollRatedTorque: float = Field(..., alias="pinch_roll_rated_torque")
+    strRollReqTorque: float = Field(..., alias="str_roll_req_torque")
+    strRollRatedTorque: float = Field(..., alias="str_roll_rated_torque")
     horsepowerRequired: float = Field(..., alias="horsepower_required")
+
+    centerDist: float = Field(..., alias="center_dist")
+    jackForceAvailable: float = Field(..., alias="jack_force_available")
+    maxRollDepth: float = Field(..., alias="max_roll_depth")
+    modulus: float = Field(..., alias="modulus")
+    pinchRollTeeth: float = Field(..., alias="pinch_roll_teeth")
+    pinchRollDp: float = Field(..., alias="pinch_roll_dp")
+    strRollTeeth: float = Field(..., alias="str_roll_teeth")
+    strRollDp: float = Field(..., alias="str_roll_dp")
+    contAngle: float = Field(..., alias="cont_angle")
+
     actualCoilWeight: float = Field(..., alias="actual_coil_weight")
     coilOD: float = Field(..., alias="coil_od")
     strTorque: float = Field(..., alias="str_torque")
@@ -61,7 +68,14 @@ def calculate_str_utility(data: StrUtilityInput):
         pinch_roll_dia = get_pinch_roll_dia(data.str_model)
         jack_force_available = get_jack_force_available(data.str_model)
         max_roll_depth = get_max_roll_depth(data.str_model)
+        str_gear_torque = get_str_gear_torque(data.str_model)
         density = get_material_density(data.material_type)
+        modulus = get_material_modulus(data.material_type)
+        pinch_roll_teeth = get_pinch_roll_teeth(data.str_model)
+        pinch_roll_dp = get_pinch_roll_dp(data.str_model)
+        str_roll_teeth = get_str_roll_teeth(data.str_model)
+        str_roll_dp = get_str_roll_dp(data.str_model)
+        face_width = get_face_width(data.str_model)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -82,51 +96,208 @@ def calculate_str_utility(data: StrUtilityInput):
     else:
         k_cons = 3
 
+    if data.str_model == "SPGPS-810" or data.str_model == "CPPS-306" or data.str_model == "CPPS-406" or data.str_model == "CPPS-507":
+        ult_tensile_strength = 165100
+    else:
+        ult_tensile_strength = 128000
+
+    lewis_factor_options = {
+        12 : 0.245, 13 : 0.261, 14 : 0.277, 15 : 0.29, 16 : 0.296,
+        17 : 0.302, 18 : 0.314, 19 : 0.314, 20 : 0.321, 21 : 0.327, 22 : 0.33, 24 : 0.337,
+        25 : 0.341, 26 : 0.346, 27 : 0.348, 28 : 0.352, 30 : 0.359, 31 : 0.362, 32 : 0.365, 34 : 0.37
+    }
+    lewis_factor_pinch = lewis_factor_options[pinch_roll_teeth]
+    lewis_factor_str = lewis_factor_options[str_roll_teeth]
+
+    safe_working_stress = ult_tensile_strength / 3
+    accel_time = (data.feed_rate / 60) / data.acceleration
+
     motor_rpm = 1750
+    motor_inertia_hp = 3.876
     eff = 0.85
     coil_od_min = 72
+    pinch_roll_qty = 4
+    mat_length = 96
+    cont_angle = 20
 
     # Required Force
-    required_force = ((16 * data.yield_strength * data.coil_id * (data.thickness ** 2) / (15 * center_dist))
-                    + (16 * data.yield_strength * data.coil_width * (data.thickness ** 2) / (15 * center_dist)))
-
-    # Pinch Roll
-    str_torque = (((((((0.667 * data.yield_strength * data.coil_width * (data.thickness ** 2)) / center_dist) * 0.35 * data.feed_rate * k_cons) / 33000) * 5250) / motor_rpm) * 12) / eff
+    required_force = ((16 * data.yield_strength * data.coil_width * (data.material_thickness ** 2) / (15 * center_dist))
+                    + (16 * data.yield_strength * data.coil_width * (data.material_thickness ** 2) / (15 * center_dist)) * 0.19)
     
-    coil_od_measured = sqrt((data.coil_id ** 2) + ((data.coil_weight_cap * 4) / (pi * density * data.coil_width)))
-    coil_od = coil_od_min if coil_od_measured < coil_od_min else coil_od_measured
-    brake_torque = (((((())))))
+    coil_od_measured = sqrt((data.coil_id ** 2) + ((data.max_coil_weight * 4) / (pi * density * data.coil_width)))
+    coil_od = min(coil_od_measured, data.coil_od)
 
+    # Pinch / Str Roll / Material length and inertia calculations
+    pinch_roll_length = data.coil_width + 2
+    pinch_roll_lbs = ((pinch_roll_dia ** 2) / 4) * pi * pinch_roll_length * pinch_roll_qty * 0.283
+    pinch_roll_inertia = (pinch_roll_lbs / 32.3) * 0.5 * (((pinch_roll_dia * 0.5) ** 2) / 144) * 12
     pinch_ratio = motor_rpm / ((data.feed_rate * 12) / (pinch_roll_dia * pi))
-    min_od_brake_torque = 0
+    pinch_roll_refl_inertia = pinch_roll_inertia / (pinch_ratio ** 2)
 
-    return {
-        "required_force": 0,
-        "pinch_roll" : 0,
-        "str_roll": 0,
-        "horsepower_required": 0,
-        "actual_coil_weight" : 0,
-        "coil_od" : 0,
-        "str_torque" : 0,
-        "acceleration_torque" : 0,
-        "brake_torque" : 0
-    }
-
-@router.post("/lookup")
-def lookup_str_utility(data: Lookups):
-    # Lookups
+    str_roll_length = data.coil_width + 2
+    str_roll_lbs = ((str_roll_dia ** 2) / 4) * pi * str_roll_length * data.num_str_rolls * 0.283
+    str_roll_inertia = (str_roll_lbs / 32.3) * 0.5 * (((str_roll_dia * 0.5) ** 2) / 144) * 12
+    str_ratio = motor_rpm / ((data.feed_rate * 12) / (str_roll_dia * pi))
+    str_roll_refl_inertia = str_roll_inertia / (str_ratio ** 2)
     
+    mat_length_lbs = data.material_thickness * data.coil_width * density * mat_length
+    mat_length_inertia = (mat_length_lbs / 32.3) * 0.5 * (((data.coil_id * 0.5) ** 2) / 144) * 12
+    mat_length_refl_inertia = mat_length_inertia / (pinch_ratio ** 2)
+
+    max_od_inertia = (
+        (
+            (
+                (
+                    (coil_od ** 2)
+                   / 4)
+               * pi * data.coil_width * density)
+           / 32.3)
+       * 0.5 * (
+           (
+               (coil_od * 0.5)
+              ** 2)
+          / 144)
+       ) * 12
+    min_od_inertia = (
+        (
+            (
+                (
+                    (data.coil_id ** 2)
+                   / 4)
+               * pi * data.coil_width * density)
+           / 32.3)
+       * 0.5 * (
+           (
+               (data.coil_id * 0.5)
+              ** 2)
+          / 144)
+       ) * 12
+
+    max_od_ratio = (coil_od / pinch_roll_dia) * pinch_ratio
+    min_od_ratio = (data.coil_id / pinch_roll_dia) * pinch_ratio
+
+    max_od_refl_inertia = max_od_inertia / (max_od_ratio ** 2)
+    min_od_refl_inertia = min_od_inertia / (min_od_ratio ** 2)
+
+    max_od_total_inertia = pinch_roll_refl_inertia + str_roll_refl_inertia + mat_length_refl_inertia + max_od_refl_inertia
+    min_od_total_inertia = pinch_roll_refl_inertia + str_roll_refl_inertia + mat_length_refl_inertia + min_od_refl_inertia
+
+    # Torque
+    str_torque = (
+        (
+            (
+                (
+                    (
+                        (
+                            (0.667 * data.yield_strength * data.coil_width * (data.material_thickness ** 2)) / center_dist)
+                       * 0.35 * data.feed_rate * k_cons)
+                   / 33000)
+               * 5250)
+           / motor_rpm)
+       * 12) / eff
+    
+    coil_brake_torque = (
+        (
+            (
+                (
+                    (
+                        (coil_od ** 2)
+                       / 4)
+                   * pi * data.coil_width * density)
+               / 32.3 * 0.5 * (
+                   (
+                       (coil_od * 0.5)
+                      ** 2)
+                  / 144))
+           * 12)
+       * ((data.feed_rate * 12) / (coil_od * pi))) / (9.55 * 0.38)
+
+    max_od_brake_torque = (coil_brake_torque / ((coil_od / pinch_roll_dia) * pinch_ratio)) / eff
+    min_od_brake_torque = (coil_brake_torque / ((data.coil_id / pinch_roll_dia) * pinch_ratio)) / eff
+
+    max_od_accel_torque = (
+        (
+            (max_od_total_inertia * motor_rpm)
+           / (9.55 * accel_time)
+           ) * (1 / eff)
+           ) + (
+               (motor_inertia_hp * motor_rpm)
+              / (9.55 * accel_time)
+              )
+    min_od_accel_torque = (
+        (
+            (min_od_total_inertia * motor_rpm)
+           / (9.55 * accel_time)
+           ) * (1 / eff)
+           ) + (
+               (motor_inertia_hp * motor_rpm)
+              / (9.55 * accel_time)
+              )
+
+    max_od_pk_torque = str_torque + max_od_accel_torque + max_od_brake_torque
+    min_od_pk_torque = str_torque + min_od_accel_torque + min_od_brake_torque
+
+    # Gear Calculations
+    rpm_at_roller_pinch = (data.feed_rate * 12) / (pi * pinch_roll_dia)
+    pitch_dia_pinch = pinch_roll_teeth / pinch_roll_dp
+    pitch_line_vel_pinch = (pi * rpm_at_roller_pinch * pitch_dia_pinch) / 12
+    force_pitchline_pinch = (safe_working_stress * face_width * lewis_factor_pinch * 600) / (pinch_roll_dp * (600 + pitch_line_vel_pinch))
+    horsepower_rated_pinch = (force_pitchline_pinch * pitch_line_vel_pinch) / 33000
+
+    rpm_at_roller_str = (data.feed_rate * 12) / (pi * str_roll_dia)
+    pitch_dia_str = str_roll_teeth / str_roll_dp
+    pitch_line_vel_str = (pi * rpm_at_roller_str * pitch_dia_str) / 12
+    force_pitchline_str = (safe_working_stress * face_width * lewis_factor_str * 600) / (str_roll_dp * (600 + pitch_line_vel_str))
+    horsepower_rated_str = (force_pitchline_str * pitch_line_vel_str) / 33000
+     
+    # Pinch Roll
+    pinch_roll_req_torque = (str_torque * pinch_ratio / str_gear_torque) + (min_od_brake_torque / 2 * pinch_ratio) + (((max_od_total_inertia * motor_rpm) / (9.55 * accel_time)) * (1/eff)) * pinch_ratio / 2
+    pinch_roll_rated_torque = (63025 * horsepower_rated_pinch) / rpm_at_roller_pinch
+
+    # Str Roll
+    str_roll_req_torque = (str_torque * str_ratio / str_gear_torque) + (((max_od_total_inertia * motor_rpm) / (9.55 * accel_time)) * (1 / eff)) * str_ratio / 2 * 7 / 11
+    str_roll_rated_torque = (63025 * horsepower_rated_str) / rpm_at_roller_str
+
+    # Horsepower required
+    brake_option = data.auto_brake_compensation.lower()
+
+    if brake_option == "no":
+        horsepower_required = (min_od_pk_torque * motor_rpm) / 63000
+        accel_torque = min_od_accel_torque
+        brake_torque = min_od_brake_torque
+    elif brake_option == "yes":
+        horsepower_required = (max_od_pk_torque * motor_rpm) / 63000
+        accel_torque = max_od_accel_torque
+        brake_torque = max_od_brake_torque
+    else:
+        raise HTTPException(status_code=400, detail="Invalid auto brake compensation value")
+
+    # Actual Coil Weight
+    actual_coil_weight = (((coil_od**2) - data.coil_id**2) / 4) * pi * data.coil_width * density
+
     return {
-        "str_roll_dia" : 0,
-        "pinch_roll_dia" : 0,
-        "center_dist" : 0,
-        "jack_force_available" : 0,
-        "max_roll_depth" : 0,
-        "modulus" : 0,
-        "pinch_roll_gear_teeth" : 0,
-        "pinch_roll_gear_dp" : 0,
-        "str_roll_gear_teeth" : 0,
-        "str_roll_gear_dp" : 0,
-        "face_width_teeth" : 0,
-        "cont_angle_teeth" : 0
+        "required_force": round(required_force, 3),
+        "pinch_roll_dia" : round(pinch_roll_dia, 3),
+        "pinch_roll_req_torque" : round(pinch_roll_req_torque, 3),
+        "pinch_roll_rated_torque" : round(pinch_roll_rated_torque, 3),
+        "str_roll_dia": round(str_roll_dia, 3),
+        "str_roll_req_torque" : round(str_roll_req_torque, 3),
+        "str_roll_rated_torque" : round(str_roll_rated_torque, 3),
+        "horsepower_required": round(horsepower_required, 3),
+
+        "center_dist" : round(center_dist, 3),
+        "jack_force_available" : round(jack_force_available, 3),
+        "max_roll_depth" : round(max_roll_depth, 3),
+        "modulus" : round(modulus, 3),
+        "pinch_roll_teeth" : round(pinch_roll_teeth, 3),
+        "pinch_roll_dp" : round(pinch_roll_dp, 3),
+        "str_roll_teeth" : round(str_roll_teeth, 3),
+        "str_roll_dp" : round(str_roll_dp, 3),
+
+        "cont_angle" : round(cont_angle, 3),
+        "actual_coil_weight" : round(actual_coil_weight, 3),
+        "coil_od" : round(coil_od, 3),
+        "str_torque" : round(str_torque, 3),
+        "acceleration_torque" : round(accel_torque, 3),
+        "brake_torque" : round(brake_torque, 3)
     }

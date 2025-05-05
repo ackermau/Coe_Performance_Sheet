@@ -33,6 +33,7 @@ lookup_str_model = LOOKUP_DATA.get("lookup_str_model", {})
 ######
 # TDDBHD methods
 ######
+## Material Density
 def get_material_density(material: str) -> float:
     """Return the density for a given material from the JSON lookup."""
     material_key = material.upper()
@@ -41,6 +42,7 @@ def get_material_density(material: str) -> float:
     except KeyError:
         raise ValueError(f"Unknown material: {material}")
 
+## Material Modulus
 def get_material_modulus(material: str) -> float:
     """Return the modulus for a given material from the JSON lookup."""
     material_key = material.upper()
@@ -49,7 +51,7 @@ def get_material_modulus(material: str) -> float:
     except KeyError:
         raise ValueError(f"Unknown material: {material}")
 
-
+## Reel Max Weight
 def get_reel_max_weight(reel_model: str) -> int:
     """Return the maximum weight for a given reel model from the JSON lookup."""
     reel_model_key = reel_model.upper()
@@ -58,6 +60,7 @@ def get_reel_max_weight(reel_model: str) -> int:
     except KeyError:
         raise ValueError(f"Unknown reel model: {reel_model}")
 
+## FPM Buffer
 def get_fpm_buffer(key: str = "DEFAULT") -> float:
     """Return a FPM buffer value from the JSON lookup."""
     key = key.upper()
@@ -66,7 +69,7 @@ def get_fpm_buffer(key: str = "DEFAULT") -> float:
     except KeyError:
         raise ValueError(f"Unknown FPM buffer key: {key}")
 
-
+## Holddown Matrix
 def get_hold_down_matrix_label(model: str, hold_down_assy: str, cylinder: str) -> str:
     """Form and return hold down matrix label."""
     try:
@@ -81,7 +84,7 @@ def get_hold_down_matrix_label(model: str, hold_down_assy: str, cylinder: str) -
 
     return f"{hold_down_family}+{holddown_sort}+{hold_down_assy}+{cylinder}"
 
-
+## Pressure PSI
 def get_pressure_psi(holddown_matrix_key: str, air_pressure: float) -> float:
     """Return pressure psi based off Holddown Matrix Key"""
     holddown_matrix = next(
@@ -100,6 +103,7 @@ def get_pressure_psi(holddown_matrix_key: str, air_pressure: float) -> float:
     else:
         return psi
 
+## Holddown Force Available
 def get_holddown_force_available(holddown_matrix_key: str, holddown_pressure: str) -> float:
     """Return Force Factor based off Holddown Matrix Key"""
     holddown_matrix = next(
@@ -112,6 +116,7 @@ def get_holddown_force_available(holddown_matrix_key: str, holddown_pressure: st
     force_factor = holddown_matrix["ForceFactor"]
     return force_factor * holddown_pressure
 
+## Min Material Width
 def get_min_material_width(holddown_matrix_key: str) -> float:
     """Return Min Material Width based off Holddown Matrix Key"""
     holddown_matrix = next(
@@ -124,7 +129,7 @@ def get_min_material_width(holddown_matrix_key: str) -> float:
     min_material_width = holddown_matrix["MinWidth"]
     return min_material_width
 
-
+## Cylinder bore
 def get_cylinder_bore(brake_model: str) -> float:
     """Return Cylinder Bore Type based off Brake Model"""
     try:
@@ -132,6 +137,7 @@ def get_cylinder_bore(brake_model: str) -> float:
     except KeyError:
         raise ValueError(f"Unknown brake model: {brake_model}")
 
+## Drive Key
 def get_drive_key(model: str, air_clutch: str, hydThreadingDrive: str) -> str:
     """Return Torque at mandrel based off drive key"""
     try:
@@ -140,6 +146,7 @@ def get_drive_key(model: str, air_clutch: str, hydThreadingDrive: str) -> str:
     except KeyError:
         raise ValueError(f"Unknown family: {model}")
 
+## Drive Torque
 def get_drive_torque(drive_key: str) -> float:
     """Return Torque at mandrel based off drive key"""
     try:
@@ -147,6 +154,7 @@ def get_drive_torque(drive_key: str) -> float:
     except KeyError:
         raise ValueError(f"Unknown drive key: {drive_key}")
 
+## Motor Inertia
 def get_motor_inertia(motor_hp: str) -> float:
     """Return Motor Inertia based off Motor HP"""
     try:
@@ -154,6 +162,7 @@ def get_motor_inertia(motor_hp: str) -> float:
     except KeyError:
         raise ValueError(f"Unknown motor HP: {motor_hp}")
 
+## Type of Line
 def get_type_of_line(type_of_line: str) -> float:
     """Return Type of Line based off Type of Line"""
     try:
@@ -161,7 +170,7 @@ def get_type_of_line(type_of_line: str) -> float:
     except KeyError:
         raise ValueError(f"Unknown type of line: {type_of_line}")
 
-
+## Reel Dimensions
 def get_reel_dimensions(model: str) -> dict:
     """
     Return all data for a given reel model from the JSON lookup.
@@ -185,6 +194,7 @@ def get_reel_dimensions(model: str) -> dict:
     except KeyError:
         raise ValueError(f"Unknown reel model: {model}")
 
+## Material
 def get_material(material: str) -> dict:
     """
     Return all data for a given material from the JSON lookup.
@@ -205,6 +215,7 @@ def get_material(material: str) -> dict:
 #####
 # STR Utility methods
 #####
+## Center Distance
 def get_center_dist(model: str) -> float:
     """Return Center Dist for a given model from the JSON lookup."""
     model_key = model.upper()
@@ -213,6 +224,7 @@ def get_center_dist(model: str) -> float:
     except KeyError:
         raise ValueError(f"Unknown model: {model}")
 
+## Str Roll Dia
 def get_str_roll_dia(model: str) -> float:
     """Return Str Roll Dia for a given model from the JSON lookup."""
     model_key = model.upper()
@@ -221,6 +233,7 @@ def get_str_roll_dia(model: str) -> float:
     except KeyError:
         raise ValueError(f"Unknown model: {model}")
 
+## Pinch Roll Dia
 def get_pinch_roll_dia(model: str) -> float:
     """Return Pinch Roll Dia for a given model from the JSON lookup."""
     model_key = model.upper()
@@ -229,6 +242,7 @@ def get_pinch_roll_dia(model: str) -> float:
     except KeyError:
         raise ValueError(f"Unknown model: {model}")
 
+## Jack Force Available
 def get_jack_force_available(model: str) -> float:
     """Return Jack Force Available for a given model from the JSON lookup."""
     model_key = model.upper()
@@ -237,10 +251,65 @@ def get_jack_force_available(model: str) -> float:
     except KeyError:
         raise ValueError(f"Unknown model: {model}")
 
+## Max Roll Depth
 def get_max_roll_depth(model: str) -> float:
     """Return Max Roll Depth for a given model from the JSON lookup."""
     model_key = model.upper()
     try:
         return lookup_str_model[model_key]["min_roll_depth"]
+    except KeyError:
+        raise ValueError(f"Unknown model: {model}")
+
+## Str Gear Torque
+def get_str_gear_torque(model: str) -> float:
+    """Return Str Gear Torque for a given model from the JSON lookup."""
+    model_key = model.upper()
+    try:
+        return lookup_str_model[model_key]["str_gear_torq"]
+    except KeyError:
+        raise ValueError(f"Unknown model: {model}")
+
+## Pinch Roll Teeth
+def get_pinch_roll_teeth(model: str) -> int:
+    """Return Pinch Roll Teeth for a given model from the JSON lookup."""
+    model_key = model.upper()
+    try:
+        return lookup_str_model[model_key]["pr_teeth"]
+    except KeyError:
+        raise ValueError(f"Unknown model: {model}")
+    
+## Pinch Roll DP
+def get_pinch_roll_dp(model: str) -> float:
+    """Return Pinch Roll DP for a given model from the JSON lookup."""
+    model_key = model.upper()
+    try:
+        return lookup_str_model[model_key]["proll_dp"]
+    except KeyError:
+        raise ValueError(f"Unknown model: {model}")
+
+## Str Roll Teeth
+def get_str_roll_teeth(model: str) -> int:
+    """Return Str Roll Teeth for a given model from the JSON lookup."""
+    model_key = model.upper()
+    try:
+        return lookup_str_model[model_key]["sroll_teeth"]
+    except KeyError:
+        raise ValueError(f"Unknown model: {model}")
+
+## Str Roll DP
+def get_str_roll_dp(model: str) -> float:
+    """Return Str Roll DP for a given model from the JSON lookup."""
+    model_key = model.upper()
+    try:
+        return lookup_str_model[model_key]["sroll_dp"]
+    except KeyError:
+        raise ValueError(f"Unknown model: {model}")
+
+## Face Width
+def get_face_width(model: str) -> float:
+    """Return Face Width for a given model from the JSON lookup."""
+    model_key = model.upper()
+    try:
+        return lookup_str_model[model_key]["face_width"]
     except KeyError:
         raise ValueError(f"Unknown model: {model}")
