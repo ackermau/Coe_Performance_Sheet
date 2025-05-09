@@ -7,21 +7,51 @@ import TddbhdPage from "./components/TddbhdPage";
 import ReelDrive from "./components/ReelDrive";
 import StrUtility from "./components/StrUtility";
 
+const navStyle = {
+    backgroundColor: "#13294b",
+    padding: "1rem",
+    display: "flex",
+    justifyContent: "space-between",
+    flexWrap: "wrap",
+};
+
+const linkStyle = {
+    color: "#e7a614",
+    textDecoration: "none",
+    fontWeight: "bold",
+    margin: "0 0.5rem",
+    padding: "0.5rem 1rem",
+    borderRadius: "5px",
+    transition: "background-color 0.3s",
+};
+
 function App() {
     return (
         <div>
-            <nav>
-                <Link to="/"> Home</Link> | 
-                <Link to="/rfq"> Create RFQ</Link> | 
-                <Link to="/specs"> Machine Specs</Link> | 
-                <Link to="/summary"> Equipment Summary</Link> | 
-                <Link to="/tddbhd"> TDDBHD</Link> | 
-                <Link to="/reeldrive"> Reel Drive</Link> | 
-                <Link to="/strutility"> STR Utility</Link>
+            <nav style={navStyle}>
+                {[
+                    { path: "/", label: "Home" },
+                    { path: "/rfq", label: "Create RFQ" },
+                    { path: "/specs", label: "Machine Specs" },
+                    { path: "/summary", label: "Equipment Summary" },
+                    { path: "/tddbhd", label: "TDDBHD" },
+                    { path: "/reeldrive", label: "Reel Drive" },
+                    { path: "/strutility", label: "STR Utility" }
+                ].map(({ path, label }) => (
+                    <Link
+                        key={path}
+                        to={path}
+                        style={linkStyle}
+                        onMouseEnter={e => e.target.style.backgroundColor = "#34495e"}
+                        onMouseLeave={e => e.target.style.backgroundColor = "transparent"}
+                    >
+                        {label}
+                    </Link>
+                ))}
             </nav>
 
             <Routes>
-                <Route path="/" element={<h1>Welcome to the Perfomance Web Sheet</h1>} />
+                <Route path="/" element={<h1>Welcome to the Performance Web Sheet</h1>} />
                 <Route path="/rfq" element={<RFQForm />} />
                 <Route path="/specs" element={<MaterialSpecsForm rfqId={1} />} />
                 <Route path="/summary" element={<EquipmentSummary rfqId={1} />} />

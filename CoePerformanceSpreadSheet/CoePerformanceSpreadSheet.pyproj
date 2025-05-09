@@ -35,6 +35,7 @@
     <Folder Include="frontend\src\" />
     <Folder Include="frontend\src\api\" />
     <Folder Include="frontend\src\components\" />
+    <Folder Include="frontend\src\components\Rolls\" />
     <Folder Include="frontend\src\context\" />
     <Folder Include="frontend\src\hooks\" />
   </ItemGroup>
@@ -63,6 +64,7 @@
     <Content Include="frontend\src\components\MaterialSpecsForm.js" />
     <Content Include="frontend\src\components\ReelDrive.js" />
     <Content Include="frontend\src\components\RFQForm.js" />
+    <Content Include="frontend\src\components\Rolls\7RollStrBackbend.js" />
     <Content Include="frontend\src\components\StrUtility.js" />
     <Content Include="frontend\src\components\TddbhdPage.js" />
     <Content Include="frontend\src\config.js" />

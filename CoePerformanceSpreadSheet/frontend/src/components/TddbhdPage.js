@@ -25,6 +25,8 @@ const formatLabel = (label) => {
 
 const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
+const knownAcronyms = ["od", "dp", "id", "hp", "rpm"];
+
 const green = "#4caf50";
 const red = "#f44336";
 
@@ -50,7 +52,7 @@ const baseMaterialFields = [
 
 const extraFields = [
     "calculatedCoilWeight", "holddownPressure",
-     "webTensionPsi", "webTensionLbs",
+    "webTensionPsi", "webTensionLbs",
     "dispReelMtr", "torqueAtMandrel", "rewindTorque",
     "holdDownForceRequired", "holdDownForceAvailable",
     "minMaterialWidth", "torqueRequired",
@@ -289,7 +291,12 @@ export default function TddbhdPage() {
     };
 
     const snakeToCamel = (str) => {
-        return str.replace(/(_\w)/g, m => m[1].toUpperCase());
+        return str.split('_').map((word, index) => {
+            if (index === 0) return word;
+            return knownAcronyms.includes(word.toLowerCase())
+                ? word.toUpperCase()
+                : word.charAt(0).toUpperCase() + word.slice(1);
+        }).join('');
     };
 
     const buildTddbhdPayload = (subpageData, pageKey) => {
@@ -330,6 +337,10 @@ export default function TddbhdPage() {
     const buildReelDriveForm = (subpageData, pageKey) => {
         const data = subpageData[pageKey];
         return {
+            date: materialSpecs.date,
+            customer: materialSpecs.customer,
+            reference: materialSpecs.reference,
+
             model: data.reelModel,
             material_type: materialSpecs.materialTypeMax,
             coil_weight: parseFloat(materialSpecs.coilWeightMax),
@@ -471,6 +482,22 @@ export default function TddbhdPage() {
                 TB/DB/HD Machine Simulation - {`${capSuffix}`}
             </Typography>
             <Divider sx={{ my: 2 }} />
+
+            <Grid item xs={12}><Divider /><Typography variant="h5">Customer Information</Typography></Grid>
+            <Grid container spacing={2}>
+                <Grid item xs={12} sm={4}>
+                    <TextField size="small"
+                        label="Customer"
+                        value={materialSpecs.customer || ''}
+                        onChange={(e) => handleChange("customer", e.target.value)}
+                        fullWidth />
+                </Grid>
+                {["date", "reference"].map((field) => (
+                    <Grid item xs={12} sm={4} key={field}>
+                        <TextField size="small" label={formatLabel(field)} type="number" value={materialSpecs[field]} onChange={(e) => handleChange(field, e.target.value)} fullWidth />
+                    </Grid>
+                ))}
+            </Grid>
 
             {/* Common Reel Fields */}
             <Typography variant="h6">Reel Model & Properties</Typography>

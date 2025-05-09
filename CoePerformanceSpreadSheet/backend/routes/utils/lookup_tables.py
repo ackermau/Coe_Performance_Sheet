@@ -215,101 +215,24 @@ def get_material(material: str) -> dict:
 #####
 # STR Utility methods
 #####
-## Center Distance
-def get_center_dist(model: str) -> float:
-    """Return Center Dist for a given model from the JSON lookup."""
-    model_key = model.upper()
-    try:
-        return lookup_str_model[model_key]["center_distance"]
-    except KeyError:
-        raise ValueError(f"Unknown model: {model}")
-
-## Str Roll Dia
-def get_str_roll_dia(model: str) -> float:
-    """Return Str Roll Dia for a given model from the JSON lookup."""
-    model_key = model.upper()
-    try:
-        return lookup_str_model[model_key]["roll_diameter"]
-    except KeyError:
-        raise ValueError(f"Unknown model: {model}")
-
-## Pinch Roll Dia
-def get_pinch_roll_dia(model: str) -> float:
-    """Return Pinch Roll Dia for a given model from the JSON lookup."""
-    model_key = model.upper()
-    try:
-        return lookup_str_model[model_key]["pinch_roll_dia"]
-    except KeyError:
-        raise ValueError(f"Unknown model: {model}")
-
-## Jack Force Available
-def get_jack_force_available(model: str) -> float:
-    """Return Jack Force Available for a given model from the JSON lookup."""
-    model_key = model.upper()
-    try:
-        return lookup_str_model[model_key]["jack_force_avail"]
-    except KeyError:
-        raise ValueError(f"Unknown model: {model}")
-
-## Max Roll Depth
-def get_max_roll_depth(model: str) -> float:
-    """Return Max Roll Depth for a given model from the JSON lookup."""
-    model_key = model.upper()
-    try:
-        return lookup_str_model[model_key]["min_roll_depth"]
-    except KeyError:
-        raise ValueError(f"Unknown model: {model}")
-
-## Str Gear Torque
-def get_str_gear_torque(model: str) -> float:
-    """Return Str Gear Torque for a given model from the JSON lookup."""
-    model_key = model.upper()
-    try:
-        return lookup_str_model[model_key]["str_gear_torq"]
-    except KeyError:
-        raise ValueError(f"Unknown model: {model}")
-
-## Pinch Roll Teeth
-def get_pinch_roll_teeth(model: str) -> int:
-    """Return Pinch Roll Teeth for a given model from the JSON lookup."""
-    model_key = model.upper()
-    try:
-        return lookup_str_model[model_key]["pr_teeth"]
-    except KeyError:
-        raise ValueError(f"Unknown model: {model}")
+def get_str_model_value(model: str, field: str, label: str = None):
+    """
+    Generic accessor for model-specific fields from the lookup_str_model JSON.
     
-## Pinch Roll DP
-def get_pinch_roll_dp(model: str) -> float:
-    """Return Pinch Roll DP for a given model from the JSON lookup."""
-    model_key = model.upper()
-    try:
-        return lookup_str_model[model_key]["proll_dp"]
-    except KeyError:
-        raise ValueError(f"Unknown model: {model}")
+    Args:
+        model (str): Model identifier (case-insensitive).
+        field (str): Field name in the JSON to retrieve.
+        label (str, optional): Friendly label for error messages. Defaults to `field`.
 
-## Str Roll Teeth
-def get_str_roll_teeth(model: str) -> int:
-    """Return Str Roll Teeth for a given model from the JSON lookup."""
-    model_key = model.upper()
-    try:
-        return lookup_str_model[model_key]["sroll_teeth"]
-    except KeyError:
-        raise ValueError(f"Unknown model: {model}")
+    Returns:
+        Value from the lookup for the given model and field.
 
-## Str Roll DP
-def get_str_roll_dp(model: str) -> float:
-    """Return Str Roll DP for a given model from the JSON lookup."""
+    Raises:
+        ValueError: If the model or field is not found.
+    """
     model_key = model.upper()
+    label = label or field
     try:
-        return lookup_str_model[model_key]["sroll_dp"]
+        return lookup_str_model[model_key][field]
     except KeyError:
-        raise ValueError(f"Unknown model: {model}")
-
-## Face Width
-def get_face_width(model: str) -> float:
-    """Return Face Width for a given model from the JSON lookup."""
-    model_key = model.upper()
-    try:
-        return lookup_str_model[model_key]["face_width"]
-    except KeyError:
-        raise ValueError(f"Unknown model: {model}")
+        raise ValueError(f"Unknown model or missing field: {label} for model '{model}'")

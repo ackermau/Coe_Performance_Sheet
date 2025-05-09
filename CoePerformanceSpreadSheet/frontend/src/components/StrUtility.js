@@ -23,9 +23,14 @@ const formatLabel = (label) => {
 
 const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
+const knownAcronyms = ["od", "dp", "id", "hp", "rpm"];
+
 const payoffOptions = [
     "TOP", "BOTTOM"
 ];
+
+const green = "#4caf50";
+const red = "#f44336";
 
 const strModelOptions = [
     "CPPS-250", "CPPS-306", "CPPS-350", "CPPS-406", "CPPS-507", "SPGPS-810"
@@ -48,12 +53,18 @@ const autoBrakeCompenOptions = [
 ];
 
 const pulledFields = [
-    "coilID", "coilWidth", "materialThickness", "yieldStrength", "materialType"
+    "materialType", "coilID", "coilWidth", "materialThickness", "yieldStrength"
+];
+
+const materialOptions = [
+    "Aluminum", "Galvanized", "HS Steel", "Hot Rolled Steel",
+    "Dual Phase", "Cold Rolled Steel", "Stainless Steel",
+    "Titanium", "Brass", "Beryl Copper"
 ];
 
 const calculatedFields = [
     "requiredForce", "pinchRollDia", "strRollDia", "pinchRollReqTorque", "pinchRollRatedTorque", "strRollReqTorque", "strRollRatedTorque", "horsepowerRequired", 
-    "centerDist", "jackForceAvailable", "maxRollDepth", "modulus", "pinchRollTeeth", "pinchRollDP", "strRollTeeth", "strRollDP", "contAngle" ,
+    "centerDist", "jackForceAvailable", "maxRollDepth", "modulus", "pinchRollTeeth", "pinchRollDP", "strRollTeeth", "strRollDP", "contAngle", "faceWidth", 
     "actualCoilWeight", "coilOD", "strTorque", "accelerationTorque", "brakeTorque",
 ];
 
@@ -66,6 +77,23 @@ const groupFields = {
     width: [...pulledFields.map(field => `${field}Width`), ...calculatedFields.map(field => `${field}Width`)]
 };
 
+const CalculatedField = ({ label, value }) => (
+    <>
+        <Grid item xs={6} sm={4}>
+            <Typography variant="body1">{label}</Typography>
+        </Grid>
+        <Grid item xs={6} sm={8}>
+            <TextField
+                value={value}
+                variant="outlined"
+                size="small"
+                fullWidth
+                InputProps={{ readOnly: true }}
+            />
+        </Grid>
+    </>
+);
+
 export default function StrUtility() {
     const { materialSpecs } = useContext(MaterialSpecsContext);
     const { subpageData, setSubpageData, activePage, setActivePage } = useContext(StrUtilityContext);
@@ -77,6 +105,19 @@ export default function StrUtility() {
     const sharedFields = [
         "payoff", "strModel", "strWidth", "horsepower", "feedRate", "autoBrakeCompensation", "acceleration"
     ];
+
+    const validationRules = {
+        forceRequired: (value) => !isNaN(value) && value > 0 && value >= Number(subpageData[activePage][`jackForceAvailable${capSuffix}`]),
+        pinchRollReqTorque: (value) => !isNaN(value) && value > 0 && value <= Number(subpageData[activePage][`pinchRollRatedTorque${capSuffix}`]),
+        strRollReqTorque: (value) => !isNaN(value) && value > 0 && value <= Number(subpageData[activePage][`strRollRatedTorque${capSuffix}`]),
+        horsepowerRequired: (value) => !isNaN(value) && value > 0 && value <= Number(subpageData[activePage].horsepower),
+        feedRateCheck: (value) => value == "OK",
+    };
+
+    const isFieldValid = (field, value) => {
+        const rule = validationRules[field];
+        return rule ? rule(value) : true; 
+    };
 
     const getDefaultDataForGroup = (group, sharedFields, materialSpecs) => {
         return {
@@ -92,6 +133,10 @@ export default function StrUtility() {
             if (!materialSpecs || !activePage) return;
 
             const sharedDefaults = {
+                date: materialSpecs.date,
+                customer: materialSpecs.customer,
+                reference: materialSpecs.reference,
+
                 payoff: payoffOptions[0],
                 strModel: strModelOptions[0],
                 strWidth: strWidthOptions[0],
@@ -169,6 +214,7 @@ export default function StrUtility() {
             horsepower: parseFloat(data.horsepower) || 0,
 
             feed_rate: parseFloat(data.feedRate) || 0,
+            max_feed_rate: parseFloat(materialSpecs[`requiredMaxFPM${capSuffix}`]) || 0,
             auto_brake_compensation: data.autoBrakeCompensation || "",
             acceleration: parseFloat(data.acceleration) || 0,
             num_str_rolls: Number(data.numStrRolls) || 0,
@@ -176,7 +222,12 @@ export default function StrUtility() {
     };
 
     const snakeToCamel = (str) => {
-        return str.replace(/(_\w)/g, m => m[1].toUpperCase());
+        return str.split('_').map((word, index) => {
+            if (index === 0) return word;
+            return knownAcronyms.includes(word.toLowerCase())
+                ? word.toUpperCase()
+                : word.charAt(0).toUpperCase() + word.slice(1);
+        }).join('');
     };
 
     const triggerBackendCalculation = async (payload, pageKey) => {
@@ -237,10 +288,26 @@ export default function StrUtility() {
             </Typography>
             <Divider sx={{ my: 2 }} />
 
+            <Grid item xs={12}><Divider /><Typography variant="h5">Customer Information</Typography></Grid>
+            <Grid container spacing={2}>
+                <Grid item xs={12} sm={4}>
+                    <TextField size="small"
+                        label="Customer"
+                        value={materialSpecs.customer || ''}
+                        onChange={(e) => handleChange("customer", e.target.value)}
+                        fullWidth />
+                </Grid>
+                {["date", "reference"].map((field) => (
+                    <Grid item xs={12} sm={4} key={field}>
+                        <TextField size="small" label={formatLabel(field)} type="number" value={materialSpecs[field]} onChange={(e) => handleChange(field, e.target.value)} fullWidth />
+                    </Grid>
+                ))}
+            </Grid>
+
             {/* Shared Fields */}
             <Typography variant="h6">Str Utility & Properties</Typography>
             <Grid container spacing={2} sx={{ mb: 4 }}>
-                <Grid item xs={12} md={4}>
+                <Grid item xs={12} md={6}>
                     <Typography noWrap style={{ minWidth: 200 }}>Payoff</Typography>
                     <FormControl fullWidth size="small">
                         <Select
@@ -258,7 +325,7 @@ export default function StrUtility() {
                 </FormControl>
                 </Grid>
 
-                <Grid item xs={12} md={4}>
+                <Grid item xs={12} md={6}>
                     <Typography noWrap style={{ minWidth: 200 }}>Str Model</Typography>
                     <FormControl fullWidth size="small">
                         <Select
@@ -276,7 +343,7 @@ export default function StrUtility() {
                     </FormControl>
                 </Grid>
 
-                <Grid item xs={12} md={4}>
+                <Grid item xs={12} md={6}>
                     <Typography noWrap style={{ minWidth: 200 }}>Str Width</Typography>
                     <FormControl fullWidth size="small">
                         <Select
@@ -294,7 +361,7 @@ export default function StrUtility() {
                     </FormControl>
                 </Grid>
 
-                <Grid item xs={12} md={4}>
+                <Grid item xs={12} md={6}>
                     <Typography noWrap style={{ minWidth: 200 }}>Number of Str Rolls</Typography>
                     <TextField size="small"
                         value={subpageData[activePage].numStrRolls || ""}
@@ -307,7 +374,7 @@ export default function StrUtility() {
             </Grid>
 
             <Grid container spacing={2} sx={{ mb: 4 }}>
-                <Grid item xs={12} md={4}>
+                <Grid item xs={12} md={6}>
                     <Typography noWrap style={{ minWidth: 200 }}>Horsepower</Typography>
                     <FormControl fullWidth size="small">
                         <Select
@@ -325,7 +392,7 @@ export default function StrUtility() {
                     </FormControl>
                 </Grid>
 
-                <Grid item xs={12} md={4}>
+                <Grid item xs={12} md={6}>
                     <Typography noWrap style={{ minWidth: 200 }}>Acceleration</Typography>
                     <TextField size="small"
                         value={subpageData[activePage].acceleration || ""}
@@ -336,7 +403,7 @@ export default function StrUtility() {
                     />
                 </Grid>
 
-                <Grid item xs={12} md={4}>
+                <Grid item xs={12} md={6}>
                     <Typography noWrap style={{ minWidth: 200 }}>Feed Rate</Typography>
                     <FormControl fullWidth size="small">
                         <Select
@@ -354,7 +421,7 @@ export default function StrUtility() {
                     </FormControl>
                 </Grid>
 
-                <Grid item xs={12} md={4}>
+                <Grid item xs={12} md={6}>
                     <Typography noWrap style={{ minWidth: 200 }}>Auto Brake Compensation</Typography>
                     <FormControl fullWidth size="small">
                         <Select
@@ -389,14 +456,34 @@ export default function StrUtility() {
                 </Grid>
 
                 {currentGroupFields.map((field) => (
-                    <Grid item xs={12} md={6} key={field}>
-                        <Typography noWrap style={{ minWidth: 200 }}>{formatLabel(field)}</Typography>
-                        <TextField size="small"
-                            value={subpageData[activePage][field] || ""}
-                            onChange={(e) => handleChange(field, e.target.value)}
-                            name={field}
-                            disabled={currentGroupFields.includes(field) && activePage !== "page1"}
-                        />
+                    <Grid item xs={12} sm={6} key={field}>
+                        {field.startsWith("materialType") ? (
+                            <Grid container spacing={1}>
+                                <Grid item xs={12}>
+                                    <Typography noWrap style={{ minWidth: 200 }}>
+                                        {formatLabel(field)}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <FormControl fullWidth size="small">
+                                        <Select
+                                            value={materialSpecs[field] || ""}
+                                            onChange={(e) => handleChange(field, e.target.value)}
+                                        >
+                                            {materialOptions.map((option) => (
+                                                <MenuItem key={option} value={option}>
+                                                    {option}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+                            </Grid>
+                        ) : (
+                            <CalculatedField
+                                label={formatLabel(field)}
+                                value={subpageData[activePage][field] || ""} />
+                        )}
                     </Grid>
                 ))}
             </Grid>
@@ -433,6 +520,41 @@ export default function StrUtility() {
                     </Button>
                 </Grid>
             </Grid>
+
+            {/* Summary Table */}
+            <Divider sx={{ my: 4 }} />
+            <Typography variant="h6">Checks for validation</Typography>
+            <Table>
+                <TableBody>
+                    <TableRow>
+                        <TableCell><strong>Checks</strong></TableCell>
+                        <TableCell><string>Max</string></TableCell>
+                        <TableCell><strong>Full</strong></TableCell>
+                        <TableCell><strong>Min</strong></TableCell>
+                        <TableCell><strong>Width</strong></TableCell>
+                    </TableRow>
+                    {["requiredForce", "pinchRollReqTorque", "strRollReqTorque", "horsepowerRequired", "feedRateCheck"].map((field) => (
+                        <TableRow key={field}>
+                            <TableCell>{formatLabel(field)}</TableCell>
+                            {Object.keys(pageMapping).map((key) => {
+                                const suffix = capitalize(pageMapping[key]);
+                                const value = subpageData[key]?.[`${field}${suffix}`];
+                                const isPass = isFieldValid(field, value);
+                                return (
+                                    <TableCell
+                                        key={key}
+                                        sx={{
+                                            backgroundColor: isPass ? `${green}` : `${red}`
+                                        }}
+                                    >
+                                        {value !== undefined ? value : ""}
+                                    </TableCell>
+                                );
+                            })}
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
         </Paper>
     );
 }

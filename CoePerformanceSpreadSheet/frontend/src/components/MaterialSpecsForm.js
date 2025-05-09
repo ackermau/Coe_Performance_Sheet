@@ -51,7 +51,7 @@ export default function MaterialSpecsForm() {
             ...materialSpecs,
             date: rfqForm.rfq_date || materialSpecs.date,
             customer: rfqForm.company_name || materialSpecs.customer,
-            coilWidthWidth: rfqForm.max_coil_width || materialSpecs.coilWidthWidth,
+            reference: rfqForm.rfq_reference || materialSpecs.reference,
 
             coilWidthMax: rfqForm.max_yield_at_width || materialSpecs.coilWidthMax,
             coilWeightMax: rfqForm.max_coil_weight || materialSpecs.coilWeightMax,
