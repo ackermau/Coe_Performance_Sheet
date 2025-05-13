@@ -6,6 +6,7 @@ import EquipmentSummary from "./components/EquipmentSummary";
 import TddbhdPage from "./components/TddbhdPage";
 import ReelDrive from "./components/ReelDrive";
 import StrUtility from "./components/StrUtility";
+import SevenRollStr from "./components/Rolls/sevenRollStrBackbend";
 
 const navStyle = {
     backgroundColor: "#13294b",
@@ -36,7 +37,8 @@ function App() {
                     { path: "/summary", label: "Equipment Summary" },
                     { path: "/tddbhd", label: "TDDBHD" },
                     { path: "/reeldrive", label: "Reel Drive" },
-                    { path: "/strutility", label: "STR Utility" }
+                    { path: "/strutility", label: "STR Utility" },
+                    { path: "/sevenrollstr", label: "7 Roll STR Backbend" },
                 ].map(({ path, label }) => (
                     <Link
                         key={path}
@@ -58,6 +60,7 @@ function App() {
                 <Route path="/tddbhd" element={<TddbhdPage rfqId={1} />} />
                 <Route path="/reeldrive" element={<ReelDrive rfqID={1} />} />
                 <Route path="/strutility" element={<StrUtility rfqId={1} />} />
+                <Route path="/sevenrollstr" element={<SevenRollStr rfqId={1} />} />
             </Routes>
         </div>
     );

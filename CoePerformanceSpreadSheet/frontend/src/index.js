@@ -8,6 +8,7 @@ import { MaterialSpecsProvider } from "./context/MaterialSpecsContext";
 import { TddbhdProvider } from "./context/TddbhdContext";
 import { ReelDriveProvider } from "./context/ReelDriveContext";
 import { StrUtilityProvider } from "./context/StrUtilityContext";
+import { SevenRollStrBackbendProvider } from "./context/Rolls/sevenRollStrBackbendContext";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
@@ -18,7 +19,9 @@ root.render(
                     <ReelDriveProvider>
                         <TddbhdProvider>
                             <StrUtilityProvider>
-                                <App />
+                                <SevenRollStrBackbendProvider>
+                                    <App />
+                                </SevenRollStrBackbendProvider>
                             </StrUtilityProvider>
                         </TddbhdProvider>
                     </ReelDriveProvider>

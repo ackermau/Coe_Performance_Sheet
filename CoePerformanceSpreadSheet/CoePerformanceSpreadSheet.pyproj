@@ -28,6 +28,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Folder Include="backend\routes\" />
+    <Folder Include="backend\routes\rolls\" />
     <Folder Include="backend\routes\utils\" />
     <Folder Include="frontend\" />
     <Folder Include="backend\" />
@@ -37,6 +38,7 @@
     <Folder Include="frontend\src\components\" />
     <Folder Include="frontend\src\components\Rolls\" />
     <Folder Include="frontend\src\context\" />
+    <Folder Include="frontend\src\context\Rolls\" />
     <Folder Include="frontend\src\hooks\" />
   </ItemGroup>
   <ItemGroup>
@@ -47,6 +49,7 @@
     <Compile Include="backend\routes\material_specs.py" />
     <Compile Include="backend\routes\reel_drive.py" />
     <Compile Include="backend\routes\rfq.py" />
+    <Compile Include="backend\routes\rolls\seven_roll_str_backbend.py" />
     <Compile Include="backend\routes\tddbhd.py" />
     <Compile Include="backend\routes\utils\lookup_tables.py" />
     <Compile Include="backend\routes\str_utility.py" />
@@ -64,13 +67,14 @@
     <Content Include="frontend\src\components\MaterialSpecsForm.js" />
     <Content Include="frontend\src\components\ReelDrive.js" />
     <Content Include="frontend\src\components\RFQForm.js" />
-    <Content Include="frontend\src\components\Rolls\7RollStrBackbend.js" />
+    <Content Include="frontend\src\components\Rolls\sevenRollStrBackbend.js" />
     <Content Include="frontend\src\components\StrUtility.js" />
     <Content Include="frontend\src\components\TddbhdPage.js" />
     <Content Include="frontend\src\config.js" />
     <Content Include="frontend\src\context\MaterialSpecsContext.js" />
     <Content Include="frontend\src\context\ReelDriveContext.js" />
     <Content Include="frontend\src\context\RFQFormContext.js" />
+    <Content Include="frontend\src\context\Rolls\sevenRollStrBackbendContext.js" />
     <Content Include="frontend\src\context\StrUtilityContext.js" />
     <Content Include="frontend\src\context\TddbhdContext.js" />
     <Content Include="frontend\src\hooks\useSharedMaterialView.js" />
