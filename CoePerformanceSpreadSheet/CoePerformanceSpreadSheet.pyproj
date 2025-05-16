@@ -28,6 +28,9 @@
   </PropertyGroup>
   <ItemGroup>
     <Folder Include="backend\routes\" />
+    <Folder Include="backend\routes\feeds\" />
+    <Folder Include="backend\routes\feeds\physics\" />
+    <Folder Include="backend\routes\shears\" />
     <Folder Include="backend\routes\rolls\" />
     <Folder Include="backend\routes\utils\" />
     <Folder Include="frontend\" />
@@ -45,11 +48,11 @@
     <Compile Include="backend\db.py" />
     <Compile Include="backend\main.py" />
     <Compile Include="backend\models.py" />
-    <Compile Include="backend\routes\machine.py" />
     <Compile Include="backend\routes\material_specs.py" />
     <Compile Include="backend\routes\reel_drive.py" />
     <Compile Include="backend\routes\rfq.py" />
-    <Compile Include="backend\routes\rolls\seven_roll_str_backbend.py" />
+    <Compile Include="backend\routes\rolls\roll_str_backbend.py" />
+    <Compile Include="backend\routes\feeds\sigma_five_feed.py" />
     <Compile Include="backend\routes\tddbhd.py" />
     <Compile Include="backend\routes\utils\lookup_tables.py" />
     <Compile Include="backend\routes\str_utility.py" />
@@ -67,6 +70,8 @@
     <Content Include="frontend\src\components\MaterialSpecsForm.js" />
     <Content Include="frontend\src\components\ReelDrive.js" />
     <Content Include="frontend\src\components\RFQForm.js" />
+    <Content Include="frontend\src\components\Rolls\elevenRollStrBackbend.js" />
+    <Content Include="frontend\src\components\Rolls\nineRollStrBackbend.js" />
     <Content Include="frontend\src\components\Rolls\sevenRollStrBackbend.js" />
     <Content Include="frontend\src\components\StrUtility.js" />
     <Content Include="frontend\src\components\TddbhdPage.js" />
@@ -74,6 +79,8 @@
     <Content Include="frontend\src\context\MaterialSpecsContext.js" />
     <Content Include="frontend\src\context\ReelDriveContext.js" />
     <Content Include="frontend\src\context\RFQFormContext.js" />
+    <Content Include="frontend\src\context\Rolls\elevenRollStrBackbendContext.js" />
+    <Content Include="frontend\src\context\Rolls\nineRollStrBackbendContext.js" />
     <Content Include="frontend\src\context\Rolls\sevenRollStrBackbendContext.js" />
     <Content Include="frontend\src\context\StrUtilityContext.js" />
     <Content Include="frontend\src\context\TddbhdContext.js" />

@@ -25,10 +25,16 @@ lookup_drive_torque = LOOKUP_DATA.get("lookup_drive_key", {})
 lookup_press_required = LOOKUP_DATA.get("lookup_press_required", {})
 lookup_motor_inertia = LOOKUP_DATA.get("lookup_motor_inertia", {})
 lookup_type_of_line = LOOKUP_DATA.get("lookup_type_of_line", {})
+
 #####
 # STR Utility
 #####
 lookup_str_model = LOOKUP_DATA.get("lookup_str_model", {})
+
+#####
+# Sigma Five Reel
+#####
+lookup_sigma5_feed_pt = LOOKUP_DATA.get("lookup_sigma5_feed_pt", {})
 
 ######
 # TDDBHD methods
@@ -236,3 +242,27 @@ def get_str_model_value(model: str, field: str, label: str = None):
         return lookup_str_model[model_key][field]
     except KeyError:
         raise ValueError(f"Unknown model or missing field: {label} for model '{model}'")
+
+#####
+# Sigma Five Reel
+#####
+def get_sigma_five_specs(feed_model: str, field: str, label: str = None):
+    """
+    Generic accessor for Sigma Five reel specifications from the lookup_str_model JSON.
+    
+    Args:
+        feed_model (str): Model identifier (case-insensitive).
+        label (str, optional): Friendly label for error messages. Defaults to `feed_model`.
+
+    Returns:
+        Dictionary of specifications for the given feed model.
+
+    Raises:
+        ValueError: If the model or field is not found.
+    """
+    feed_model_key = feed_model.upper()
+    label = label or feed_model
+    try:
+        return lookup_sigma5_feed_pt[feed_model_key][field]
+    except KeyError:
+        raise ValueError(f"Unknown model or missing field: {label} for model '{feed_model}'")

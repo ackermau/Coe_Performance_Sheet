@@ -1,8 +1,8 @@
 import React, { createContext, useState, useEffect } from 'react';
 
-export const StrUtilityContext = createContext();
+export const ElevenRollStrBackbendContext = createContext();
 
-export const StrUtilityProvider = ({ children }) => {
+export const ElevenRollStrBackbendProvider = ({ children }) => {
     const defaultSubpageData = {
         page1: {}, // Max
         page2: {}, // Full
@@ -15,7 +15,7 @@ export const StrUtilityProvider = ({ children }) => {
 
     // Load from localStorage on mount
     useEffect(() => {
-        const saved = localStorage.getItem("strUtilityState");
+        const saved = localStorage.getItem("elevenRollStrBackbendState");
         if (saved) {
             const parsed = JSON.parse(saved);
             if (parsed.subpageData) setSubpageData(parsed.subpageData);
@@ -25,19 +25,17 @@ export const StrUtilityProvider = ({ children }) => {
 
     // Save to localStorage on update
     useEffect(() => {
-        localStorage.setItem("strUtilityState", JSON.stringify({ subpageData, activePage }));
+        localStorage.setItem("elevenRollStrBackbendState", JSON.stringify({ subpageData, activePage }));
     }, [subpageData, activePage]);
 
-    const strUtility = subpageData;
-
     return (
-        <StrUtilityContext.Provider value={{
+        <ElevenRollStrBackbendContext.Provider value={{
             subpageData,
             setSubpageData,
             activePage,
             setActivePage
         }}>
             {children}
-        </StrUtilityContext.Provider>
+        </ElevenRollStrBackbendContext.Provider>
     );
 };

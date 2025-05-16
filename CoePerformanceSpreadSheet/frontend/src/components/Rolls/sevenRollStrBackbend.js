@@ -1,5 +1,6 @@
 import { useState, useEffect, useContext } from 'react';
-import { Paper, Typography, Grid, Button } from '@mui/material';
+import { useLocation } from 'react-router-dom';
+import { Paper, Typography, Grid, Button, Box, ToggleButtonGroup, ToggleButton, Divider, TextField, FormControl, Select } from '@mui/material';
 import { API_URL } from '../../config';
 import { StrUtilityContext } from '../../context/StrUtilityContext';
 import { SevenRollStrBackbendContext } from '../../context/Rolls/sevenRollStrBackbendContext';
@@ -22,11 +23,19 @@ const formatLabel = (label) => {
 const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
 const baseFields = [
-    "coilWidth", "materialThickness", "materialYieldStrength", "materialType", "straightenerModel"
+    "coilWidth", "materialThickness", "yieldStrength", "materialType", "strModel", "numStrRolls"
 ];
 
 const calculatedFields = [
-    "rollDia", "centDist", "modulus", "jackForceAvailable", 
+    "rollDia", "centDist", "modulus", "jackForceAvailable", "maxRollDepthWithoutMaterial", "maxRollDepthWithMaterial", "rollerDepthRequired", 
+    "rollerDepthRequiredCheck", "rollHeightFirstUp", "rollHeightMidUp", "rollHeightLast", 
+    "resRadFirstUp", "resRadFirstDown", "resRadMidUp", "resRadMidDown", "resRadLast", "rRiFirstUp", "rRiFirstDown", "rRiMidUp", "rRiMidDown", "rRiLast",
+    "mbFirstUp", "mbFirstDown", "mbMidUp", "mbMidDown", "mbLast", "mbMyFirstUp", "mbMyFirstDown", "mbMyMidUp", "mbMyMidDown", "mbMyLast",
+    "springbackFirstUp", "springbackFirstDown", "springbackMidUp", "springbackMidDown", "springbackLast", "radiusAfterSpringbackFirstUp",
+    "radiusAfterSpringbackFirstDown", "radiusAfterSpringbackMidUp", "radiusAfterSpringbackMidDown", "radiusAfterSpringbackLast",
+    "forceRequiredFirstUp", "forceRequiredMidUp", "forceRequiredLast",
+    "percentYieldFirstUp", "percentYieldFirstDown", "percentYieldMidUp", "percentYieldMidDown", "percentYieldLast",
+    "numberOfYieldStrainsFirstUp", "numberOfYieldStrainsMidUp", "numberOfYieldStrainsLast"
 ];
 
 const pageMapping = { page1: "max", page2: "full", page3: "min", page4: "width" };
@@ -58,12 +67,12 @@ const CalculatedField = ({ label, value }) => (
 export default function RollsSevenRollStrBackbend() {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
-    const { strUtility } = useContext(StrUtilityContext);
+    const { subpageData: strUtility } = useContext(StrUtilityContext);
     const { subpageData, setSubpageData, activePage, setActivePage } = useContext(SevenRollStrBackbendContext)
+    const location = useLocation();
 
-    const getDefaultDataForGroup = (group, sharedDefaults, strUtility) => {
+    const getDefaultDataForGroup = (group, strUtility) => {
         return {
-            ...sharedDefaults,
             ...Object.fromEntries(
                 groupFields[group].map(f => [f, strUtility[f] || ""])
             )
@@ -73,21 +82,12 @@ export default function RollsSevenRollStrBackbend() {
     useEffect(() => {
         const updateDataAndTriggerCalculations = async () => {
             if (!activePage || !strUtility) return;
-
-            const sharedDefaults = {
-                coilWidth: strUtility.coilWidth,
-                materialThickness: strUtility.materialThickness,
-                materialYieldStrength: strUtility.materialYieldStrength,
-                materialType: strUtility.materialType,
-                straightenerModel: strUtility.straightenerModel
-            };
-
             setSubpageData(prev => {
                 const newData = {
-                    page1: { ...getDefaultDataForGroup("max", sharedDefaults, strUtility), ...prev.page1 },
-                    page2: { ...getDefaultDataForGroup("full", sharedDefaults, strUtility), ...prev.page2 },
-                    page3: { ...getDefaultDataForGroup("min", sharedDefaults, strUtility), ...prev.page3 },
-                    page4: { ...getDefaultDataForGroup("width", sharedDefaults, strUtility), ...prev.page4 }
+                    page1: { ...getDefaultDataForGroup("max", strUtility), ...prev.page1 },
+                    page2: { ...getDefaultDataForGroup("full", strUtility), ...prev.page2 },
+                    page3: { ...getDefaultDataForGroup("min", strUtility), ...prev.page3 },
+                    page4: { ...getDefaultDataForGroup("width", strUtility), ...prev.page4 }
                 };
                 return JSON.stringify(prev) !== JSON.stringify(newData) ? newData : prev;
             });
@@ -96,37 +96,24 @@ export default function RollsSevenRollStrBackbend() {
         updateDataAndTriggerCalculations();
     }, [activePage, strUtility]);
 
-    const handleChange = (field, value) => {
-        setSubpageData(prev => {
-            const updatedData = { ...prev };
-
-            if (sharedFields.includes(field)) {
-                Object.keys(prev).forEach(pageKey => {
-                    updatedData[pageKey] = {
-                        ...prev[pageKey],
-                        [field]: value
-                    };
-                });
-            } else {
-                updatedData[activePage] = {
-                    ...prev[activePage],
-                    [field]: value
-                };
-            }
-
+    useEffect(() => {
+        if (
+            location.pathname === "/sevenrollstr" &&
+            strUtility &&
+            Object.keys(strUtility).length > 0
+        ) {
             try {
-                Object.keys(updatedData).forEach(pageKey => {
-                    const payload = buildSevenRollPayload(updatedData, pageKey);
+                Object.keys(subpageData).forEach(pageKey => {
+                    console.log("subpageData: ", subpageData);
+                    const payload = buildSevenRollPayload(subpageData, pageKey);
                     console.log("Payload for backend calculation: ", payload);
                     triggerBackendCalculation(payload, pageKey);
                 });
             } catch (error) {
-                console.error("Error in handleChange: ", error);
+                console.error("Error in triggerBackendCalculation: ", error);
             }
-
-            return updatedData;
-        });
-    };
+        }
+    }, [location, strUtility]);
 
     const snakeToCamel = (str) => {
         return str.split('_').map((word, index) => {
@@ -141,11 +128,12 @@ export default function RollsSevenRollStrBackbend() {
         const capSuffix = capitalize(pageMapping[pageKey]);
         const data = subpageData[pageKey];
         return {
-            yield_strength: parseFloat(data.yield_strength),
-            thickness: parseFloat(data.materialThickness),
-            width: parseFloat(data.coilWidth),
-            material_type: data.materialType,
-            straightener_model: data.straightenerModel,
+            yield_strength: parseFloat(data[`yieldStrength${capSuffix}`]),
+            thickness: parseFloat(data[`materialThickness${capSuffix}`]),
+            width: parseFloat(data[`coilWidth${capSuffix}`]),
+            material_type: data[`materialType${capSuffix}`],
+            str_model: data[`strModel${capSuffix}`],
+            num_str_rolls: data.numStrRolls,
         };
     };
 
@@ -156,7 +144,7 @@ export default function RollsSevenRollStrBackbend() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(data),
+                body: JSON.stringify(payload),
             });
             if (!response.ok) {
                 const errorData = await response.json();
@@ -184,199 +172,91 @@ export default function RollsSevenRollStrBackbend() {
         }
     };
 
-    // If loading, show loading text
-    if (loading) return <div>Loading...</div>;
-
-    // Determine current active page's data and suffix
-    const currentData = subpageData?.[activePage] || {};
-    const suffix = capitalize(pageMapping[activePage] || "");
-
-    // Keys to skip (input fields with or without suffix)
-    const skipKeys = [
-        ...baseFields,
-        ...baseFields.map(f => f + suffix)
+    const pages = [
+        { key: "page1", title: "Max" },
+        { key: "page2", title: "Full" },
+        { key: "page3", title: "Min" },
+        { key: "page4", title: "Width" }
     ];
 
-    // Prepare shared variables (known single-value outputs)
-    const sharedKeys = [
-        `rollDiameter${suffix}`,
-        `centerDistance${suffix}`,
-        `jackForceAvailable${suffix}`,
-        `maxRollDepthWithoutMaterial${suffix}`,
-        `maxRollDepthWithMaterial${suffix}`,
-        `rollerDepthRequired${suffix}`
-    ];
-    const sharedRows = sharedKeys
-        .filter(key => currentData[key] !== undefined && currentData[key] !== "")
-        .map(key => ({
-            label: formatLabel(key),
-            value: currentData[key]
-        }));
-
-    // Prepare roller table data grouped by position
-    const rollerPositions = [
-        { id: "firstUp", label: "First Up" },
-        { id: "firstDown", label: "First Down" },
-        { id: "midUp", label: "Mid Up" },
-        { id: "midDown", label: "Mid Down" },
-        { id: "last", label: "Last" }
-    ];
-    const rollerRows = {
-        firstUp: {},
-        firstDown: {},
-        midUp: {},
-        midDown: {},
-        last: {}
+    const goToPreviousPage = () => {
+        const currentIndex = pages.findIndex((page) => page.key === activePage);
+        if (currentIndex > 0) setActivePage(pages[currentIndex - 1].key);
     };
 
-    const remainingKeys = [];
-    // Loop through all keys in currentData to distribute them
-    for (const key of Object.keys(currentData)) {
-        if (skipKeys.includes(key)) continue; // skip input fields
-        const value = currentData[key];
-        if (value === undefined || value === "") continue; // skip missing values
-        // Remove suffix from key for grouping and labeling
-        const keyBase = key.endsWith(suffix) ? key.slice(0, -suffix.length) : key;
-        if (keyBase.includes("FirstUp")) {
-            const metric = keyBase.replace("FirstUp", "");
-            rollerRows.firstUp[metric] = value;
-        } else if (keyBase.includes("FirstDown")) {
-            const metric = keyBase.replace("FirstDown", "");
-            rollerRows.firstDown[metric] = value;
-        } else if (keyBase.includes("MidUp")) {
-            const metric = keyBase.replace("MidUp", "");
-            rollerRows.midUp[metric] = value;
-        } else if (keyBase.includes("MidDown")) {
-            const metric = keyBase.replace("MidDown", "");
-            rollerRows.midDown[metric] = value;
-        } else if (keyBase.includes("Last")) {
-            const metric = keyBase.replace("Last", "");
-            rollerRows.last[metric] = value;
-        } else if (
-            // Handle special keys without explicit up/down in name
-            (keyBase.endsWith("First") || keyBase.endsWith("Mid") || keyBase.endsWith("Last")) &&
-            (keyBase.startsWith("rollHeight") || keyBase.startsWith("forceRequired") || keyBase.startsWith("numberOfYieldStrains"))
-        ) {
-            if (keyBase.endsWith("First")) {
-                const metric = keyBase.replace("First", "");
-                rollerRows.firstUp[metric] = value;
-            } else if (keyBase.endsWith("Mid")) {
-                const metric = keyBase.replace("Mid", "");
-                rollerRows.midUp[metric] = value;
-            } else if (keyBase.endsWith("Last")) {
-                const metric = keyBase.replace("Last", "");
-                rollerRows.last[metric] = value;
-            }
-        } else {
-            // If not matched above, treat as remaining output
-            remainingKeys.push(key);
-        }
-    }
+    const goToNextPage = () => {
+        const currentIndex = pages.findIndex((page) => page.key === activePage);
+        if (currentIndex < pages.length - 1) setActivePage(pages[currentIndex + 1].key);
+    };
 
-    // Prepare remaining calculated values rows (exclude any empties)
-    const remainingRows = remainingKeys
-        .filter(key => currentData[key] !== undefined && currentData[key] !== "")
-        .map(key => ({
-            label: formatLabel(key),
-            value: currentData[key]
-        }));
+    const currentGroup = pageMapping[activePage];
+    const currentGroupFields = groupFields[currentGroup];
 
-    // Determine roller table metrics (columns) present
-    const allMetrics = new Set();
-    Object.values(rollerRows).forEach(metricsObj => {
-        Object.keys(metricsObj).forEach(metric => allMetrics.add(metric));
-    });
-    const orderedMetrics = [
-        "rollHeight", "resRad", "rRi", "mb", "mbMy",
-        "springback", "radiusAfterSpringback", "forceRequired",
-        "percentYield", "numberOfYieldStrains"
-    ];
-    const presentMetrics = orderedMetrics.filter(metric => allMetrics.has(metric));
-
+    // If loading, show loading text
+    // if (loading) return <div>Loading...</div>;
+    
     return (
         <Paper elevation={3} style={{ padding: '20px' }}>
             <Typography variant="h4" gutterBottom>
                 7 Roll Straightener Backbend
             </Typography>
 
-            {/* Toggle buttons for subpages */}
-            <Box sx={{ mb: 2 }}>
-                <ToggleButtonGroup
-                    value={activePage}
-                    exclusive
-                    onChange={(event, newPage) => { if (newPage) setActivePage(newPage); }}
-                    size="small"
-                >
-                    <ToggleButton value="page1">Max</ToggleButton>
-                    <ToggleButton value="page2">Full</ToggleButton>
-                    <ToggleButton value="page3">Min</ToggleButton>
-                    <ToggleButton value="page4">Width</ToggleButton>
-                </ToggleButtonGroup>
-            </Box>
+            {/* Calculated Fields */}
+            <Divider sx={{ my: 2 }} />
+            <Typography variant="h6">Calculated Values</Typography>
+            <Grid container spacing={1} sx={{ mt: 1 }}>
+                <Grid item xs={12} md={6}>
+                    <Typography noWrap style={{ minWidth: 200 }}>Max Coil Weight</Typography>
+                    <TextField size="small"
+                        value={subpageData[activePage].maxCoilWeight || ""}
+                        onChange={(e) => handleChange("maxCoilWeight", e.target.value)}
+                        name="maxCoilWeight"
+                        type="number"
+                        disabled={true}
+                    />
+                </Grid>
 
-            {/* Shared Variables Table */}
-            <Typography variant="h6" gutterBottom>Shared Variables</Typography>
-            <Table size="small">
-                <TableBody>
-                    {sharedRows.map((row, idx) => (
-                        <TableRow key={idx}>
-                            <TableCell>{row.label}</TableCell>
-                            <TableCell>{row.value}</TableCell>
-                        </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
+                {currentGroupFields.map((field) => (
+                    <Grid item xs={12} sm={6} key={field}>
+                        <CalculatedField
+                            label={formatLabel(field)}
+                            value={subpageData[activePage][field] || ""} />
+                    </Grid>
+                ))}
+            </Grid>
 
-            {/* Roller Table */}
-            <Typography variant="h6" gutterBottom style={{ marginTop: '16px' }}>Roller Table</Typography>
-            <Box sx={{ overflowX: 'auto' }}>
-                <Table size="small">
-                    <TableHead>
-                        <TableRow>
-                            <TableCell>Position</TableCell>
-                            {presentMetrics.map((metric, idx) => (
-                                <TableCell key={idx}>{formatLabel(metric)}</TableCell>
-                            ))}
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {rollerPositions.map(pos => {
-                            const metricsObj = rollerRows[pos.id];
-                            // Skip positions with no data at all
-                            if (!metricsObj || Object.keys(metricsObj).length === 0) return null;
-                            return (
-                                <TableRow key={pos.id}>
-                                    <TableCell>{pos.label}</TableCell>
-                                    {presentMetrics.map((metric, idx) => (
-                                        <TableCell key={idx}>
-                                            {metricsObj[metric] !== undefined ? metricsObj[metric] : ""}
-                                        </TableCell>
-                                    ))}
-                                </TableRow>
-                            );
-                        })}
-                    </TableBody>
-                </Table>
-            </Box>
-
-            {/* Remaining Calculated Values Table */}
-            {remainingRows.length > 0 && (
-                <>
-                    <Typography variant="h6" gutterBottom style={{ marginTop: '16px' }}>
-                        Remaining Calculated Values
+            {/* Navigation Buttons */}
+            <Grid
+                container
+                spacing={2}
+                justifyContent="space-between"
+                alignItems="center"
+                sx={{ mt: 4 }}
+            >
+                <Grid item>
+                    <Button
+                        variant="contained"
+                        onClick={goToPreviousPage}
+                        disabled={activePage === "page1"}
+                    >
+                        Back
+                    </Button>
+                </Grid>
+                <Grid item>
+                    <Typography variant="subtitle1">
+                        {pages.find((p) => p.key === activePage)?.title}
                     </Typography>
-                    <Table size="small">
-                        <TableBody>
-                            {remainingRows.map((row, idx) => (
-                                <TableRow key={idx}>
-                                    <TableCell>{row.label}</TableCell>
-                                    <TableCell>{row.value}</TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </>
-            )}
+                </Grid>
+                <Grid item>
+                    <Button
+                        variant="contained"
+                        onClick={goToNextPage}
+                        disabled={activePage === "page4"}
+                    >
+                        Next
+                    </Button>
+                </Grid>
+            </Grid>
         </Paper>
     );
 }
