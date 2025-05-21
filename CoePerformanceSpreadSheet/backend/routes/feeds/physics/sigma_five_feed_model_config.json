@@ -1,0 +1,782 @@
+{
+    "lookup_sigma5_feed": {
+        "CPRF-S1": {
+            "u_roll": {
+                "o_dia": 2.250,
+                "i_dia": 0,
+                "length": 0.75,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "u_journ": {
+                "o_dia": 1.000,
+                "i_dia": 0,
+                "length": 4.25,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "l_roll": {
+                "o_dia": 2.250,
+                "i_dia": 0,
+                "length": 2.50,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "l_journ": {
+                "o_dia": 1.000,
+                "i_dia": 0,
+                "length": 5.50,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "gears_idler": {
+                "o_dia": 2.000,
+                "i_dia": 1.250,
+                "length": 0.75,
+                "density": 0,
+                "qty": 2,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "gears_drive": {
+                "o_dia": 2.000,
+                "i_dia": 1.000,
+                "length": 0.75,
+                "density": 0,
+                "qty": 2,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "u_pul": {
+                "o_dia": 5.594,
+                "i_dia": 4.880,
+                "length": 1.280,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "H90_5M_25_SDS": {
+                "o_dia": 4.880,
+                "i_dia": 2.188,
+                "length": 0.75,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "BUSH": {
+                "o_dia": 3.188,
+                "i_dia": 1.000,
+                "length": 0.438,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "SDSx1_bore": {
+                "o_dia": 2.188,
+                "i_dia": 1.000,
+                "length": 0.875,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "l_pul": {
+                "o_dia": 1.831,
+                "i_dia": 0.625,
+                "length": 1.280,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "H30_5M_25_MPB": {
+                "o_dia": 1.190,
+                "i_dia": 0.625,
+                "length": 0.420,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            }
+        },
+        "CPRF-S1 PLUS": {
+            "u_roll": {
+                "o_dia": 2.250,
+                "i_dia": 0,
+                "length": 0.75,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "u_journ": {
+                "o_dia": 1.000,
+                "i_dia": 0,
+                "length": 4.25,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "l_roll": {
+                "o_dia": 2.250,
+                "i_dia": 0,
+                "length": 2.50,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "l_journ": {
+                "o_dia": 1.000,
+                "i_dia": 0,
+                "length": 5.50,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "gears_idler": {
+                "o_dia": 2.000,
+                "i_dia": 1.250,
+                "length": 0.75,
+                "density": 0,
+                "qty": 2,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "gears_drive": {
+                "o_dia": 2.000,
+                "i_dia": 1.000,
+                "length": 0.75,
+                "density": 0,
+                "qty": 2,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "u_pul": {
+                "o_dia": 6.961,
+                "i_dia": 4.880,
+                "length": 1.280,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "H90_5M_25_SDS": {
+                "o_dia": 4.880,
+                "i_dia": 2.188,
+                "length": 0.75,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "BUSH": {
+                "o_dia": 3.188,
+                "i_dia": 1.000,
+                "length": 0.438,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "SDSx1_bore": {
+                "o_dia": 2.188,
+                "i_dia": 1.000,
+                "length": 0.875,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "l_pul": {
+                "o_dia": 1.831,
+                "i_dia": 0.945,
+                "length": 1.280,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "H30_5M_25_MPB": {
+                "o_dia": 1.190,
+                "i_dia": 0.945,
+                "length": 0.420,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            }
+        },
+        "CPRF-S2": {
+            "u_roll": {
+                "o_dia": 2.625,
+                "i_dia": 0,
+                "length": 0.75,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "u_journ": {
+                "o_dia": 1.000,
+                "i_dia": 0,
+                "length": 4.25,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "l_roll": {
+                "o_dia": 2.625,
+                "i_dia": 0,
+                "length": 2.50,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "l_journ": {
+                "o_dia": 1.000,
+                "i_dia": 0,
+                "length": 5.50,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "gears_idler": {
+                "o_dia": 2.000,
+                "i_dia": 1.250,
+                "length": 0.75,
+                "density": 0,
+                "qty": 2,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "gears_drive": {
+                "o_dia": 2.000,
+                "i_dia": 1.000,
+                "length": 0.75,
+                "density": 0,
+                "qty": 2,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "u_pul": {
+                "o_dia": 5.594,
+                "i_dia": 4.880,
+                "length": 1.280,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "P90_5MGT_25": {
+                "o_dia": 4.880,
+                "i_dia": 2.188,
+                "length": 0.75,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "BUSH": {
+                "o_dia": 3.188,
+                "i_dia": 1.000,
+                "length": 0.438,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "SDSx1_bore": {
+                "o_dia": 2.188,
+                "i_dia": 1.000,
+                "length": 0.875,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "l_pul": {
+                "o_dia": 2.319,
+                "i_dia": 0.875,
+                "length": 1.280,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "P38_5MGT_25": {
+                "o_dia": 1.190,
+                "i_dia": 0.875,
+                "length": 0.420,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            }
+        },
+        "CPRF-S2 PLUS": {
+            "u_roll": {
+                "o_dia": 2.625,
+                "i_dia": 0,
+                "length": 0.75,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "u_journ": {
+                "o_dia": 1.000,
+                "i_dia": 0,
+                "length": 4.25,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "l_roll": {
+                "o_dia": 2.625,
+                "i_dia": 0,
+                "length": 5.50,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "l_journ": {
+                "o_dia": 1.000,
+                "i_dia": 0,
+                "length": 5.50,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "gears_idler": {
+                "o_dia": 2.000,
+                "i_dia": 1.250,
+                "length": 0.75,
+                "density": 0,
+                "qty": 2,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "gears_drive": {
+                "o_dia": 2.000,
+                "i_dia": 1.000,
+                "length": 0.75,
+                "density": 0,
+                "qty": 2,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "u_pul": {
+                "o_dia": 6.961,
+                "i_dia": 4.880,
+                "length": 1.280,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "P112_5MGT_25": {
+                "o_dia": 4.880,
+                "i_dia": 2.188,
+                "length": 0.75,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "BUSH": {
+                "o_dia": 3.188,
+                "i_dia": 1.000,
+                "length": 0.438,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "SDSx1_bore": {
+                "o_dia": 2.188,
+                "i_dia": 1.000,
+                "length": 0.875,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "l_pul": {
+                "o_dia": 2.319,
+                "i_dia": 0.875,
+                "length": 1.280,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "P38_5MGT_25": {
+                "o_dia": 1.190,
+                "i_dia": 0.875,
+                "length": 0.420,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            }
+        },
+        "CPRF-S3": {
+            "u_roll_contact": {
+                "o_dia": 3.000,
+                "i_dia": 0.000,
+                "length": 0,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "u_tappered_port": {
+                "o_dia": 2.630,
+                "i_dia": 0.000,
+                "length": 0,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "u_journ": {
+                "o_dia": 1.575,
+                "i_dia": 0.000,
+                "length": 6.140,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "l_roll_contact": {
+                "o_dia": 3.000,
+                "i_dia": 0.000,
+                "length": 0,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "l_tappered_port": {
+                "o_dia": 2.250,
+                "i_dia": 0.000,
+                "length": 0,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "l_journ": {
+                "o_dia": 1.575,
+                "i_dia": 0.000,
+                "length": 7.760,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "gears_idler": {
+                "o_dia": 3.000,
+                "i_dia": 1.750,
+                "length": 1.000,
+                "density": 0,
+                "qty": 2,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "gears_drive": {
+                "o_dia": 2.500,
+                "i_dia": 1.339,
+                "length": 1.000,
+                "density": 0,
+                "qty": 2,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "u_pul": {
+                "o_dia": 8.963,
+                "i_dia": 7.900,
+                "length": 1.220,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "W90_8M_22_SDS": {
+                "o_dia": 7.900,
+                "i_dia": 2.188,
+                "length": 0.870,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "u_BUSH": {
+                "o_dia": 3.188,
+                "i_dia": 1.250,
+                "length": 0.438,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "SDS:1_7/8_bore": {
+                "o_dia": 2.188,
+                "i_dia": 1.250,
+                "length": 0.875,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "l_pul": {
+                "o_dia": 3.150,
+                "i_dia": 1.570,
+                "length": 0.350,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "W28_8M_22_QT": {
+                "o_dia": 3.150,
+                "i_dia": 1.625,
+                "length": 0.870,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "l_BUSH": {
+                "o_dia": 2.500,
+                "i_dia": 0.944,
+                "length": 0.250,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            },
+            "QT:24mm_bore": {
+                "o_dia": 1.625,
+                "i_dia": 0.944,
+                "length": 1.000,
+                "density": 0,
+                "qty": 1,
+                "lbs": 0,
+                "inertia": 0,
+                "ratio": 0
+            }
+        },
+        "CPRF-S3 PLUS": [
+            "u_roll_contact",
+            "u_tappered_port",
+            "u_journ",
+            "l_roll_contact",
+            "l_tappered_port",
+            "l_journ",
+            "gears_idler",
+            "gears_drive",
+            "u_pul",
+            "W112_8M_22_SDS",
+            "u_BUSH",
+            "SDS:1_7/8_bore",
+            "l_pul",
+            "W28_8M_22_QT",
+            "l_BUSH",
+            "QT:24mm_bore"
+        ],
+        "CPRF-S4": [
+            "u_roll_contact",
+            "u_tappered_port",
+            "u_journ",
+            "l_roll_contact",
+            "l_tappered_port",
+            "l_journ",
+            "gears_idler",
+            "gears_drive",
+            "u_pul",
+            "W90_8M_22_SDS",
+            "u_BUSH",
+            "SDS178:1_7/8_bore",
+            "l_pul",
+            "W34_8M_22_QT",
+            "l_BUSH",
+            "QT:32mm_bore"
+        ],
+        "CPRF-S4 PLUS": [
+            "u_roll_contact",
+            "u_tappered_port",
+            "u_journ",
+            "l_roll_contact",
+            "l_tappered_port",
+            "l_journ",
+            "gears_idler",
+            "gears_drive",
+            "u_pul",
+            "W112_8M_22_SDS",
+            "u_BUSH",
+            "SDS178:1_7/8_bore",
+            "l_pul",
+            "W34_8M_22_QT",
+            "l_BUSH",
+            "QT:32mm_bore"
+        ],
+        "CPRF-S5": [
+            "u_roll_contact",
+            "u_tappered_port",
+            "u_journ",
+            "l_roll_contact",
+            "l_tappered_port",
+            "l_journ",
+            "gears_idler_YSS630",
+            "HUB_YSS630",
+            "gears_drive_YSS627",
+            "HUB_YSS627",
+            "u_pul",
+            "P144_8M_50",
+            "u_BUSH",
+            "E_STYLE",
+            "l_pul_MPB",
+            "P30_8M_50"
+        ],
+        "CPRF-S6": [
+            "u_roll_1",
+            "u_roll_2",
+            "u_journ_1",
+            "u_journ_2",
+            "l_roll_1",
+            "l_roll_2",
+            "l_journ_1",
+            "l_journ_2",
+            "d_gears_YSS6633",
+            "HUB_YSS6633",
+            "i_gears_YSS630",
+            "HUB_YSS630",
+            "u_pul",
+            "14MX_50_37",
+            "l_pul",
+            "14MX_36_37"
+        ],
+        "CPRF-S7": [
+            "u_roll_1",
+            "u_roll_2",
+            "u_journ_1",
+            "u_journ_2",
+            "l_roll_1",
+            "l_roll_2",
+            "l_journ_1",
+            "l_journ_2",
+            "l_journ_3",
+            "i_gears",
+            "i_HUB",
+            "d_gears_YSS630",
+            "d_HUB",
+            "u_pul",
+            "14MX_60_37",
+            "l_pul",
+            "14MX_36_37"
+        ],
+        "CPRF-S8": [
+            "u_roll_1",
+            "u_roll_2",
+            "u_journ_1",
+            "u_journ_2",
+            "l_roll_1",
+            "l_roll_2",
+            "l_journ_1",
+            "l_journ_2",
+            "l_journ_3",
+            "d_gears_YSS636",
+            "d_HUB_YSS636",
+            "i_gears_YSS636",
+            "i_HUB_YSS636",
+            "u_pul",
+            "14MX_80_37",
+            "l_pul",
+            "14MX_36_37"
+        ]
+    }
+}

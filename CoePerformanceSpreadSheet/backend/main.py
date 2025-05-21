@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from routes import rfq, material_specs, tddbhd, reel_drive, str_utility
 from routes.rolls import roll_str_backbend
+from routes.feeds import sigma_five_feed
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
@@ -24,7 +25,8 @@ app.include_router(material_specs.router, prefix="/api/material_specs")
 app.include_router(tddbhd.router, prefix="/api/tddbhd")
 app.include_router(reel_drive.router, prefix="/api/reel_drive", tags=["Reel Drive"])
 app.include_router(str_utility.router, prefix="/api/str_utility", tags=["Str Utility"])
-app.include_router(roll_str_backbend.router, prefix="/api/rolls/roll_str_backbend", tags=["7 Roll Str Backbend"])
+app.include_router(roll_str_backbend.router, prefix="/api/rolls/roll_str_backbend", tags=["Roll Str Backbend"])
+app.include_router(sigma_five_feed.router, prefix="/api/feeds/sigma_five_feed", tags=["Sigma Five Feed"])
 
 @app.get("/")
 def home():

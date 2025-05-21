@@ -58,7 +58,6 @@ def calculate_roll_str_backbend(data: RollStrBackbendInput):
         else:
             radius_off_coil_after_springback = radius_off_coil / creep_factor
 
-            
     r_ri = 1 / radius_off_coil_after_springback
 
     # Max Roller Depth with material

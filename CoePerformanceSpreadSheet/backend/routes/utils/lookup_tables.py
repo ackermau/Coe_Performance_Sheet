@@ -34,7 +34,7 @@ lookup_str_model = LOOKUP_DATA.get("lookup_str_model", {})
 #####
 # Sigma Five Reel
 #####
-lookup_sigma5_feed_pt = LOOKUP_DATA.get("lookup_sigma5_feed_pt", {})
+lookup_sigma5_feed = LOOKUP_DATA.get("lookup_sigma5_feed", {})
 
 ######
 # TDDBHD methods
@@ -263,6 +263,22 @@ def get_sigma_five_specs(feed_model: str, field: str, label: str = None):
     feed_model_key = feed_model.upper()
     label = label or feed_model
     try:
-        return lookup_sigma5_feed_pt[feed_model_key][field]
+        return lookup_sigma5_feed[feed_model_key][field]
     except KeyError:
         raise ValueError(f"Unknown model or missing field: {label} for model '{feed_model}'")
+    
+# Selected Str used
+def get_selected_str_used(type_of_line: str) -> str:
+    """
+    Return the selected STR used based on the type of line.
+    
+    Args:
+        type_of_line (str): Type of line.
+
+    Returns:
+        str: Selected STR used.
+    """
+    try:
+        return lookup_type_of_line[type_of_line]["str_used"]
+    except KeyError:
+        raise ValueError(f"Unknown type of line: {type_of_line}")

@@ -1,31 +1,27 @@
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field
-from math import pi, sqrt
+from fastapi import HTTPException
+from pydantic import BaseModel
+from math import pi
 
 import json
 import os
 
 # Build a path to the JSON file relative to this file's location.
 _BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-_JSON_FILE = os.path.join(_BASE_DIR, "lookup_tables.json")
+_JSON_FILE = os.path.join(_BASE_DIR, "sigma_five_feed_model_config.json")
 
 # Load the JSON file only once at module load time.
 with open(_JSON_FILE, "r") as f:
     LOOKUP_DATA = json.load(f)
 
-feed_model_lookup = LOOKUP_DATA.get("lookup_sigma5_feed_pt", {})
-
-# Import your lookup functions
-from ...utils.lookup_tables import get_material_density
-
-router = APIRouter()
+feed_model_lookup = LOOKUP_DATA.get("lookup_sigma5_feed", {})
+feed_model_pt_lookup = LOOKUP_DATA.get("lookup_sigma5_feed_pt", {})
+allen_bradley_lookup = LOOKUP_DATA.get("lookup_ab_feed", {})
 
 class InertiaInput(BaseModel):
     feed_model: str
-    str_model: str
-
     width: int
     thickness: float
+    density: float
     press_bed_length: int
     material_loop: float
     ratio: float
@@ -37,7 +33,6 @@ class InertiaInput(BaseModel):
     g_box_qty: int
     g_box_inertia: float
     g_box_ratio: float
-    g_box_refl_inertia: float
 
 def calculate_length(width: float):
     """
@@ -66,29 +61,40 @@ def compute_refl_inertia(data: InertiaInput, qty: int = 1, length: float = 0):
     try:
         lbs = calculate_lbs(data.u_roll, data.l_roll, length, data.thickness, qty, data.ratio)
         inertia = calculate_inertia(lbs, data.u_roll, data.l_roll)
+        print(f"lbs: {lbs}, inertia: {inertia}")
 
         return inertia / (data.ratio ** 2)
     except ValueError:
         raise ValueError("Invalid feed model")
 
-@router.post("/calculate")
 def calculate_total_refl_inertia(data: InertiaInput):
     try:
-        feed_data = feed_model_lookup[data.feed_model]
+        if data.feed_model in feed_model_lookup:
+            feed_data = feed_model_lookup[data.feed_model]
+        elif data.feed_model in feed_model_pt_lookup:
+            feed_data = feed_model_pt_lookup[data.feed_model]
+        elif data.feed_model in allen_bradley_lookup:
+            feed_data = allen_bradley_lookup[data.feed_model]
+        else:
+            raise ValueError(f"Unknown feed model: {data.feed_model}")
         results = 0.0
 
         # Feed model refl inertia
         for element in feed_data:
             len = calculate_length(data.width)
-            results += compute_refl_inertia(data, element["qty"], len)
+            print(f"Length: {len}")
+            if "gears" in data.feed_model.lower() or "hub" in data.feed_model.lower():
+                qty = 2
+            else:
+                qty = 1
+            results += compute_refl_inertia(data, qty, len)
 
         # Gearbox refl inertia
         if data.g_box_qty > 0:
             results += (data.g_box_qty * data.g_box_inertia)
 
         # Material refl inertia
-        density = get_material_density(data.str_model)
-        material_inertia = ((data.width * data.thickness * data.press_bed_length * density) / 32.3) * (((data.u_roll * 0.5) ** 2) / 144) * 12
+        material_inertia = ((data.width * data.thickness * data.press_bed_length * data.density) / 32.3) * (((data.u_roll * 0.5) ** 2) / 144) * 12
         results += (material_inertia / (data.ratio ** 2))
 
         return results
