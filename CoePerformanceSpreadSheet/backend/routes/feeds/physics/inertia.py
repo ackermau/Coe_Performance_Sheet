@@ -26,6 +26,7 @@ class InertiaInput(BaseModel):
     material_loop: float
     ratio: float
     efficiency: float
+    roll_width: str
 
     u_roll: float
     l_roll: float
@@ -34,13 +35,75 @@ class InertiaInput(BaseModel):
     g_box_inertia: float
     g_box_ratio: float
 
-def calculate_length(width: float):
+def calculate_length(width: float, feed_model: str, roll_width: str, element: str, e_data: dict):
     """
     Calculate length based on width.
     """
+    length = 0
     if width < 0:
         raise ValueError("Width must be greater than zero")
-    return width + 0.75
+    
+    if "S1" or "S2" in feed_model:
+        if element == "u_roll":
+            length = width + 0.75
+        elif element == "l_roll":
+            length = width + 2.5
+    elif "S3" or "S4" or "S5" in feed_model:
+        if roll_width.lower() == "y" or roll_width.lower() == "yes":
+            if element == "u_roll":
+                length = width + 1.99
+            elif element == "l_roll":
+                length = width + 0.5
+            elif element == "u_tappered_port":
+                length = 0
+            elif element == "l_tappered_port":
+                if "S3" in feed_model:
+                    length = 6.14
+                elif "S4" in feed_model:
+                    length = 4.24
+                elif "S5" in feed_model:
+                    length = 3.906
+                else:
+                    length = 0
+        else:
+            if element == "u_roll" or element == "l_roll":
+                length = width * 0.5
+            elif element == "u_tappered_port":
+                length = width * 0.5 + 1.99
+            elif element == "l_tappered_port":
+                if "S3" in feed_model:
+                    length = width * 0.5
+                elif "S4" in feed_model:
+                    length = width * 0.5 + 4.74
+                elif "S5" in feed_model:
+                    length = width * 0.5 + 5.657
+                else:
+                    length = 0
+    elif "S6" or "S7" or "S8" in feed_model:
+        if roll_width.lower() == "y" or roll_width.lower() == "yes":
+            if element == "u_roll":
+                length = width + 1.1725
+            elif element == "l_roll":
+                length = width + 1
+            elif element == "u_tappered_port":
+                length = 0
+            elif element == "l_tappered_port":
+                length = 4.92
+            else:
+                length = 0
+        else:
+            if element == "u_roll" or element == "l_roll":
+                length = width * 0.5
+            elif element == "u_tappered_port":
+                length = (width + 1.1725) - (width * 0.5)
+            elif element == "l_tappered_port":
+                length = (width + 5.92) - (width * 0.5)
+            else:
+                length = 0
+    else:
+        length = 0
+
+    return length
 
 def calculate_lbs(o_dia: float, i_dia: float, length: float, density: float, qty: int, ratio: float):
     """
@@ -79,14 +142,18 @@ def calculate_total_refl_inertia(data: InertiaInput):
             raise ValueError(f"Unknown feed model: {data.feed_model}")
         results = 0.0
 
+        if not isinstance(feed_data, dict):
+            raise ValueError(f"Expected feed_data to be a dict, got {type(feed_data).__name__}")
+
         # Feed model refl inertia
-        for element in feed_data:
-            len = calculate_length(data.width)
-            print(f"Length: {len}")
-            if "gears" in data.feed_model.lower() or "hub" in data.feed_model.lower():
+        for element_name, element_data in feed_data.items():
+            len = calculate_length(data.width, data.feed_model, data.roll_width, element_name, element_data)
+            
+            if "gears" or "hub" in element_name:
                 qty = 2
             else:
                 qty = 1
+            
             results += compute_refl_inertia(data, qty, len)
 
         # Gearbox refl inertia
