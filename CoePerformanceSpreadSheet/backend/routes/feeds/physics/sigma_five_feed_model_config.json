@@ -109,7 +109,7 @@
                 "qty": 1,
                 "lbs": 0,
                 "inertia": 0,
-                "ratio": 0
+                "ratio": 1
             },
             "H30_5M_25_MPB": {
                 "o_dia": 1.190,
@@ -118,6 +118,12 @@
                 "density": 0.283,
                 "qty": 1,
                 "lbs": 0,
+                "inertia": 0,
+                "ratio": 1
+            },
+            "g_box": {
+                "efficiency": 1,
+                "qty": 0,
                 "inertia": 0,
                 "ratio": 0
             }
@@ -231,7 +237,7 @@
                 "qty": 1,
                 "lbs": 0,
                 "inertia": 0,
-                "ratio": 0
+                "ratio": 1
             },
             "H30_5M_25_MPB": {
                 "o_dia": 1.190,
@@ -240,6 +246,12 @@
                 "density": 0.283,
                 "qty": 1,
                 "lbs": 0,
+                "inertia": 0,
+                "ratio": 1
+            },
+            "g_box": {
+                "efficiency": 1,
+                "qty": 0,
                 "inertia": 0,
                 "ratio": 0
             }
@@ -353,7 +365,7 @@
                 "qty": 1,
                 "lbs": 0,
                 "inertia": 0,
-                "ratio": 0
+                "ratio": 1
             },
             "P38_5MGT_25": {
                 "o_dia": 1.190,
@@ -362,6 +374,12 @@
                 "density": 0.283,
                 "qty": 1,
                 "lbs": 0,
+                "inertia": 0,
+                "ratio": 1
+            },
+            "g_box": {
+                "efficiency": 1,
+                "qty": 0,
                 "inertia": 0,
                 "ratio": 0
             }
@@ -475,7 +493,7 @@
                 "qty": 1,
                 "lbs": 0,
                 "inertia": 0,
-                "ratio": 0
+                "ratio": 1
             },
             "P38_5MGT_25": {
                 "o_dia": 1.190,
@@ -484,6 +502,12 @@
                 "density": 0.283,
                 "qty": 1,
                 "lbs": 0,
+                "inertia": 0,
+                "ratio": 1
+            },
+            "g_box": {
+                "efficiency": 1,
+                "qty": 0,
                 "inertia": 0,
                 "ratio": 0
             }
@@ -617,7 +641,7 @@
                 "qty": 1,
                 "lbs": 0,
                 "inertia": 0,
-                "ratio": 0
+                "ratio": 1
             },
             "W28_8M_22_QT": {
                 "o_dia": 3.150,
@@ -627,7 +651,7 @@
                 "qty": 1,
                 "lbs": 0,
                 "inertia": 0,
-                "ratio": 0
+                "ratio": 1
             },
             "l_BUSH": {
                 "o_dia": 2.500,
@@ -637,7 +661,7 @@
                 "qty": 1,
                 "lbs": 0,
                 "inertia": 0,
-                "ratio": 0
+                "ratio": 1
             },
             "QT:24mm_bore": {
                 "o_dia": 1.625,
@@ -646,6 +670,12 @@
                 "density": 0.283,
                 "qty": 1,
                 "lbs": 0,
+                "inertia": 0,
+                "ratio": 1
+            },
+            "g_box": {
+                "efficiency": 1,
+                "qty": 0,
                 "inertia": 0,
                 "ratio": 0
             }
@@ -779,7 +809,7 @@
                 "qty": 1,
                 "lbs": 0,
                 "inertia": 0,
-                "ratio": 0
+                "ratio": 1
             },
             "W28_8M_22_QT": {
                 "o_dia": 3.150,
@@ -789,7 +819,7 @@
                 "qty": 1,
                 "lbs": 0,
                 "inertia": 0,
-                "ratio": 0
+                "ratio": 1
             },
             "l_BUSH": {
                 "o_dia": 2.500,
@@ -799,7 +829,7 @@
                 "qty": 1,
                 "lbs": 0,
                 "inertia": 0,
-                "ratio": 0
+                "ratio": 1
             },
             "QT:24mm_bore": {
                 "o_dia": 1.625,
@@ -808,6 +838,12 @@
                 "density": 0.283,
                 "qty": 1,
                 "lbs": 0,
+                "inertia": 0,
+                "ratio": 1
+            },
+            "g_box": {
+                "efficiency": 1,
+                "qty": 0,
                 "inertia": 0,
                 "ratio": 0
             }
@@ -941,7 +977,7 @@
                 "qty": 1,
                 "lbs": 0,
                 "inertia": 0,
-                "ratio": 0
+                "ratio": 1
             },
             "W34_8M_22_QT": {
                 "o_dia": 2.750,
@@ -951,7 +987,7 @@
                 "qty": 1,
                 "lbs": 0,
                 "inertia": 0,
-                "ratio": 0
+                "ratio": 1
             },
             "l_BUSH": {
                 "o_dia": 2.687,
@@ -961,7 +997,7 @@
                 "qty": 1,
                 "lbs": 0,
                 "inertia": 0,
-                "ratio": 0
+                "ratio": 1
             },
             "QT:32mm_bore": {
                 "o_dia": 1.871,
@@ -970,6 +1006,12 @@
                 "density": 0.283,
                 "qty": 1,
                 "lbs": 0,
+                "inertia": 0,
+                "ratio": 1
+            },
+            "g_box": {
+                "efficiency": 1,
+                "qty": 0,
                 "inertia": 0,
                 "ratio": 0
             }
@@ -1103,7 +1145,7 @@
                 "qty": 1,
                 "lbs": 0,
                 "inertia": 0,
-                "ratio": 0
+                "ratio": 1
             },
             "W34_8M_22_QT": {
                 "o_dia": 2.750,
@@ -1113,7 +1155,7 @@
                 "qty": 1,
                 "lbs": 0,
                 "inertia": 0,
-                "ratio": 0
+                "ratio": 1
             },
             "l_BUSH": {
                 "o_dia": 2.687,
@@ -1123,7 +1165,7 @@
                 "qty": 1,
                 "lbs": 0,
                 "inertia": 0,
-                "ratio": 0
+                "ratio": 1
             },
             "QT:32mm_bore": {
                 "o_dia": 1.871,
@@ -1132,6 +1174,12 @@
                 "density": 0.283,
                 "qty": 1,
                 "lbs": 0,
+                "inertia": 0,
+                "ratio": 1
+            },
+            "g_box": {
+                "efficiency": 1,
+                "qty": 0,
                 "inertia": 0,
                 "ratio": 0
             }
@@ -1207,7 +1255,7 @@
                 "inertia": 0,
                 "ratio": 0
             },
-            "HUB_YSS630": {
+            "hub_YSS630": {
                 "o_dia": 3.125,
                 "i_dia": 2.000,
                 "length": 1.500,
@@ -1227,7 +1275,7 @@
                 "inertia": 0,
                 "ratio": 0
             },
-            "HUB_YSS627": {
+            "hub_YSS627": {
                 "o_dia": 3.000,
                 "i_dia": 2.000,
                 "length": 1.500,
@@ -1285,7 +1333,7 @@
                 "qty": 1,
                 "lbs": 0,
                 "inertia": 0,
-                "ratio": 0
+                "ratio": 1
             },
             "P30_8M_50": {
                 "o_dia": 2.406,
@@ -1294,6 +1342,12 @@
                 "density": 0.283,
                 "qty": 1,
                 "lbs": 0,
+                "inertia": 0,
+                "ratio": 1
+            },
+            "g_box": {
+                "efficiency": 1,
+                "qty": 0,
                 "inertia": 0,
                 "ratio": 0
             }
@@ -1389,7 +1443,7 @@
                 "inertia": 0,
                 "ratio": 0
             },
-            "HUB_YSS6633": {
+            "hub_YSS6633": {
                 "o_dia": 3.250,
                 "i_dia": 2.000,
                 "length": 2.000,
@@ -1407,9 +1461,9 @@
                 "qty": 2,
                 "lbs": 0,
                 "inertia": 0,
-                "ratio": 0
+                "ratio": 10.16
             },
-            "HUB_YSS630": {
+            "hub_YSS630": {
                 "o_dia": 3.130,
                 "i_dia": 1.750,
                 "length": 2.000,
@@ -1417,7 +1471,7 @@
                 "qty": 2,
                 "lbs": 0,
                 "inertia": 0,
-                "ratio": 0
+                "ratio": 10.16
             },
             "u_pul": {
                 "o_dia": 8.770,
@@ -1447,7 +1501,7 @@
                 "qty": 1,
                 "lbs": 0,
                 "inertia": 0,
-                "ratio": 0
+                "ratio": 5
             },
             "14MX_36_37": {
                 "o_dia": 3.000,
@@ -1457,7 +1511,13 @@
                 "qty": 1,
                 "lbs": 0,
                 "inertia": 0,
-                "ratio": 0
+                "ratio": 5
+            },
+            "g_box": {
+                "efficiency": 0.97,
+                "qty": 1,
+                "inertia": 0.032,
+                "ratio": 5
             }
         },
         "CPRF-S7": {
@@ -1559,9 +1619,9 @@
                 "qty": 2,
                 "lbs": 0,
                 "inertia": 0,
-                "ratio": 0
+                "ratio": 13.20
             },
-            "i_HUB": {
+            "i_hub": {
                 "o_dia": 3.130,
                 "i_dia": 2.000,
                 "length": 1.750,
@@ -1569,7 +1629,7 @@
                 "qty": 2,
                 "lbs": 0,
                 "inertia": 0,
-                "ratio": 0
+                "ratio": 13.20
             },
             "d_gears_YSS630": {
                 "o_dia": 6.330,
@@ -1581,7 +1641,7 @@
                 "inertia": 0,
                 "ratio": 0
             },
-            "d_HUB": {
+            "d_hub": {
                 "o_dia": 3.380,
                 "i_dia": 1.750,
                 "length": 1.750,
@@ -1619,7 +1679,7 @@
                 "qty": 1,
                 "lbs": 0,
                 "inertia": 0,
-                "ratio": 0
+                "ratio": 5
             },
             "14MX_36_37": {
                 "o_dia": 3.000,
@@ -1629,7 +1689,13 @@
                 "qty": 1,
                 "lbs": 0,
                 "inertia": 0,
-                "ratio": 0
+                "ratio": 5
+            },
+            "g_box": {
+                "efficiency": 0.97,
+                "qty": 1,
+                "inertia": 0.089,
+                "ratio": 5
             }
         },
         "CPRF-S8": {
@@ -1743,7 +1809,7 @@
                 "inertia": 0,
                 "ratio": 0
             },
-            "d_HUB_YSS636": {
+            "d_hub_YSS636": {
                 "o_dia": 3.380,
                 "i_dia": 1.750,
                 "length": 1.500,
@@ -1763,7 +1829,7 @@
                 "inertia": 0,
                 "ratio": 0
             },
-            "i_HUB_YSS636": {
+            "i_hub_YSS636": {
                 "o_dia": 3.380,
                 "i_dia": 1.750,
                 "length": 1.500,
@@ -1801,7 +1867,7 @@
                 "qty": 1,
                 "lbs": 0,
                 "inertia": 0,
-                "ratio": 0
+                "ratio": 5
             },
             "14MX_36_37": {
                 "o_dia": 3.000,
@@ -1811,7 +1877,13 @@
                 "qty": 1,
                 "lbs": 0,
                 "inertia": 0,
-                "ratio": 0
+                "ratio": 5
+            },
+            "g_box": {
+                "efficiency": 0.97,
+                "qty": 1,
+                "inertia": 0.089,
+                "ratio": 5
             }
         }
     }

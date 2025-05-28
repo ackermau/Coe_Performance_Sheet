@@ -50,7 +50,7 @@ def calculate_init_values(data: TimeInput, feed_angle: int = 0):
         runtime = 0
     
     index_time = ((acceleration_time * 2) + runtime + data.settle_time)
-    if data.application.lower() == "y" or data.application.lower() == "yes":
+    if data.application.lower() == "press feed":
         cycle_time = index_time * (360 / feed_angle)
     else:
         cycle_time = index_time + feed_angle
@@ -97,7 +97,7 @@ def calculate_values(data: TimeInput, init_values: dict, feed_angle: int = 0, in
     peak_torque = acceleration_torque + data.frictional_torque + data.loop_torque
 
     index_time = (acceleration_time * 2) + runtime + data.settle_time
-    if data.application.lower() == "y" or data.application.lower() == "yes":
+    if data.application.lower() == "press feed":
         cycle_time = index_time * (360 / feed_angle)
     else:
         cycle_time = index_time + feed_angle

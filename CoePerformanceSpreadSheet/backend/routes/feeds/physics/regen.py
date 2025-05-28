@@ -14,7 +14,7 @@ def calculate_regen(data: RegenInput):
     try:
         # Compute rational energy of the system, es (Joules)
         motor_rotor_inertia = data.motor_inertia * 0.112943
-        total_inertia = motor_rotor_inertia + data.match
+        total_inertia = motor_rotor_inertia + (motor_rotor_inertia * data.match)
         es = (total_inertia * (data.rpm ** 2)) / 182
 
         # calculate the energy lost in the servo motor windings, em (Joules)
@@ -22,7 +22,7 @@ def calculate_regen(data: RegenInput):
         em = deceleration_time * data.watts_lost
 
         # ek (resistor)
-        ek = es - (em * data.ec)
+        ek = es - (em + data.ec)
         
         # Raw watts and De-rated watts (wk) calculations
         regen = ek / data.cycle_time

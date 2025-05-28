@@ -20,6 +20,7 @@ class SigmaFiveInput(BaseModel):
     material_type: str
     application: str
     type_of_line: str
+    roll_width: str
 
     feed_rate: float
     material_width: int 
@@ -49,9 +50,6 @@ def calulate_sigma_five(data: SigmaFiveInput):
         friction_torque = get_sigma_five_specs(data.feed_model, "fric_torque", "friction_torque")
         watts_lost = get_sigma_five_specs(data.feed_model, "watts_lost", "watts_lost")
         ec = get_sigma_five_specs(data.feed_model, "ec", "ec")
-        gb_ratio = get_sigma_five_specs(data.feed_model, "gb_ratio", "gear_box_ratio")
-        gb_qty = get_sigma_five_specs(data.feed_model, "gb_qty", "gear_box_qty")
-        gb_inertia = get_sigma_five_specs(data.feed_model, "gb_inertia", "gear_box_inertia")
         str_used = get_selected_str_used(data.type_of_line)
 
         # Max Velocity ft/min
@@ -77,11 +75,8 @@ def calulate_sigma_five(data: SigmaFiveInput):
             material_loop = data.material_width,
             ratio = ratio,
             efficiency = efficiency,
-            u_roll = u_roll,
-            l_roll = l_roll,
-            g_box_qty = gb_qty,
-            g_box_inertia = gb_inertia, 
-            g_box_ratio = gb_ratio, 
+            roll_width = data.roll_width,
+            material_width = data.material_width
         )
 
         # Calculate refl inertia
