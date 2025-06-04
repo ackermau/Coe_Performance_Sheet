@@ -20,6 +20,8 @@ class RollStrBackbendInput(BaseModel):
     material_type: str
     str_model: str
     num_str_rolls: int
+    calc_const: float
+
 
 @router.post("/calculate")
 def calculate_roll_str_backbend(data: RollStrBackbendInput):
@@ -45,10 +47,11 @@ def calculate_roll_str_backbend(data: RollStrBackbendInput):
         raise HTTPException(status_code=400, detail="Invalid roll str backbend value")
 
     # Values needed for calculations
+    main_value = data.calc_const
     creep_factor = .33
     radius_off_coil = -60
     curve_at_yield = 2 * data.yield_strength / (data.thickness * modules)
-    radius_at_yield = 1/ curve_at_yield
+    radius_at_yield = 1 / curve_at_yield
     bending_moment_to_yield = data.width * data.yield_strength * (data.thickness ** 2) / 6
     if abs(1 / radius_off_coil) > curve_at_yield:
         radius_off_coil_after_springback = 1 / ((1 / radius_off_coil) - ((abs(radius_off_coil) / radius_off_coil) * (1.5 * (1 - creep_factor)) * curve_at_yield * (1 / ((1/3) * (curve_at_yield / (1 / radius_off_coil)) ** 2))))
@@ -74,9 +77,6 @@ def calculate_roll_str_backbend(data: RollStrBackbendInput):
         roller_depth_required_check = "OK"
     else:
         roller_depth_required_check = "WILL NOT STRAIGHTEN"
-
-    # Roller Table values needed
-    main_value = 9843.80654779491
 
     # Roll Heights (first, mid, last)
     if (main_value - 10000) / 1000 < max_roll_depth_with_material:

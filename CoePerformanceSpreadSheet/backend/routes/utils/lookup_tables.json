@@ -1348,6 +1348,7 @@
       "settle_time": 0.035,
       "efficiency": 1.0,
       "gb_ratio": 0,
+      "u_roll": 5.000,
       "l_roll": 5.000,
       "motor": "YASKAWA SGMSV-1ADDA61",
       "amp": "YASKAWA SGDV-280DE1A000000300",
@@ -1427,7 +1428,7 @@
       "amp": "YASKAWA SGDV-8R4DE1A000000300",
       "ec": 45,
       "watts_lost": 100,
-      "fric_torque": 0
+      "cent_dist": 4.5
     },
     "CPRF-S1 ES Plus": {
       "ratio": 3.733,
@@ -1445,7 +1446,7 @@
       "amp": "YASKAWA SGDV-8R4DE1A000000300",
       "ec": 45,
       "watts_lost": 100,
-      "fric_torque": 0
+      "cent_dist": 4.5
     },
     "CPRF-S2 ES": {
       "ratio": 2.368,
@@ -1463,7 +1464,7 @@
       "amp": "YASKAWA SGDV-120DE1A000000300",
       "ec": 45,
       "watts_lost": 100,
-      "fric_torque": 0
+      "cent_dist": 4.5
     },
     "CPRF-S2 ES Plus": {
       "ratio": 2.947,
@@ -1481,7 +1482,7 @@
       "amp": "YASKAWA SGDV-120DE1A000000300",
       "ec": 45,
       "watts_lost": 100,
-      "fric_torque": 0
+      "cent_dist": 4.5
     },
     "CPRF-S3 ES": {
       "ratio": 3.214,
@@ -1499,7 +1500,7 @@
       "amp": "YASKAWA SGDV-170DE1A000000300",
       "ec": 50,
       "watts_lost": 200,
-      "fric_torque": 0
+      "cent_dist": 4.5
     },
     "CPRF-S3 RS": {
       "ratio": 3.214,
@@ -1517,7 +1518,7 @@
       "amp": "YASKAWA SGDV-170DE1A000000300",
       "ec": 50,
       "watts_lost": 200,
-      "fric_torque": 0
+      "cent_dist": 6
     },
     "CPRF-S3 RS Plus": {
       "ratio": 4.0,
@@ -1535,7 +1536,7 @@
       "amp": "YASKAWA SGDV-170DE1A000000300",
       "ec": 50,
       "watts_lost": 200,
-      "fric_torque": 0
+      "cent_dist": 6
     },
     "CPRF-S4 HS": {
       "ratio": 2.647,
@@ -1553,7 +1554,7 @@
       "amp": "YASKAWA SGDV-210DE1A000000300",
       "ec": 80,
       "watts_lost": 250,
-      "fric_torque": 0
+      "cent_dist": 7
     },
     "CPRF-S4 HS Plus": {
       "ratio": 3.294,
@@ -1571,7 +1572,7 @@
       "amp": "YASKAWA SGDH-60DE",
       "ec": 80,
       "watts_lost": 250,
-      "fric_torque": 0
+      "cent_dist": 7
     },
     "CPRF-S4 RS": {
       "ratio": 2.647,
@@ -1589,7 +1590,7 @@
       "amp": "YASKAWA SGDV-210DE1A000000300",
       "ec": 80,
       "watts_lost": 250,
-      "fric_torque": 0
+      "cent_dist": 6
     },
     "CPRF-S4 RS Plus": {
       "ratio": 3.294,
@@ -1607,7 +1608,7 @@
       "amp": "YASKAWA SGDH-60DE",
       "ec": 80,
       "watts_lost": 250,
-      "fric_torque": 0
+      "cent_dist": 6
     },
     "CPRF-S5-350": {
       "ratio": 4.8,
@@ -1625,7 +1626,7 @@
       "amp": "YASKAWA SGDV-280DE1A000000300",
       "ec": 235,
       "watts_lost": 250,
-      "fric_torque": 0
+      "cent_dist": 7
     },
     "CPRF-S6-350": {
       "ratio": 6.944,
@@ -1643,7 +1644,7 @@
       "amp": "YASKAWA SGDH-1ADE",
       "ec": 235,
       "watts_lost": 250,
-      "fric_torque": 0
+      "cent_dist": 7
     },
     "CPRF-S6-500": {
       "ratio": 6.944,
@@ -1661,7 +1662,7 @@
       "amp": "YASKAWA SGDH-1ADE",
       "ec": 235,
       "watts_lost": 250,
-      "fric_torque": 0
+      "cent_dist": 10
     },
     "CPRF-S7-350": {
       "ratio": 8.333,
@@ -1679,7 +1680,7 @@
       "amp": "YASKAWA SGDH-1EDE",
       "ec": 235,
       "watts_lost": 260,
-      "fric_torque": 0
+      "cent_dist": 7
     },
     "CPRF-S7-500": {
       "ratio": 8.333,
@@ -1697,7 +1698,7 @@
       "amp": "YASKAWA SGDH-1EDE",
       "ec": 235,
       "watts_lost": 260,
-      "fric_torque": 0
+      "cent_dist": 10
     },
     "CPRF-S8-500": {
       "ratio": 11.111,
@@ -1715,7 +1716,7 @@
       "amp": "YASKAWA SGDH-1EDE",
       "ec": 235,
       "watts_lost": 260,
-      "fric_torque": 0
+      "cent_dist": 10
     }
   },
   "lookup_ab_feed": {
@@ -1862,9 +1863,7 @@
       "motor": "AB MPL-B980C",
       "amp": "AB 2094-BM05 + 2094 BC07 +1394 SR36A",
       "fric_torque": 1
-    }
-  },
-  "lookup_custom_ab_feed": {
+    },
     "225_AB_MPL-B4530F": {
       "ratio": 3.0,
       "max_mtr_rpm": 2000,

@@ -73,29 +73,17 @@ def calculate_tbdbhd(data: TDDBHDInput):
     # density, max weight, friction, modulus, cylinder bore, holddown pressure, holddown force available
     try:
         density_lookup = get_material_density(data.material_type)
-
         reel_max_weight = get_reel_max_weight(data.reel_model)
-
         modulus_lookup = get_material_modulus(data.material_type)
-
         cylinder_bore_lookup = get_cylinder_bore(data.brake_model)
-
         holddown_matrix_key = get_hold_down_matrix_label(data.reel_model ,data.hold_down_assy, data.cylinder)
-
         holddown_pressure_calc = get_pressure_psi(holddown_matrix_key, data.air_pressure)
-
         holddown_matrix_key = get_hold_down_matrix_label(data.reel_model ,data.hold_down_assy, data.cylinder)
-
         hold_down_force_available_calc = get_holddown_force_available(holddown_matrix_key, data.holddown_pressure)
-
         holddown_matrix_key = get_hold_down_matrix_label(data.reel_model ,data.hold_down_assy, data.cylinder)
-
         min_material_width_lookup = get_min_material_width(holddown_matrix_key)
-
         reel_type_lookup = get_type_of_line(data.type_of_line)
-
         drive_key_lookup = get_drive_key(data.reel_model, data.air_clutch, data.hyd_threading_drive)
-
         drive_torque_lookup = get_drive_torque(drive_key_lookup)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))

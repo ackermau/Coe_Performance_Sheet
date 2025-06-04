@@ -37,7 +37,6 @@ lookup_str_model = LOOKUP_DATA.get("lookup_str_model", {})
 lookup_sigma5_feed = LOOKUP_DATA.get("lookup_sigma5_feed", {})
 lookup_sigma5_feed_pt = LOOKUP_DATA.get("lookup_sigma5_feed_pt", {})
 lookup_ab_feed = LOOKUP_DATA.get("lookup_ab_feed", {})
-lookup_custom_ab_feed = LOOKUP_DATA.get("lookup_custom_ab_feed", {})
 
 ######
 # TDDBHD methods
@@ -297,22 +296,6 @@ def get_ab_feed_specs(feed_model: str, field: str, label: str = None):
     except KeyError:
         raise ValueError(f"Unknown model or missing field: {label} for model '{feed_model}'")
     
-def get_custom_ab_feed_specs(feed_model: str, field: str, label: str = None):
-    """
-    Args:
-        feed_model (str): Model identifier (case-insensitive).
-        label (str, optional): Friendly label for error messages. Defaults to `feed_model`.
-
-    Returns:
-        Dictionary of specifications for the given feed model.
-    """
-    feed_model_key = feed_model.upper()
-    label = label or feed_model
-    try:
-        return lookup_custom_ab_feed[feed_model_key][field]
-    except KeyError:
-        raise ValueError(f"Unknown model or missing field: {label} for model '{feed_model}'")
-
 # Selected Str used
 def get_selected_str_used(type_of_line: str) -> str:
     """

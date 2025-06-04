@@ -5,17 +5,22 @@ from math import pi
 import json
 import os
 
-# Build a path to the JSON file relative to this file's location.
+# Build absolute paths to each JSON file
 _BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-_JSON_FILE = os.path.join(_BASE_DIR, "sigma_five_feed_model_config.json")
 
-# Load the JSON file only once at module load time.
-with open(_JSON_FILE, "r") as f:
-    LOOKUP_DATA = json.load(f)
+SIGMA_FIVE_FILE = os.path.join(_BASE_DIR, "sigma_five_feed_model_config.json")
+SIGMA_FIVE_PT_FILE = os.path.join(_BASE_DIR, "sigma_five_feed_w_pullthru_model_config.json")
+AB_FEED_FILE = os.path.join(_BASE_DIR, "allen_bradley_model_config.json")
 
-feed_model_lookup = LOOKUP_DATA.get("lookup_sigma5_feed", {})
-feed_model_pt_lookup = LOOKUP_DATA.get("lookup_sigma5_feed_pt", {})
-allen_bradley_lookup = LOOKUP_DATA.get("lookup_ab_feed", {})
+# Load each JSON separately
+with open(SIGMA_FIVE_FILE, "r") as f:
+    feed_model_lookup = json.load(f)
+
+with open(SIGMA_FIVE_PT_FILE, "r") as f:
+    feed_model_pt_lookup = json.load(f)
+
+with open(AB_FEED_FILE, "r") as f:
+    allen_bradley_lookup = json.load(f)
 
 class InertiaInput(BaseModel):
     feed_model: str
@@ -29,75 +34,105 @@ class InertiaInput(BaseModel):
     roll_width: str
     material_width: int
 
-def calculate_length(width: float, feed_model: str, roll_width: str, element: str, e_data: dict):
+def calculate_length(width: float, feed_model: str, roll_width: str, element: str, e_data: dict) -> float:
     """
-    Calculate length based on width.
+    Calculate the length of a component based on model, roll width, and element type.
     """
-    length = e_data.get("length", 0)
     if width < 0:
         raise ValueError("Width must be greater than zero")
 
-    if "S1" in feed_model or "S2" in feed_model:
-        if element == "u_roll":
-            length = width + 0.75
-        elif element == "l_roll":
-            length = width + 2.5
-    elif "S3" in feed_model or "S4" in feed_model or "S5" in feed_model:
-        if roll_width.lower() == "y" or roll_width.lower() == "yes":
-            if element == "u_roll":
-                length = width + 1.99
-            elif element == "l_roll":
-                length = width + 0.5
-            elif element == "u_tappered_port":
-                length = e_data.get("length", 0)
-            elif element == "l_tappered_port":
-                if "S3" in feed_model: 
-                    length = 6.14
-                elif "S4" in feed_model:
-                    length = 4.24
-                elif "S5" in feed_model:
-                    length = 3.906
-                else:
-                    length = e_data.get("length", 0)
-        else:
-            if element == "u_roll" or element == "l_roll":
-                length = width * 0.5
-            elif element == "u_tappered_port":
-                length = width * 0.5 + 1.99
-            elif element == "l_tappered_port":
-                if "S3" in feed_model:
-                    length = width * 0.5
-                elif "S4" in feed_model:
-                    length = width * 0.5 + 4.74
-                elif "S5" in feed_model:
-                    length = width * 0.5 + 5.657
-                else:
-                    length = e_data.get("length", 0)
-    elif "S6" in feed_model or "S7" in feed_model or "S8" in feed_model:
-        if roll_width.lower() == "y" or roll_width.lower() == "yes":
-            if element == "u_roll_1":   
-                length = width + 1.725
-            elif element == "l_roll_1":
-                length = width + 1
-            elif element == "u_roll_2":
-                length = e_data.get("length", 0)
-            elif element == "l_roll_2":
-                length = 4.92
-            else:
-                length = e_data.get("length", 0)
-        else:
-            if element == "u_roll" or element == "l_roll":
-                length = width * 0.5
-            elif element == "u_roll_2":
-                length = (width + 1.1725) - (width * 0.5)
-            elif element == "l_roll_2":
-                length = (width + 5.92) - (width * 0.5)
-            else:
-                length = e_data.get("length", 0)
-    else:
-        length = e_data.get("length", 0)
+    model = feed_model.upper()
+    roll_flag = roll_width.lower() in ("y", "yes")
+    default_length = e_data.get("length", 0)
 
-    return length
+    def in_model(*keys):
+        return any(k in model for k in keys)
+
+    def from_lookup(table):
+        return table.get(element, default_length)
+
+    # Models S1, S2
+    if in_model("S1", "S2"):
+        return from_lookup({
+            "u_roll": width + 0.75,
+            "l_roll": width + 2.5,
+            "s_roll": width + 1.75,
+            "sp_roll": width + 1.75
+        })
+
+    # Models S3, S4, S5
+    if in_model("S3", "S4", "S5"):
+        if roll_flag:
+            if element in ("u_roll", "u_roll_contact", "u_roll_1"):
+                if in_model("S5"):
+                    return width + 1.725
+                else:
+                    return width + 1.99
+            elif "l_roll" in element or "l_roll_contact" in element or "l_roll_1" in element or "l_roll_2" in element:
+                if "_1" in element or element == "l_roll" or element == "l_roll_contact":
+                    return width + (1 if "S5" in model else 0.5)
+                else:
+                    return {
+                        "S3": 6.14,
+                        "S4": 4.24
+                    }.get(next((m for m in ["S3", "S4"] if m in model), ""), 4.92)
+            elif element == "u_tappered_port":
+                return default_length
+            elif element == "l_tappered_port":
+                return {
+                    "S3": 6.14,
+                    "S4": 4.24,
+                    "S5": 3.906
+                }.get(next((m for m in ["S3", "S4", "S5"] if m in model), ""), default_length)
+            elif element in ("s_roll", "sp_roll"):
+                return width + (1.75 if "S3" in model else 1.625)
+        else:
+            if element in ("u_roll", "l_roll", "u_roll_contact", "l_roll_contact"):
+                return width * 0.5
+            elif element == "u_roll_2":
+                if "S3" in model:
+                    return width * 0.5
+                elif "S4" in model:
+                    return 4.74 + width * 0.5
+                elif "S5" in model:
+                    return (width + 5.92) - (width * 0.5)
+                else:
+                    return default_length
+            elif element == "u_tappered_port":
+                return width * 0.5 + 1.99
+            elif element == "l_tappered_port":
+                return width * 0.5 + {
+                    "S3": 0,
+                    "S4": 4.74,
+                    "S5": 5.657
+                }.get(next((m for m in ["S3", "S4", "S5"] if m in model), ""), 0)
+            elif element in ("s_roll", "sp_roll"):
+                return width + (1.75 if "S3" in model else 1.625)
+
+    # Models S6, S7, S8
+    if in_model("S6", "S7", "S8"):
+        if roll_flag:
+            return from_lookup({
+                "u_roll_1": width + 1.725,
+                "l_roll_1": width + 1,
+                "u_roll_2": default_length,
+                "l_roll_2": 4.92,
+                "s_roll": width + 1.625,
+                "sp_roll": width + 1.625
+            })
+        else:
+            return from_lookup({
+                "u_roll": width * 0.5,
+                "l_roll": width * 0.5,
+                "u_roll_2": (width + 1.1725) - (width * 0.5),
+                "l_roll_2": (width + 5.92) - (width * 0.5),
+                "s_roll": width + 1.625,
+                "sp_roll": width + 1.625
+            })
+
+    # Fallback
+    return default_length
+
 
 def calculate_lbs(o_dia: float, i_dia: float, length: float, density: float, qty: int):
     """
@@ -111,14 +146,14 @@ def calculate_inertia(lbs: float, o_dia: float, i_dia: float):
     """
     return ((lbs / 386.4) * (o_dia ** 2 + i_dia ** 2)) / 8
 
-def compute_refl_inertia(data: InertiaInput, qty: int = 1, length: float = 0, o_dia: float = 0, i_dia: float = 0, ratio: float = 0):
+def compute_refl_inertia(data: InertiaInput, qty: int = 1, length: float = 0, o_dia: float = 0, i_dia: float = 0, density: float = 0, ratio: float = 0):
     """
     Calculate reflected inertia for a given feed model.
     """
     try:
         if ratio == 0: ratio = data.ratio
 
-        lbs = calculate_lbs(o_dia, i_dia, length, data.density, qty)
+        lbs = calculate_lbs(o_dia, i_dia, length, density, qty)
         inertia = calculate_inertia(lbs, o_dia, i_dia)
 
         return inertia / (ratio ** 2)
@@ -151,10 +186,7 @@ def calculate_total_refl_inertia(data: InertiaInput):
                 if "u_roll" in element_name:
                     material_dia = element_data["o_dia"]
 
-            if "gears" in element_name or "hub" in element_name:
-                qty = 2
-            else:
-                qty = 1
+            qty = element_data.get("qty", 1)
 
             # Gearbox refl inertia
             if "g_box" in element_name:
@@ -163,11 +195,14 @@ def calculate_total_refl_inertia(data: InertiaInput):
                     results += refl
             else:
                 if element_data["ratio"] == 0:
-                    ratio = data.ratio
+                    if element_name == "s_roll" or element_name == "sp_roll":
+                        ratio = (feed_data[element_name]["o_dia"] / feed_data["u_roll_1"]["o_dia"]) * data.ratio
+                    else:
+                        ratio = data.ratio
                 else:
                     ratio = element_data["ratio"]
 
-                refl = compute_refl_inertia(data, qty, len, element_data["o_dia"], element_data["i_dia"], ratio)
+                refl = compute_refl_inertia(data, qty, len, element_data["o_dia"], element_data["i_dia"], element_data["density"],ratio)
                 results += refl
 
         # Material refl inertia
@@ -177,6 +212,6 @@ def calculate_total_refl_inertia(data: InertiaInput):
 
         return results
     except ValueError as e:
-        print(f"Error in calculate_length on {element_name}: {e}")
+        print(f"Error calculating total reflected inertia: {e}")
         raise HTTPException(status_code=400, detail=str(e))
         

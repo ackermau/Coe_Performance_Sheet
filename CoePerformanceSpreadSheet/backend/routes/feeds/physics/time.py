@@ -44,7 +44,7 @@ def calculate_init_values(data: TimeInput, feed_angle: int = 0):
     acceleration_torque = (((data.refl_inertia * data.rpm) / (9.55 * acceleration_time)) / data.efficiency) + ((data.motor_inertia * data.rpm) / (9.55 * acceleration_time))
     peak_torque = acceleration_torque + data.frictional_torque + data.loop_torque
 
-    if (length - ((data.motor_peak_torque * acceleration_time)) / 12) / data.motor_peak_torque > 0:
+    if ((length - ((data.motor_peak_torque * acceleration_time) * 12) / 12) / data.motor_peak_torque) > 0:
         runtime = ((length - ((data.motor_peak_torque * acceleration_time) * 12)) / 12) / data.motor_peak_torque
     else:
         runtime = 0

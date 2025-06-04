@@ -1,20 +1,21 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
-from typing import Optional
-from ..services.feed_calculations import run_sigma_five_calculation
+from ..services.feed_calculations import (
+    run_allen_bradley_calculation
+)
 
 router = APIRouter()
 
-class SigmaFiveInput(BaseModel):
+class SigmaFiveAllenBradleyInput(BaseModel):
     feed_model: str
     width: int
     loop_pit: str
-
+    
     material_type: str
     application: str
     type_of_line: str
     roll_width: str
-    feed_rate: Optional[float]
+    feed_rate: float
     material_width: int 
     material_thickness: float
     press_bed_length: int
@@ -25,8 +26,9 @@ class SigmaFiveInput(BaseModel):
     length_increment: float
     feed_angle_1: float
     feed_angle_2: float
+    
 
 @router.post("/calculate")
-def calculate_sigma_five(data: SigmaFiveInput):
-    result = run_sigma_five_calculation(data, "sigma_five")
+def calculate_allen_bradley(data: SigmaFiveAllenBradleyInput):
+    result = run_allen_bradley_calculation(data, "allen_bradley")
     return result

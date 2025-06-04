@@ -57,31 +57,37 @@ def calculate_reeldrive(data: ReelDriveInput):
     # Total Ratio
     mandrel_max_rpm = speed * 12 / data.coil_id / pi
     mandrel_full_rpm = speed * 12 / data.coil_od / pi
-    total_ratio = motor_base_rpm / mandrel_max_rpm
+    if mandrel_max_rpm != 0:
+        total_ratio = motor_base_rpm / mandrel_max_rpm
+    else:
+        total_ratio = 0
 
-    # Reel
-    reel_size = reel["coil_weight"]
-    brg_dist = reel["bearing_dist"]
-    f_brg_dia = reel["fbearing_dia"]
-    r_brg_dia = reel["rbearing_dia"]
+        # Reel
+        reel_size = reel["coil_weight"]
+        brg_dist = reel["bearing_dist"]
+        f_brg_dia = reel["fbearing_dia"]
+        r_brg_dia = reel["rbearing_dia"]
 
     # Mandrel
     mandrel_dia = reel["mandrel_dia"]
     mandrel_length = data.reel_width + 17 + brg_dist
     mandrel_weight = ((mandrel_dia/2)**2) * pi * mandrel_length * 0.283
     mandrel_inertia = mandrel_weight / 32.3 / 2 * ((mandrel_dia/2)**2 / 144) * 12
-    mandrel_refl = mandrel_inertia / total_ratio**2
+    if total_ratio != 0: mandrel_refl = mandrel_inertia / total_ratio**2 
+    else: mandrel_refl = 0
 
     # Backplate
     backplate_weight = ((data.backplate_diameter/2)**2) * pi * 0.283
     backplate_inertia = backplate_weight / 32.3 / 2 * ((mandrel_dia/2)**2 / 144) * 12
-    backplate_refl = backplate_inertia / total_ratio**2
+    if total_ratio != 0: backplate_refl = backplate_inertia / total_ratio**2
+    else: backplate_refl = 0
 
     # Coil
     coil_density = material["density"]
     coil_width = data.coil_weight / coil_density / ((data.coil_od**2 + data.coil_id**2)/4) / pi
     coil_inertia = data.coil_weight / 32.3 / 2 * ((data.coil_od/2)**2 + (data.coil_id/2)**2) /144 * 12
-    coil_refl = coil_inertia / total_ratio**2
+    if total_ratio != 0: coil_refl = coil_inertia / total_ratio**2
+    else: coil_refl = 0
 
     # Reducer
     reducer_ratio = total_ratio / chain_ratio
@@ -89,14 +95,16 @@ def calculate_reeldrive(data: ReelDriveInput):
     # Chain
     chain_weight = ((chain_sprkt_od/2)**2) * pi * chain_sprkt_thickness * 0.283
     chain_inertia = chain_weight / 32.3 / 2 * ((chain_sprkt_od/2)**2 / 144) * 12
-    chain_refl = chain_inertia / total_ratio**2
+    if total_ratio != 0: chain_refl = chain_inertia / total_ratio**2
+    else: chain_refl = 0
 
     # Totals
     total_refl_empty = mandrel_refl + backplate_refl + reducer_inertia + chain_refl
     total_refl_full = total_refl_empty + coil_refl
 
     # Motor RPM Full
-    motor_rpm_full = speed * 12 / data.coil_od / pi * total_ratio
+    if total_ratio != 0: motor_rpm_full = speed * 12 / data.coil_od / pi * total_ratio
+    else: motor_rpm_full = 0
 
     # Friction
     friction_arm = (data.reel_width / 2) + 13
@@ -106,15 +114,24 @@ def calculate_reeldrive(data: ReelDriveInput):
     f_brg_coil = (data.coil_weight + (data.coil_weight * ((data.reel_width/2)+13) / brg_dist)) * 0.002 * f_brg_dia / 2
     friction_total_empty = r_brg_mand + f_brg_mand
     friction_total_full = friction_total_empty + r_brg_coil + f_brg_coil
-    friction_refl_empty = friction_total_empty / total_ratio / reducer_driving
-    friction_refl_full = friction_total_full / total_ratio / reducer_driving
+
+    if total_ratio != 0 and reducer_driving != 0: friction_refl_empty = friction_total_empty / total_ratio / reducer_driving
+    else: friction_refl_empty = 0
+    if total_ratio != 0 and reducer_driving != 0: friction_refl_full = friction_total_full / total_ratio / reducer_driving
+    else: friction_refl_full = 0
 
     # Torque
-    torque_empty = ((((total_refl_empty * motor_base_rpm) / (9.55 * accel_time)) / reducer_driving) +
-                    (motor_inertia * motor_base_rpm) / (9.55 * accel_time)) + friction_refl_empty
+    if total_ratio != 0:
+        torque_empty = ((((total_refl_empty * motor_base_rpm) / (9.55 * accel_time)) / reducer_driving) +
+                        (motor_inertia * motor_base_rpm) / (9.55 * accel_time)) + friction_refl_empty
+    else:
+        torque_empty = 0
 
-    torque_full = ((((total_refl_full * motor_rpm_full) / (9.55 * accel_time)) / reducer_driving) +
-                   (motor_inertia * motor_rpm_full) / (9.55 * accel_time)) + friction_refl_full
+    if total_ratio != 0:
+        torque_full = ((((total_refl_full * motor_rpm_full) / (9.55 * accel_time)) / reducer_driving) +
+                    (motor_inertia * motor_rpm_full) / (9.55 * accel_time)) + friction_refl_full
+    else:
+        torque_full = 0
 
     # HP Required
     hp_req_empty = torque_empty * motor_base_rpm / 63000
@@ -123,13 +140,19 @@ def calculate_reeldrive(data: ReelDriveInput):
     status_full = "valid" if data.motor_hp > hp_req_full else "too small"
 
     # Regen
-    regen_empty = ((((total_refl_empty * motor_base_rpm) / (9.55 * accel_time)) +
-                   (motor_inertia * motor_base_rpm) / (9.55 * accel_time)) -
-                   (friction_total_empty / total_ratio / reducer_backdriving)) * motor_base_rpm / 63000 * 746
+    if total_ratio != 0:
+        regen_empty = ((((total_refl_empty * motor_base_rpm) / (9.55 * accel_time)) +
+                    (motor_inertia * motor_base_rpm) / (9.55 * accel_time)) -
+                    (friction_total_empty / total_ratio / reducer_backdriving)) * motor_base_rpm / 63000 * 746
+    else:
+        regen_empty = 0
 
-    regen_full = ((((total_refl_full * motor_rpm_full) / (9.55 * accel_time)) +
-                   (motor_inertia * motor_rpm_full) / (9.55 * accel_time)) -
-                   (friction_total_full / total_ratio / reducer_backdriving)) * motor_rpm_full / 63000 * 746
+    if total_ratio != 0:
+        regen_full = ((((total_refl_full * motor_rpm_full) / (9.55 * accel_time)) +
+                    (motor_inertia * motor_rpm_full) / (9.55 * accel_time)) -
+                    (friction_total_full / total_ratio / reducer_backdriving)) * motor_rpm_full / 63000 * 746
+    else:
+        regen_full = 0
 
     # Pulloff Recommendation
     if reel_type == "Motorized":
