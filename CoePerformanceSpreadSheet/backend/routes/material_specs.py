@@ -9,36 +9,36 @@ router = APIRouter()
 # Expanded payload to support all four views: Max, Full, Min, and Width.
 class MaterialSpecsPayload(BaseModel):
     # Max view
-    materialTypeMax: str = None
-    materialThicknessMax: float = None  # in inches
-    yieldStrengthMax: float = None       # in psi
-    coilWidthMax: float = None           # in inches
-    coilWeightMax: float = None          # in lbs
-    coilIDMax: float = None              # in inches
+    material_type_max: str = None
+    material_thickness_max: float = None  # in inches
+    yield_strength_max: float = None       # in psi
+    coil_width_max: float = None           # in inches
+    coil_weight_max: float = None          # in lbs
+    coil_id_max: float = None              # in inches
 
     # Full view
-    materialTypeFull: str = None
-    materialThicknessFull: float = None
-    yieldStrengthFull: float = None
-    coilWidthFull: float = None
-    coilWeightFull: float = None
-    coilIDFull: float = None
+    material_type_full: str = None
+    material_thickness_full: float = None
+    yield_strength_full: float = None
+    coil_width_full: float = None
+    coil_weight_full: float = None
+    coil_id_full: float = None
 
     # Min view
-    materialTypeMin: str = None
-    materialThicknessMin: float = None
-    yieldStrengthMin: float = None
-    coilWidthMin: float = None
-    coilWeightMin: float = None
-    coilIDMin: float = None
+    material_type_min: str = None
+    material_thickness_min: float = None
+    yield_strength_min: float = None
+    coil_width_min: float = None
+    coil_weight_min: float = None
+    coil_id_min: float = None
 
     # Width view
-    materialTypeWidth: str = None
-    materialThicknessWidth: float = None
-    yieldStrengthWidth: float = None
-    coilWidthWidth: float = None
-    coilWeightWidth: float = None
-    coilIDWidth: float = None
+    material_type_width: str = None
+    material_thickness_width: float = None
+    yield_strength_width: float = None
+    coil_width_width: float = None
+    coil_weight_width: float = None
+    coil_id_width: float = None
 
 def calculate_variant(materialType, thickness, yield_strength, coil_width, coil_weight, coil_id):
     # Look up material properties using our shared lookup.
@@ -75,26 +75,26 @@ def calculate_variant(materialType, thickness, yield_strength, coil_width, coil_
         coil_od_calculated = ""
     
     return {
-        "minBendRadius": min_bend_radius,
-        "minLoopLength": min_loop_length,
-        "coilODCalculated": coil_od_calculated
+        "min_bend_radius": min_bend_radius,
+        "min_loop_length": min_loop_length,
+        "coil_od_calculated": coil_od_calculated
     }
 
 @router.post("/calculate")
 def calculate_specs(payload: MaterialSpecsPayload):
     results = {}
     # Process each view (Max, Full, Min, and Width) individually.
-    for view in ["Max", "Full", "Min", "Width"]:
-        mType = getattr(payload, f"materialType{view}", None)
-        thickness = getattr(payload, f"materialThickness{view}", None)
-        yld = getattr(payload, f"yieldStrength{view}", None)
-        cWidth = getattr(payload, f"coilWidth{view}", None)
-        cWeight = getattr(payload, f"coilWeight{view}", None)
-        cID = getattr(payload, f"coilID{view}", None)
+    for view in ["max", "full", "min", "width"]:
+        mType = getattr(payload, f"material_type_{view}", None)
+        thickness = getattr(payload, f"material_thickness_{view}", None)
+        yld = getattr(payload, f"yield_strength_{view}", None)
+        cWidth = getattr(payload, f"coil_width_{view}", None)
+        cWeight = getattr(payload, f"coil_weight_{view}", None)
+        cID = getattr(payload, f"coil_id_{view}", None)
 
         computed = calculate_variant(mType, thickness, yld, cWidth, cWeight, cID)
-        results[f"minBendRadius{view}"] = computed["minBendRadius"]
-        results[f"minLoopLength{view}"] = computed["minLoopLength"]
-        results[f"coilODCalculated{view}"] = computed["coilODCalculated"]
+        results[f"min_bend_radius_{view}"] = computed["min_bend_radius"]
+        results[f"min_loop_length_{view}"] = computed["min_loop_length"]
+        results[f"coil_od_calculated_{view}"] = computed["coil_od_calculated"]
 
     return results
