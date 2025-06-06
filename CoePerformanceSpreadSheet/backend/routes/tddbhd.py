@@ -6,6 +6,8 @@ from pydantic import BaseModel, Field
 from math import pi, sqrt
 import re
 
+from .utils.shared import NUM_BRAKEPADS, BRAKE_DISTANCE, CYLINDER_ROD, STATIC_FRICTION
+
 # Import your lookup functions
 from .utils.lookup_tables import get_cylinder_bore, get_hold_down_matrix_label, get_material_density, get_material_modulus, get_reel_max_weight, get_pressure_psi, get_holddown_force_available, get_min_material_width, get_type_of_line, get_drive_key, get_drive_torque
 
@@ -15,8 +17,6 @@ class TDDBHDInput(BaseModel):
     type_of_line: str
     reel_drive_tqempty: Optional[float]
     motor_hp: Optional[float]
-    empty_hp: Optional[float]
-    full_hp: Optional[float]
 
     yield_strength: float
     thickness: float
@@ -28,7 +28,6 @@ class TDDBHDInput(BaseModel):
     decel: float
     friction: float
     air_pressure: float
-    holddown_pressure: Optional[float]
 
     brake_qty: int
     brake_model: str
@@ -37,7 +36,7 @@ class TDDBHDInput(BaseModel):
     hold_down_assy: str
     hyd_threading_drive: str
     air_clutch: str
-
+    
     # For lookup: note the field name expected is material_type (with a capital T)
     material_type: str
     reel_model: str
@@ -65,9 +64,10 @@ class TDDBHDOutput(BaseModel):
 
 @router.post("/calculate")
 def calculate_tbdbhd(data: TDDBHDInput):
-    num_brakepads = 2
-    brake_dist = 12
-    cyl_rod = 1
+    num_brakepads = NUM_BRAKEPADS
+    brake_dist = BRAKE_DISTANCE
+    cyl_rod = CYLINDER_ROD
+    static_friction = STATIC_FRICTION
 
     # Lookups
     # density, max weight, friction, modulus, cylinder bore, holddown pressure, holddown force available
@@ -79,7 +79,6 @@ def calculate_tbdbhd(data: TDDBHDInput):
         holddown_matrix_key = get_hold_down_matrix_label(data.reel_model ,data.hold_down_assy, data.cylinder)
         holddown_pressure_calc = get_pressure_psi(holddown_matrix_key, data.air_pressure)
         holddown_matrix_key = get_hold_down_matrix_label(data.reel_model ,data.hold_down_assy, data.cylinder)
-        hold_down_force_available_calc = get_holddown_force_available(holddown_matrix_key, data.holddown_pressure)
         holddown_matrix_key = get_hold_down_matrix_label(data.reel_model ,data.hold_down_assy, data.cylinder)
         min_material_width_lookup = get_min_material_width(holddown_matrix_key)
         reel_type_lookup = get_type_of_line(data.type_of_line)
@@ -94,7 +93,6 @@ def calculate_tbdbhd(data: TDDBHDInput):
     modulus = modulus_lookup
     cylinder_bore = cylinder_bore_lookup
     holddown_pressure = holddown_pressure_calc
-    hold_down_force_available = hold_down_force_available_calc
     min_material_width = min_material_width_lookup
     reel_type = reel_type_lookup
     drive_torque = drive_torque_lookup
@@ -144,7 +142,7 @@ def calculate_tbdbhd(data: TDDBHDInput):
 
     # 8. Holddown Force Required Calculation
     # Denom for hold down force: friction * (coil_id/2)
-    hold_down_denominator = friction * (data.coil_id / 2)
+    hold_down_denominator = static_friction * (data.coil_id / 2)
     if hold_down_denominator == 0:
         raise HTTPException(status_code=400, detail="Friction and coil_id must be non-zero for hold down force calculation.")
 
@@ -179,6 +177,8 @@ def calculate_tbdbhd(data: TDDBHDInput):
     press_required = numerator / denominator
     brake_press_required = press_required / data.brake_qty
 
+    print(f"Brake Press Required: {brake_press_required}, last: {last}, numerator: {numerator}, denominator: {denominator}, cylinder_bore: {cylinder_bore}, cylinder_rod: {cyl_rod}, brake_qty: {data.brake_qty}")
+
     # 12. Brake Press Holding Force Calculation
     if data.brake_model == "Failsafe - Single Stage":
         hold_force = 1000
@@ -204,9 +204,8 @@ def calculate_tbdbhd(data: TDDBHDInput):
         "rewind_torque": round(rewind_torque, 3),
         "holddown_pressure": round(holddown_pressure, 3),
         "hold_down_force_required": round(hold_down_force_req, 3),
-        "hold_down_force_available": round(hold_down_force_available, 3),
         "min_material_width": round(min_material_width, 3),
         "torque_required": round(torque_required, 3),
-        "brake_press_required": round(brake_press_required, 3),
-        "brake_press_holding_force": round(failsafe_holding_force, 3),
+        "failsafe_required": round(brake_press_required, 3),
+        "failsafe_holding_force": round(failsafe_holding_force, 3),
     }

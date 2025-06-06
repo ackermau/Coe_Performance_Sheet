@@ -1,3 +1,5 @@
+from typing import Optional
+from pydantic import BaseModel
 from math import pi, sqrt
 from ..utils.lookup_tables import get_material_density, get_sigma_five_specs, get_sigma_five_pt_specs, get_ab_feed_specs, get_selected_str_used
 from ..feeds.physics.inertia import calculate_total_refl_inertia, InertiaInput
@@ -27,6 +29,39 @@ SPEC_KEYS_SIGMA_FIVE = {
     "ec": ("ec", "ec"),
 }
 
+class BaseFeedParams(BaseModel):
+    feed_model: str
+    width: int
+    loop_pit: str
+
+    material_type: str
+    application: str
+    type_of_line: str
+    roll_width: str
+    feed_rate: Optional[float]
+    material_width: int 
+    material_thickness: float
+    press_bed_length: int
+
+    friction_in_die: float
+    acceleration_rate: float
+    chart_min_length: float
+    length_increment: float
+    feed_angle_1: float
+    feed_angle_2: float
+
+class FeedInput(BaseFeedParams):
+    pass
+
+class AllenBradleyInput(BaseFeedParams):
+    pass
+
+class FeedWPullThruInput(BaseFeedParams):
+    straightening_rolls: int
+    yield_strength: float
+    str_pinch_rolls: str
+    req_max_fpm: float
+
 # Flexible spec loader
 def get_all_specs_for(spec_type, feed_model, spec_keys):
     getter_func = SPEC_GETTERS[spec_type]
@@ -41,7 +76,7 @@ def get_all_specs_for(spec_type, feed_model, spec_keys):
                 raise ValueError(f"Failed to get spec for {var_name} using {lookup1} or {lookup2} in {spec_type}")
     return results
 
-def run_sigma_five_calculation(data, spec_type="sigma_five"):
+def run_sigma_five_calculation(data: FeedInput, spec_type="sigma_five"):
     density = get_material_density(data.material_type)
     str_used = get_selected_str_used(data.type_of_line)
 
@@ -233,7 +268,7 @@ def run_sigma_five_calculation(data, spec_type="sigma_five"):
         "table_values": table_values,
     }
 
-def run_sigma_five_pt_calculation(data, 
+def run_sigma_five_pt_calculation(data: FeedWPullThruInput, 
                 straightening_rolls, material_width, material_thickness,
                 feed_model, yield_strength, str_pinch_rolls, req_max_fpm, spec_type="sigma_five_pt"):
     # Lookups
@@ -270,5 +305,5 @@ def run_sigma_five_pt_calculation(data,
         "payoff_max_speed": payoff_max_speed,
     }
 
-def run_allen_bradley_calculation(data, spec_type="allen_bradley"):
+def run_allen_bradley_calculation(data: AllenBradleyInput, spec_type="allen_bradley"):
     return run_sigma_five_calculation(data, spec_type)

@@ -6,8 +6,14 @@ from pydantic import Field
 from math import e, pi, sqrt
 from typing import Optional
 
+from .utils.shared import (
+    MOTOR_RPM, EFFICIENCY, PINCH_ROLL_QTY, MAT_LENGTH, CONT_ANGLE, FEED_RATE_BUFFER,
+    LEWIS_FACTORS, roll_str_backbend_state,
+    get_percent_material_yielded_check
+)
+
 from .utils.lookup_tables import (
-    get_material_density, get_material_modulus, get_str_model_value
+    get_material_density, get_material_modulus, get_str_model_value, get_motor_inertia
 )
 
 router = APIRouter()
@@ -64,6 +70,8 @@ class StrUtilityOutput(BaseModel):
 def calculate_str_utility(data: StrUtilityInput):
     # Lookups for calculations
     try:
+        horsepower_string = str(data.horsepower)
+
         str_roll_dia = get_str_model_value(data.str_model, "roll_diameter", "str_roll_dia")
         center_dist = get_str_model_value(data.str_model, "center_distance", "center_dist")
         pinch_roll_dia = get_str_model_value(data.str_model, "pinch_roll_dia", "pinch_roll_dia")
@@ -77,6 +85,7 @@ def calculate_str_utility(data: StrUtilityInput):
         str_roll_teeth = get_str_model_value(data.str_model, "sroll_teeth", "str_roll_teeth")
         str_roll_dp = get_str_model_value(data.str_model, "sroll_dp", "str_roll_dp")
         face_width = get_str_model_value(data.str_model, "face_width", "face_width")
+        motor_inertia = get_motor_inertia(horsepower_string)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -102,25 +111,18 @@ def calculate_str_utility(data: StrUtilityInput):
     else:
         ult_tensile_strength = 128000
 
-    lewis_factor_options = {
-        12 : 0.245, 13 : 0.261, 14 : 0.277, 15 : 0.29, 16 : 0.296,
-        17 : 0.302, 18 : 0.314, 19 : 0.314, 20 : 0.321, 21 : 0.327, 22 : 0.33, 24 : 0.337,
-        25 : 0.341, 26 : 0.346, 27 : 0.348, 28 : 0.352, 30 : 0.359, 31 : 0.362, 32 : 0.365, 34 : 0.37
-    }
-    lewis_factor_pinch = lewis_factor_options[pinch_roll_teeth]
-    lewis_factor_str = lewis_factor_options[str_roll_teeth]
+    lewis_factor_pinch = LEWIS_FACTORS[pinch_roll_teeth]
+    lewis_factor_str = LEWIS_FACTORS[str_roll_teeth]
 
     safe_working_stress = ult_tensile_strength / 3
     accel_time = (data.feed_rate / 60) / data.acceleration
 
-    motor_rpm = 1750
-    motor_inertia_hp = 3.876
-    eff = 0.85
-    coil_od_min = 72
-    pinch_roll_qty = 4
-    mat_length = 96
-    cont_angle = 20
-    feed_rate_buffer = 1.2
+    motor_rpm = MOTOR_RPM
+    eff = EFFICIENCY
+    pinch_roll_qty = PINCH_ROLL_QTY
+    mat_length = MAT_LENGTH
+    cont_angle = CONT_ANGLE
+    feed_rate_buffer = FEED_RATE_BUFFER
 
     # Required Force
     required_force = ((16 * data.yield_strength * data.coil_width * (data.material_thickness ** 2) / (15 * center_dist))
@@ -222,7 +224,7 @@ def calculate_str_utility(data: StrUtilityInput):
            / (9.55 * accel_time)
            ) * (1 / eff)
            ) + (
-               (motor_inertia_hp * motor_rpm)
+               (motor_inertia * motor_rpm)
               / (9.55 * accel_time)
               )
     min_od_accel_torque = (
@@ -231,7 +233,7 @@ def calculate_str_utility(data: StrUtilityInput):
            / (9.55 * accel_time)
            ) * (1 / eff)
            ) + (
-               (motor_inertia_hp * motor_rpm)
+               (motor_inertia * motor_rpm)
               / (9.55 * accel_time)
               )
 
@@ -277,11 +279,20 @@ def calculate_str_utility(data: StrUtilityInput):
     actual_coil_weight = (((coil_od**2) - data.coil_id**2) / 4) * pi * data.coil_width * density
 
     # Feed Rate check
-    if data.feed_rate >= data.max_feed_rate * feed_rate_buffer:
-        feed_rate_check = "OK"
+    feed_rate_check = ""
+    if (data.feed_rate >= data.max_feed_rate * feed_rate_buffer and 
+        jack_force_available > required_force and
+        pinch_roll_rated_torque > pinch_roll_req_torque and
+        str_roll_rated_torque > str_roll_req_torque and
+        data.horsepower > horsepower_required):
+        if get_percent_material_yielded_check(
+            roll_str_backbend_state["percent_material_yielded"],
+            roll_str_backbend_state["confirm_check"]
+        ) == "OK":
+            feed_rate_check = "OK"
     else:
         feed_rate_check = "NOT OK"
-
+        
     return {
         "required_force": round(required_force, 3),
         "pinch_roll_dia" : round(pinch_roll_dia, 3),

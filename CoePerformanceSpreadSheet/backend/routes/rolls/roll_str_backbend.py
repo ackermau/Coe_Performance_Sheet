@@ -6,6 +6,8 @@ from pydantic import BaseModel, Field
 from math import pi, sqrt
 import re
 
+from ..utils.shared import CREEP_FACTOR, RADIUS_OFF_COIL, roll_str_backbend_state
+
 from ..utils.lookup_tables import (
     get_str_model_value,
     get_material_modulus,
@@ -20,8 +22,7 @@ class RollStrBackbendInput(BaseModel):
     material_type: str
     str_model: str
     num_str_rolls: int
-    calc_const: float
-
+    calc_const: Optional[float]
 
 @router.post("/calculate")
 def calculate_roll_str_backbend(data: RollStrBackbendInput):
@@ -47,9 +48,9 @@ def calculate_roll_str_backbend(data: RollStrBackbendInput):
         raise HTTPException(status_code=400, detail="Invalid roll str backbend value")
 
     # Values needed for calculations
-    main_value = data.calc_const
-    creep_factor = .33
-    radius_off_coil = -60
+    main_value = roll_str_backbend_state["calc_const"]
+    creep_factor = CREEP_FACTOR
+    radius_off_coil = RADIUS_OFF_COIL
     curve_at_yield = 2 * data.yield_strength / (data.thickness * modules)
     radius_at_yield = 1 / curve_at_yield
     bending_moment_to_yield = data.width * data.yield_strength * (data.thickness ** 2) / 6
@@ -62,6 +63,10 @@ def calculate_roll_str_backbend(data: RollStrBackbendInput):
             radius_off_coil_after_springback = radius_off_coil / creep_factor
 
     r_ri = 1 / radius_off_coil_after_springback
+
+    if data.calc_const is not None:
+        roll_str_backbend_state["calc_const"] = data.calc_const
+        main_value = data.calc_const
 
     # Max Roller Depth with material
     check = ((str_roll_dia + data.thickness) ** 2) - ((center_dist / 2) ** 2)
@@ -77,6 +82,13 @@ def calculate_roll_str_backbend(data: RollStrBackbendInput):
         roller_depth_required_check = "OK"
     else:
         roller_depth_required_check = "WILL NOT STRAIGHTEN"
+
+    # Roller Force required
+    roller_force_required = (16 * data.yield_strength * data.width * (data.thickness ** 2)) / (15 * center_dist)
+    if roller_force_required < jack_force_available:
+        roller_force_required_check = "OK"
+    else:
+        roller_force_required_check = "NOT ENOUGH FORCE"
 
     # Roll Heights (first, mid, last)
     if (main_value - 10000) / 1000 < max_roll_depth_with_material:
@@ -189,6 +201,11 @@ def calculate_roll_str_backbend(data: RollStrBackbendInput):
     else:
         percent_yield_first_down = "NONE"
 
+    if percent_yield_first_up == "NONE":
+        roll_str_backbend_state["percent_material_yielded"] = 0
+    else:
+        roll_str_backbend_state["percent_material_yielded"] = percent_yield_first_up
+
     if abs(r_ri_last) > curve_at_yield:
         percent_yield_last = 1 - abs(curve_at_yield / r_ri_last)
         number_of_yield_strains_last = 1 / (1 - percent_yield_last)
@@ -207,6 +224,8 @@ def calculate_roll_str_backbend(data: RollStrBackbendInput):
         "max_roll_depth_with_material": round(max_roll_depth_with_material, 3),
         "roller_depth_required": round(roller_depth_required, 3),
         "roller_depth_required_check": roller_depth_required_check,
+        "roller_force_required": round(roller_force_required, 3),
+        "roller_force_required_check": roller_force_required_check,
     }
     result["first_up"] = {
         "roll_height_first_up": round(roll_height_first_up, 3),

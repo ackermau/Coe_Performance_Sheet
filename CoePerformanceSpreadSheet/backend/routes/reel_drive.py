@@ -3,6 +3,11 @@ from pydantic import BaseModel
 from math import pi, sqrt
 from typing import Optional
 
+from .utils.shared import (
+    CHAIN_RATIO, CHAIN_SPRKT_OD, CHAIN_SPRKT_THICKNESS, MOTOR_RPM,
+    REDUCER_DRIVING, REDUCER_BACKDRIVING, REDUCER_INERTIA, ACCEL_RATE
+)
+
 from .utils.lookup_tables import (
     get_reel_dimensions,
     get_material,
@@ -16,14 +21,13 @@ router = APIRouter()
 class ReelDriveInput(BaseModel):
     model: str
     material_type: str
-    coil_weight: float
     coil_id: float
     coil_od: float
     reel_width: float
     backplate_diameter: float
     motor_hp: float
     type_of_line: str
-    required_max_fpm: float
+    required_max_fpm: Optional[float] = 0
 
 @router.post("/calculate")
 def calculate_reeldrive(data: ReelDriveInput):
@@ -41,14 +45,14 @@ def calculate_reeldrive(data: ReelDriveInput):
         raise HTTPException(status_code=400, detail=str(e))
 
     # Constants
-    chain_ratio = 4
-    chain_sprkt_od = 31
-    chain_sprkt_thickness = 1.3
-    reducer_driving = 0.85
-    reducer_backdriving = 0.5
-    reducer_inertia = 0.1
-    motor_base_rpm = 1750
-    accel_rate = 1
+    chain_ratio = CHAIN_RATIO
+    chain_sprkt_od = CHAIN_SPRKT_OD
+    chain_sprkt_thickness = CHAIN_SPRKT_THICKNESS
+    reducer_driving = REDUCER_DRIVING
+    reducer_backdriving = REDUCER_BACKDRIVING
+    reducer_inertia = REDUCER_INERTIA
+    motor_base_rpm = MOTOR_RPM
+    accel_rate = ACCEL_RATE
 
     # Speed and Accel Time
     speed = data.required_max_fpm * fpm_buffer
@@ -84,8 +88,8 @@ def calculate_reeldrive(data: ReelDriveInput):
 
     # Coil
     coil_density = material["density"]
-    coil_width = data.coil_weight / coil_density / ((data.coil_od**2 + data.coil_id**2)/4) / pi
-    coil_inertia = data.coil_weight / 32.3 / 2 * ((data.coil_od/2)**2 + (data.coil_id/2)**2) /144 * 12
+    coil_width = reel_size / coil_density / ((data.coil_od**2 - data.coil_id**2) / 4) / pi
+    coil_inertia = reel_size / 32.3 / 2 * ((data.coil_od/2)**2 + (data.coil_id/2)**2) /144 * 12
     if total_ratio != 0: coil_refl = coil_inertia / total_ratio**2
     else: coil_refl = 0
 
@@ -110,8 +114,8 @@ def calculate_reeldrive(data: ReelDriveInput):
     friction_arm = (data.reel_width / 2) + 13
     r_brg_mand = mandrel_weight * friction_arm / brg_dist * 0.002 * r_brg_dia / 2
     f_brg_mand = (mandrel_weight + (mandrel_weight * ((data.reel_width/2)+13) / brg_dist)) * 0.002 * f_brg_dia / 2
-    r_brg_coil = data.coil_weight * friction_arm / brg_dist * 0.002 * r_brg_dia / 2
-    f_brg_coil = (data.coil_weight + (data.coil_weight * ((data.reel_width/2)+13) / brg_dist)) * 0.002 * f_brg_dia / 2
+    r_brg_coil = reel_size * friction_arm / brg_dist * 0.002 * r_brg_dia / 2
+    f_brg_coil = (reel_size + (reel_size * ((data.reel_width/2)+13) / brg_dist)) * 0.002 * f_brg_dia / 2
     friction_total_empty = r_brg_mand + f_brg_mand
     friction_total_full = friction_total_empty + r_brg_coil + f_brg_coil
 
@@ -192,7 +196,7 @@ def calculate_reeldrive(data: ReelDriveInput):
             "od": data.coil_od,
             "id": data.coil_id,
             "width": coil_width,
-            "weight": data.coil_weight,
+            "weight": reel_size,
             "inertia": coil_inertia,
             "refl_inert": coil_refl
         },

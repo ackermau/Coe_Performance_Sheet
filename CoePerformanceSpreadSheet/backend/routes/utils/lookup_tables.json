@@ -761,6 +761,9 @@
     }
   ],
   "lookup_motor_inertia": {
+    "1": {
+      "motor_inertia": 1
+    },
     "2": {
       "motor_inertia": 0.078
     },
@@ -779,23 +782,53 @@
     "15": {
       "motor_inertia": 0.686
     },
+    "15_old": {
+      "motor_inertia": 0.8932
+    },
     "20": {
       "motor_inertia": 0.846
+    },
+    "20_old": {
+      "motor_inertia": 1.0718
+    },
+    "25": {
+      "motor_inertia": 1.662
+    },
+    "25_old": {
+      "motor_inertia": 1.9157
     },
     "30": {
       "motor_inertia": 1.778
     },
+    "30_old": {
+      "motor_inertia": 1.9955
+    },
     "40": {
       "motor_inertia": 3.179
+    },
+    "40_old": {
+      "motor_inertia": 2.945
     },
     "50": {
       "motor_inertia": 3.876
     },
+    "50_old": {
+      "motor_inertia": 3.436
+    },
     "60": {
-      "motor_inertia": 5.377
+      "motor_inertia": 5.337
     },
     "75": {
       "motor_inertia": 5.855
+    },
+    "75_old": {
+      "motor_inertia": 6.5393
+    },
+    "100": {
+      "motor_inertia": 9.716
+    },
+    "125": {
+      "motor_inertia": 14.907
     }
   },
   "lookup_str_model": {
