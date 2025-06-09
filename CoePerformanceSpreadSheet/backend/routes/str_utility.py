@@ -27,7 +27,6 @@ class StrUtilityInput(BaseModel):
     yield_strength: float
     material_type: str
 
-    selected_roll: str
     str_model: str
     str_width: float
     horsepower: float
@@ -70,7 +69,10 @@ class StrUtilityOutput(BaseModel):
 def calculate_str_utility(data: StrUtilityInput):
     # Lookups for calculations
     try:
-        horsepower_string = str(data.horsepower)
+        if data.horsepower == 7.5:
+            horsepower_string = "7.5"
+        else:    
+            horsepower_string = str(int(data.horsepower))
 
         str_roll_dia = get_str_model_value(data.str_model, "roll_diameter", "str_roll_dia")
         center_dist = get_str_model_value(data.str_model, "center_distance", "center_dist")
@@ -90,12 +92,7 @@ def calculate_str_utility(data: StrUtilityInput):
         raise HTTPException(status_code=400, detail=str(e))
 
     # Needed values for calculations
-    if data.selected_roll.startswith("7"):
-        str_qty = 7
-    elif data.selected_roll.startswith("9"):
-        str_qty = 9
-    else:
-        str_qty = 11
+    str_qty = data.num_str_rolls
 
     if str_qty < 7:
         k_cons = (str_qty / 3.5) + 0.1

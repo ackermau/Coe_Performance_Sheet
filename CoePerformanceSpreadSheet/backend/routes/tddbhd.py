@@ -9,7 +9,10 @@ import re
 from .utils.shared import NUM_BRAKEPADS, BRAKE_DISTANCE, CYLINDER_ROD, STATIC_FRICTION
 
 # Import your lookup functions
-from .utils.lookup_tables import get_cylinder_bore, get_hold_down_matrix_label, get_material_density, get_material_modulus, get_reel_max_weight, get_pressure_psi, get_holddown_force_available, get_min_material_width, get_type_of_line, get_drive_key, get_drive_torque
+from .utils.lookup_tables import (
+    get_cylinder_bore, get_hold_down_matrix_label, get_material_density, get_material_modulus, get_reel_max_weight, 
+    get_pressure_psi, get_holddown_force_available, get_min_material_width, get_type_of_line, get_drive_key, get_drive_torque 
+    )
 
 router = APIRouter()
 
@@ -78,8 +81,7 @@ def calculate_tbdbhd(data: TDDBHDInput):
         cylinder_bore_lookup = get_cylinder_bore(data.brake_model)
         holddown_matrix_key = get_hold_down_matrix_label(data.reel_model ,data.hold_down_assy, data.cylinder)
         holddown_pressure_calc = get_pressure_psi(holddown_matrix_key, data.air_pressure)
-        holddown_matrix_key = get_hold_down_matrix_label(data.reel_model ,data.hold_down_assy, data.cylinder)
-        holddown_matrix_key = get_hold_down_matrix_label(data.reel_model ,data.hold_down_assy, data.cylinder)
+        hold_down_force_available = get_holddown_force_available(holddown_matrix_key, data.air_pressure)
         min_material_width_lookup = get_min_material_width(holddown_matrix_key)
         reel_type_lookup = get_type_of_line(data.type_of_line)
         drive_key_lookup = get_drive_key(data.reel_model, data.air_clutch, data.hyd_threading_drive)
@@ -124,12 +126,15 @@ def calculate_tbdbhd(data: TDDBHDInput):
     coil_od = min(od_calc, data.coil_od) 
 
     # 4. Display Reel Motor (simulate mapping)
-    match = re.match(r"\d+", data.hyd_threading_drive)
-    if not match:
-        raise HTTPException(status_code=422, detail="Invalid hyd_threading_drive format. Expected to start with digits.")
+    if data.hyd_threading_drive != "None":
+        match = re.match(r"\d+", data.hyd_threading_drive)
+        if not match:
+            raise HTTPException(status_code=422, detail="Invalid hyd_threading_drive format. Expected to start with digits.")
 
-    hyd_drive_number = int(match.group())
-    disp_reel_mtr = {22: 22.6, 38: 38, 60: 60}.get(hyd_drive_number, hyd_drive_number)
+        hyd_drive_number = int(match.group())
+        disp_reel_mtr = {22: 22.6, 38: 38, 60: 60}.get(hyd_drive_number, hyd_drive_number)
+    else:
+        disp_reel_mtr = 0
 
     # 5. Torque At Mandrel
     if reel_type.upper() == "PULLOFF":
@@ -177,8 +182,6 @@ def calculate_tbdbhd(data: TDDBHDInput):
     press_required = numerator / denominator
     brake_press_required = press_required / data.brake_qty
 
-    print(f"Brake Press Required: {brake_press_required}, last: {last}, numerator: {numerator}, denominator: {denominator}, cylinder_bore: {cylinder_bore}, cylinder_rod: {cyl_rod}, brake_qty: {data.brake_qty}")
-
     # 12. Brake Press Holding Force Calculation
     if data.brake_model == "Failsafe - Single Stage":
         hold_force = 1000
@@ -203,6 +206,7 @@ def calculate_tbdbhd(data: TDDBHDInput):
         "torque_at_mandrel": round(torque_at_mandrel, 3) if torque_at_mandrel else None,
         "rewind_torque": round(rewind_torque, 3),
         "holddown_pressure": round(holddown_pressure, 3),
+        "hold_down_force_available": round(hold_down_force_available, 3),
         "hold_down_force_required": round(hold_down_force_req, 3),
         "min_material_width": round(min_material_width, 3),
         "torque_required": round(torque_required, 3),
