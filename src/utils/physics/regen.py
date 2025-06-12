@@ -1,7 +1,26 @@
+"""
+Regenerative utilities for physics-based calculations.
+
+"""
+
 from fastapi import HTTPException
 from models import RegenInput
 
 def calculate_regen(data: RegenInput):
+    """
+    Calculate regenerative energy based on input parameters.
+
+    Args:
+        data (RegenInput): Input data containing parameters for calculations.
+
+    Returns:
+        float: The calculated regenerative energy in watts.
+
+    Raises:
+        HTTPException: If an error occurs during calculations.
+
+    """
+
     try:
         # Compute rational energy of the system, es (Joules)
         motor_rotor_inertia = data.motor_inertia * 0.112943

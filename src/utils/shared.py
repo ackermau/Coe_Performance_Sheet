@@ -1,3 +1,25 @@
+"""
+Shared utility functions and constants for RFQ calculations.
+
+"""
+
+from dataclasses import dataclass
+
+### File Path for json files
+JSON_FILE_PATH = "./outputs/"
+
+### Shared States
+@dataclass
+class RFQState:
+    """
+    State for RFQ calculations.
+    """
+    reference: str = "0000"
+    company_name: str = "Default Company"
+    date: str = "2023-01-01"
+
+rfq_state = RFQState()
+
 ### LOOKUPS
 FPM_BUFFER = 1.2
 BACKBEND_MIN = 0.4

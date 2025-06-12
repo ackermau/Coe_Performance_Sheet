@@ -1,3 +1,8 @@
+"""
+Lookup tables for various calculations.
+
+"""
+
 import json
 import os
 

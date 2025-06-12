@@ -1,3 +1,8 @@
+"""
+Inertia utilities for physics-based calculations.
+
+"""
+
 from fastapi import HTTPException
 from models import InertiaInput
 from math import pi
@@ -25,6 +30,21 @@ with open(AB_FEED_FILE, "r") as f:
 def calculate_length(width: float, feed_model: str, roll_width: str, element: str, e_data: dict) -> float:
     """
     Calculate the length of a component based on model, roll width, and element type.
+    
+    Args:
+        width (float): Width of the component.
+        feed_model (str): The model of the feed system.
+        roll_width (str): Indicates if the roll width is used ('y' or 'n').
+        element (str): The specific element type to calculate length for.
+        e_data (dict): Additional data for the element, including default length.
+
+    Returns:
+        float: Calculated length based on the provided parameters.
+
+    Raises:
+        ValueError: If width is less than or equal to zero.
+        HTTPException: If an error occurs during calculations.
+    
     """
     if width < 0:
         raise ValueError("Width must be greater than zero")

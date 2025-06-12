@@ -1,3 +1,8 @@
+"""
+Main entry point for the FastAPI application.
+
+"""
+
 from fastapi import FastAPI
 from routes import rfq, material_specs, tddbhd, reel_drive, str_utility
 from routes.rolls import roll_str_backbend
@@ -32,7 +37,3 @@ app.include_router(sigma_five_feed_with_pt.router, prefix="/api/feeds/sigma_five
 app.include_router(allen_bradley_mpl_feed.router, prefix="/api/feeds/allen_bradley_mpl_feed", tags=["Feeds"])
 app.include_router(single_rake_hyd_shear.router, prefix="/api/shears/single_rake_hyd_shear", tags=["Shears"])
 app.include_router(bow_tie_hyd_shear.router, prefix="/api/shears/bow_tie_hyd_shear", tags=["Shears"])
-
-@app.get("/")
-def home():
-    return {"message": "RFQ System API is running"}

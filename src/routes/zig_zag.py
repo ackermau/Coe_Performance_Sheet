@@ -1,10 +1,15 @@
+"""
+Zig Zag Calculation Module
+
+"""
+
 from fastapi import APIRouter
 from models import ZigZagInput
 from math import pi, sqrt, floor, atan
 import json
 import os
 
-from ..routes.feeds.physics.time import calculate_feed_time
+from utils.physics.time import calculate_feed_time
 
 # Build path to the JSON file
 base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -19,9 +24,25 @@ zz_42_tooth = zig_zag_data.get("42_tooth", {})
 zz_24_tooth = zig_zag_data.get("24_tooth", {})
 gear_box = zig_zag_data.get("g_box", {})
 
+# Initialize FastAPI router
 router = APIRouter()
 
 def calculate_lbs_inertia(o_dia: float, i_dia: float, length: float, density: float) -> float:
+    """
+    Calculate the weight in pounds and inertia for a cylindrical object.
+
+    Args:
+        o_dia (float): Outer diameter of the cylinder in inches.
+        i_dia (float): Inner diameter of the cylinder in inches (0 if solid).
+        length (float): Length of the cylinder in inches.
+        density (float): Density of the material in lb/in^3.
+
+    Returns:
+        tuple: A tuple containing:
+            - lbs (float): Weight in pounds.
+            - inertia (float): Inertia in lb-in^2.
+            - refl_inertia (float): Reflected inertia in lb-in^2.
+    """
     if i_dia == 0:
         lbs = ((o_dia ** 2) / 4) * pi * length * density
         inertia = ((lbs / 32.3) * 0.5 * (((o_dia * 0.5) ** 2) / 144)) * 12
@@ -37,6 +58,32 @@ def calculate_common_values(accel_time: float, run_time: float, settle_time: flo
                            peak_torque: float, accel_torque: float, torque_to_accel_drag: float,
                            friction_at_motor: float, loop_torque: float, setttle_torque: float,
                            pivot_to_screw: float, length: float,):
+    """
+    Calculate common values used in the zig-zag calculations.
+
+    Args:
+        accel_time (float): Time taken to accelerate in seconds.
+        run_time (float): Time taken to run in seconds.
+        settle_time (float): Time taken to settle in seconds.
+        feed_angle (float): Feed angle in degrees.
+        peak_torque (float): Peak torque in lb-in.
+        accel_torque (float): Acceleration torque in lb-in.
+        torque_to_accel_drag (float): Torque to acceleration drag in lb-in.
+        friction_at_motor (float): Friction at motor in lb-in.
+        loop_torque (float): Loop torque in lb-in.
+        setttle_torque (float): Settle torque in lb-in.
+        pivot_to_screw (float): Distance from pivot to screw in inches.
+        length (float): Length of the material in inches.
+
+    Returns:
+        tuple: A tuple containing:
+            - move_time (float): Total move time in seconds.
+            - cycle_time (float): Total cycle time in seconds.
+            - strokes_per_minute (float): Strokes per minute.
+            - dwell_time (float): Dwell time in seconds.
+            - rms_torque (float): Root mean square torque in lb-in.
+            - deg_of_rotation (float): Degrees of rotation.
+    """
     move_time = (accel_time * 2) + run_time + settle_time
 
     if feed_angle > 20:
@@ -63,6 +110,21 @@ def calculate_common_values(accel_time: float, run_time: float, settle_time: flo
 
 def calculate_init_values(init_length: float, motor_peak_torque: float, max_accel_rate: float,
                            max_velocity: float):
+    """
+    Calculate initial acceleration and run times based on the initial length,
+    motor peak torque, maximum acceleration rate, and maximum velocity.
+
+    Args:
+        init_length (float): Initial length of the material in inches.
+        motor_peak_torque (float): Peak torque of the motor in lb-in.
+        max_accel_rate (float): Maximum acceleration rate in inches/sec^2.
+        max_velocity (float): Maximum velocity in inches/sec.
+
+    Returns:
+        tuple: A tuple containing:
+            - accel_time (float): Time taken to accelerate in seconds.
+            - run_time (float): Time taken to run in seconds.
+    """
     accel_time = max_velocity / max_accel_rate
 
     if ((init_length - ((motor_peak_torque * accel_time) / 12)) / 12) / motor_peak_torque > 0:
@@ -74,6 +136,22 @@ def calculate_init_values(init_length: float, motor_peak_torque: float, max_acce
 
 def calculate_values(length: float, init_length: float, max_velocity: float,
                       max_accel_rate: float, init_accel_time: float):
+    """
+    Calculate acceleration and run times based on the length of the material,
+    initial length, maximum velocity, maximum acceleration rate, and initial acceleration time.
+
+    Args:
+        length (float): Length of the material in inches.
+        init_length (float): Initial length of the material in inches.
+        max_velocity (float): Maximum velocity in inches/sec.
+        max_accel_rate (float): Maximum acceleration rate in inches/sec^2.
+        init_accel_time (float): Initial acceleration time in seconds.
+
+    Returns:
+        tuple: A tuple containing:
+            - accel_time (float): Time taken to accelerate in seconds.
+            - run_time (float): Time taken to run in seconds.
+    """
     if length > init_length:
         accel_time = init_accel_time
         run_time = ((length - init_length) / 12) / max_velocity
@@ -88,6 +166,35 @@ def calculate_table_values(min_length: float, init_length: float, incriment: flo
                            friction_at_motor: float, loop_torque: float, setttle_torque: float, max_motor_speed: float,
                            ball_screw: float, screw_lead: float, weight_drag: float, ratio: float, efficiency: float,
                            refl_inertia: float, pivot_to_screw: float, weight_to_accel: float, motor_inertia: float):
+    """
+    Calculate the table values for the zig-zag motion based on various parameters.
+
+    Args:
+        min_length (float): Minimum length of the material in inches.
+        init_length (float): Initial length of the material in inches.
+        incriment (float): Increment value for length in inches.
+        max_accel_rate (float): Maximum acceleration rate in inches/sec^2.
+        max_velocity (float): Maximum velocity in inches/sec.
+        motor_peak_torque (float): Peak torque of the motor in lb-in.
+        settle_time (float): Settle time in seconds.
+        feed_angle (float): Feed angle in degrees.
+        friction_at_motor (float): Friction at the motor in lb-in.
+        loop_torque (float): Loop torque in lb-in.
+        setttle_torque (float): Settle torque in lb-in.
+        max_motor_speed (float): Maximum motor speed in RPM.
+        ball_screw (int): Ball screw flag (0 or 1).
+        screw_lead (float): Screw lead in inches.
+        weight_drag (float): Weight drag in lb.
+        ratio (float): Gearbox ratio.
+        efficiency (float): Efficiency of the system.
+        refl_inertia (float): Reflected inertia of the system in lb-in^2.
+        pivot_to_screw (float): Distance from pivot to screw in inches.
+        weight_to_accel (float): Weight to accelerate in lb.
+        motor_inertia (float): Motor inertia in lb-in^2.
+
+    Returns:
+        dict: A dictionary containing the calculated table values and other parameters.
+    """    
     table_values = []
     
     if ball_screw == 0:
@@ -200,6 +307,15 @@ def calculate_table_values(min_length: float, init_length: float, incriment: flo
 
 @router.post("/calculate")
 def calculate_zig_zag(data: ZigZagInput):
+    """
+    Calculate the zig-zag motion parameters based on the input data.
+
+    Args:
+        data (ZigZagInput): Input data containing parameters for the zig-zag motion.
+
+    Returns:
+        dict: A dictionary containing the calculated parameters for the zig-zag motion.
+    """
     #########################
     # Variables
     #########################

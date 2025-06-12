@@ -1,3 +1,8 @@
+"""
+Time utilities for physics-based calculations.
+
+"""
+
 from fastapi import HTTPException
 from models import TimeInput
 from math import sqrt, floor
@@ -5,6 +10,15 @@ from math import sqrt, floor
 def calculate_init_values(data: TimeInput, feed_angle: int = 0):
     """
     Calculate initial values based on the input data.
+
+    Args:
+        data (TimeInput): Input data containing parameters for calculations.
+        feed_angle (int): The angle of the feed, default is 0.
+
+    Returns:
+        dict: A dictionary containing initial calculated values such as length, 
+              acceleration time, peak torque, cycle time, etc.
+    
     """
     # initial calculations
     length = ((data.velocity / data.acceleration) * data.velocity) * 12

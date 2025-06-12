@@ -1,7 +1,27 @@
+"""
+Hydraulic Shear Calculations Service
+
+"""
+
 from models import HydShearInput
 from math import pi, atan, tan, radians
 
 def calculate_hyd_shear(data: HydShearInput, spec_type: str = "single_rake"):
+    """
+    Calculate hydraulic shear parameters based on input data.
+
+    Args:
+        data (HydShearInput): Input data containing shear parameters.
+        spec_type (str): Type of shear specification, either "single_rake" or "bow_tie".
+
+    Returns:
+        dict: A dictionary containing calculated shear parameters.
+
+    Raises:
+        ValueError: If the spec_type is not recognized.
+
+    """
+
     # Calculated variables
     shear_strength = data.material_tensile * 0.75
 

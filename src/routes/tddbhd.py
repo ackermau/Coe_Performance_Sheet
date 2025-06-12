@@ -1,3 +1,8 @@
+"""
+TDDBHD Calculation Module
+
+"""
+
 from fastapi import APIRouter, HTTPException
 from models import TDDBHDInput
 from pydantic import BaseModel
@@ -6,17 +11,25 @@ from pydantic import BaseModel, Field
 from math import pi, sqrt
 import re
 
-from .utils.shared import NUM_BRAKEPADS, BRAKE_DISTANCE, CYLINDER_ROD, STATIC_FRICTION
+from utils.shared import (
+    NUM_BRAKEPADS, BRAKE_DISTANCE, CYLINDER_ROD, STATIC_FRICTION,
+    JSON_FILE_PATH, rfq_state
+)
+from utils.json_util import load_json_list, append_to_json_list
 
 # Import your lookup functions
-from .utils.lookup_tables import (
+from utils.lookup_tables import (
     get_cylinder_bore, get_hold_down_matrix_label, get_material_density, get_material_modulus, get_reel_max_weight, 
     get_pressure_psi, get_holddown_force_available, get_min_material_width, get_type_of_line, get_drive_key, get_drive_torque 
     )
 
+# Initialize FastAPI router
 router = APIRouter()
 
 class TDDBHDOutput(BaseModel):
+    """
+    TDDBHD Output Model
+    """
     friction: float = Field(..., alias="friction")
     webTensionPsi: float = Field(..., alias="web_tension_psi")
     webTensionLbs: float = Field(..., alias="web_tension_lbs")
@@ -39,6 +52,20 @@ class TDDBHDOutput(BaseModel):
 
 @router.post("/calculate")
 def calculate_tbdbhd(data: TDDBHDInput):
+    """
+    Calculate TDDBHD values based on the provided input data.
+
+    Args: \n
+        data (TDDBHDInput): Input data for TDDBHD calculations.
+
+    Returns: \n
+        TDDBHDOutput: Calculated results including web tension, coil weight, 
+                      coil OD, torque required, and brake press required.
+
+    Raises: \n
+        HTTPException: If any input data is invalid or if calculations fail.
+
+    """
     num_brakepads = NUM_BRAKEPADS
     brake_dist = BRAKE_DISTANCE
     cyl_rod = CYLINDER_ROD
@@ -76,18 +103,18 @@ def calculate_tbdbhd(data: TDDBHDInput):
     My = (data.width * data.thickness**2 * data.yield_strength) / 6
     y = (data.thickness * (data.coil_id/2)) / (2 * ((data.thickness * modulus) / (2 * data.yield_strength)))
 
-    # 1. Web Tension
+    # Web Tension
     web_tension_psi = data.yield_strength / 800
     web_tension_lbs = data.thickness * data.width * web_tension_psi
 
-    # 2. Coil Weight Calculation
+    # Coil Weight Calculation
     # Check that density and width are not zero.
     if density == 0 or data.width == 0:
         raise HTTPException(status_code=400, detail="Density and width must be non-zero for coil weight calculation.")
     calculated_cw = (((data.coil_od**2) - data.coil_id**2) / 4) * pi * data.width * density
     coil_weight = min(calculated_cw, max_weight)
 
-    # 3. Coil OD Calculation
+    # Coil OD Calculation
     try:
         od_denominator = density * data.width * pi
         if od_denominator == 0:
@@ -97,7 +124,7 @@ def calculate_tbdbhd(data: TDDBHDInput):
         raise HTTPException(status_code=400, detail="Density or width cannot be zero for OD calculation.")
     coil_od = min(od_calc, data.coil_od) 
 
-    # 4. Display Reel Motor (simulate mapping)
+    # Display Reel Motor (simulate mapping)
     if data.hyd_threading_drive != "None":
         match = re.match(r"\d+", data.hyd_threading_drive)
         if not match:
@@ -108,16 +135,16 @@ def calculate_tbdbhd(data: TDDBHDInput):
     else:
         disp_reel_mtr = 0
 
-    # 5. Torque At Mandrel
+    # Torque At Mandrel
     if reel_type.upper() == "PULLOFF":
         torque_at_mandrel = drive_torque
     else: 
         torque_at_mandrel = data.reel_drive_tqempty
 
-    # 6. Rewind Torque Calculation
+    # Rewind Torque Calculation
     rewind_torque = web_tension_lbs * coil_od / 2
 
-    # 8. Holddown Force Required Calculation
+    # Holddown Force Required Calculation
     # Denom for hold down force: friction * (coil_id/2)
     hold_down_denominator = static_friction * (data.coil_id / 2)
     if hold_down_denominator == 0:
@@ -132,13 +159,13 @@ def calculate_tbdbhd(data: TDDBHDInput):
     else:
         hold_down_force_req = (((data.width * data.thickness**2) / 4) * data.yield_strength * (1 - (1/3) * (y / (data.thickness / 2))**2)) / hold_down_denominator
 
-    # 10. Torque Required Calculation
+    # Torque Required Calculation
     # Check that coil_od isn't zero.
     if coil_od == 0:
         raise HTTPException(status_code=400, detail="Calculated coil OD must be non-zero for torque calculation.")
     torque_required = ((3 * data.decel * coil_weight * (coil_od**2 + data.coil_id**2)) / (386 * coil_od)) + rewind_torque
 
-    # 11. Brake Press Required Calculation
+    # Brake Press Required Calculation
     numerator = 4 * torque_required
     partial_denominator = pi * friction * brake_dist * num_brakepads 
     if data.brake_model == "Single Stage" or data.brake_model == "Failsafe - Single Stage":
@@ -154,7 +181,7 @@ def calculate_tbdbhd(data: TDDBHDInput):
     press_required = numerator / denominator
     brake_press_required = press_required / data.brake_qty
 
-    # 12. Brake Press Holding Force Calculation
+    # Brake Press Holding Force Calculation
     if data.brake_model == "Failsafe - Single Stage":
         hold_force = 1000
     elif data.brake_model == "Failsafe - Double Stage":
@@ -166,8 +193,7 @@ def calculate_tbdbhd(data: TDDBHDInput):
         raise HTTPException(status_code=400, detail="Brake quantity must be between 1 and 4.")
 
     failsafe_holding_force = hold_force * friction * num_brakepads * brake_dist * data.brake_qty 
-
-    return {
+    results = {
         "friction": round(friction, 3),
         "web_tension_psi": round(web_tension_psi, 3),
         "web_tension_lbs": round(web_tension_lbs, 3),
@@ -185,3 +211,39 @@ def calculate_tbdbhd(data: TDDBHDInput):
         "failsafe_required": round(brake_press_required, 3),
         "failsafe_holding_force": round(failsafe_holding_force, 3),
     }
+
+    # Save the results to a JSON file
+    try:
+        append_to_json_list(
+            label="tddbhd", 
+            data=results, 
+            reference_number=rfq_state.reference, 
+            directory=JSON_FILE_PATH
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error saving results: {str(e)}")
+
+    return results
+
+@router.get("/load")
+def load_tddbhd_data():
+    """
+    Load previously calculated TDDBHD data from JSON storage.
+    
+    Returns: \n
+        dict: Response dictionary containing:
+            - Success: {"data": data}
+            - No data found: {"count": 0, "entries": []}
+            - Error: {"error": "error_description"}
+
+    Raises: \n
+        - FileNotFoundError: Returns empty result set with count 0
+        - Other exceptions: Returns error message
+    """
+    try:
+        data = load_json_list(label="tddbhd", reference_number=rfq_state.reference, directory=JSON_FILE_PATH)
+        return {"data": data}
+    except FileNotFoundError:
+        return {"count": 0, "entries": []}
+    except Exception as e:
+        return {"error": str(e)}

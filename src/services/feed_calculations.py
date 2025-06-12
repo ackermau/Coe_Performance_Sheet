@@ -1,9 +1,14 @@
+"""
+Feed calculations service module
+
+"""
+
 from models import FeedInput, FeedWPullThruInput, AllenBradleyInput, BaseFeedParams
 from math import pi, sqrt
-from ..utils.lookup_tables import get_material_density, get_sigma_five_specs, get_sigma_five_pt_specs, get_ab_feed_specs, get_selected_str_used
-from .physics.inertia import calculate_total_refl_inertia, InertiaInput
-from .physics.time import calculate_time, TimeInput
-from .physics.regen import calculate_regen, RegenInput
+from utils.lookup_tables import get_material_density, get_sigma_five_specs, get_sigma_five_pt_specs, get_ab_feed_specs, get_selected_str_used
+from utils.physics.inertia import calculate_total_refl_inertia, InertiaInput
+from utils.physics.time import calculate_time, TimeInput
+from utils.physics.regen import calculate_regen, RegenInput
 
 # Map for dynamic getter selection
 SPEC_GETTERS = {
@@ -30,6 +35,20 @@ SPEC_KEYS_SIGMA_FIVE = {
 
 # Flexible spec loader
 def get_all_specs_for(spec_type, feed_model, spec_keys):
+    """
+    Dynamically retrieves specifications based on the spec type and model.
+    
+    Args:
+        spec_type (str): Type of specification to retrieve (e.g., "sigma_five", "sigma_five_pt", "allen_bradley").
+        feed_model (str): The model of the feed system.
+        spec_keys (dict): Dictionary mapping variable names to their lookup keys.
+        
+    Returns:
+        dict: A dictionary containing the retrieved specifications.
+
+    Raises:
+        ValueError: If the spec_type is not recognized or if a lookup fails.    
+    """
     getter_func = SPEC_GETTERS[spec_type]
     results = {}
     for var_name, (lookup1, lookup2) in spec_keys.items():
@@ -43,6 +62,19 @@ def get_all_specs_for(spec_type, feed_model, spec_keys):
     return results
 
 def run_sigma_five_calculation(data: FeedInput, spec_type="sigma_five"):
+    """
+    Sigma Five feed calculation service function.
+    
+    Args:
+        data (FeedInput): Input data containing feed parameters.
+        spec_type (str): Type of specification, defaults to "sigma_five".
+    
+    Returns:
+        dict: A dictionary containing calculated feed parameters.
+    
+    Raises:
+        ValueError: If the spec_type is not recognized or if a lookup fails.
+    """
     density = get_material_density(data.material_type)
     str_used = get_selected_str_used(data.type_of_line)
 
@@ -237,6 +269,29 @@ def run_sigma_five_calculation(data: FeedInput, spec_type="sigma_five"):
 def run_sigma_five_pt_calculation(data: FeedWPullThruInput, 
                 straightening_rolls, material_width, material_thickness,
                 feed_model, yield_strength, str_pinch_rolls, req_max_fpm, spec_type="sigma_five_pt"):
+    """
+    Sigma Five feed calculation service function with pull-thru specs.
+    
+    Args:
+        data (FeedWPullThruInput): Input data containing feed parameters.
+        straightening_rolls (int): Number of straightening rolls.
+        material_width (float): Width of the material in inches.
+        material_thickness (float): Thickness of the material in inches.
+        feed_model (str): Model of the feed system.
+        yield_strength (float): Yield strength of the material in PSI.
+        str_pinch_rolls (str): Whether pinch rolls are used ("y" or "n").
+        req_max_fpm (float): Required maximum speed in feet per minute.
+        spec_type (str): Type of specification, defaults to "sigma_five_pt".
+
+    Returns:
+        dict: A dictionary containing calculated feed parameters.
+
+    Raises:
+        ValueError: If the spec_type is not recognized or if a lookup fails.
+
+
+    """
+    
     # Lookups
     u_roll = get_sigma_five_pt_specs(feed_model, "u_roll", "upper_roll")
     ratio = get_sigma_five_pt_specs(feed_model, "ratio", "ratio")
@@ -272,4 +327,15 @@ def run_sigma_five_pt_calculation(data: FeedWPullThruInput,
     }
 
 def run_allen_bradley_calculation(data: AllenBradleyInput, spec_type="allen_bradley"):
+    """
+    Allen Bradley feed calculation service function.
+    
+    Args:
+        data (AllenBradleyInput): Input data containing feed parameters.
+        spec_type (str): Type of specification, defaults to "allen_bradley".
+    
+    Returns:
+        dict: A dictionary containing calculated feed parameters.
+
+    """
     return run_sigma_five_calculation(data, spec_type)

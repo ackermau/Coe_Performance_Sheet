@@ -1,18 +1,43 @@
+"""
+Roll Str Backbend Calculation Module
+
+"""
+
 from fastapi import APIRouter, HTTPException
 from models import RollStrBackbendInput
 from math import sqrt
 
-from ..utils.shared import CREEP_FACTOR, RADIUS_OFF_COIL, roll_str_backbend_state
+from utils.shared import (
+    CREEP_FACTOR, RADIUS_OFF_COIL, roll_str_backbend_state,
+    rfq_state, JSON_FILE_PATH
+)
 
-from ..utils.lookup_tables import (
+from utils.json_util import load_json_list, append_to_json_list
+
+from utils.lookup_tables import (
     get_str_model_value,
     get_material_modulus,
 );
 
+# Initialize FastAPI router
 router = APIRouter()
 
 @router.post("/calculate")
 def calculate_roll_str_backbend(data: RollStrBackbendInput):
+    """
+    Calculate roll str backbend parameters.
+
+    Args: \n
+        data (RollStrBackbendInput): Input data containing roll str backbend parameters.
+
+    Returns: \n
+        dict: A dictionary containing calculated roll str backbend parameters.
+
+    Raises: \n
+        HTTPException: If an error occurs during the calculation or lookup process.
+
+    """
+
     # Lookups
     try:
         str_roll_dia = get_str_model_value(data.str_model, "roll_diameter", "str_roll_dia")
@@ -249,5 +274,36 @@ def calculate_roll_str_backbend(data: RollStrBackbendInput):
         "percent_yield_last": percent_yield_last,
         "number_of_yield_strains_last": number_of_yield_strains_last,
     }
+
+    # Save the results to a JSON file
+    try:
+        append_to_json_list(
+            label="roll_str_backbend", 
+            data=result, 
+            reference_number=rfq_state.reference, 
+            directory=JSON_FILE_PATH
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error saving results: {str(e)}")
+
     return result
   
+@router.get("/load")
+def load_roll_str_backbend_data():
+    """
+    Load previously calculated roll str backbend data.
+    
+    Returns: \n
+        dict: A dictionary containing the count and entries of the loaded data.
+        If no data is found, returns an empty list with count 0.
+        If an error occurs, returns an error message.
+    
+    """
+
+    try:
+        data = load_json_list(label="roll_str_backbend", reference_number=rfq_state.reference, directory=JSON_FILE_PATH)
+        return {"count": len(data), "entries": data}
+    except FileNotFoundError:
+        return {"count": 0, "entries": []}
+    except Exception as e:
+        return {"error": str(e)}

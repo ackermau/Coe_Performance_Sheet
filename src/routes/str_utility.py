@@ -1,22 +1,33 @@
+"""
+Straightener Utility Calculation Module
+
+"""
+
 from fastapi import APIRouter, HTTPException
 from models import StrUtilityInput
 from pydantic import BaseModel
 from pydantic import Field
 from math import pi, sqrt
 
-from .utils.shared import (
+from utils.shared import (
     MOTOR_RPM, EFFICIENCY, PINCH_ROLL_QTY, MAT_LENGTH, CONT_ANGLE, FEED_RATE_BUFFER,
-    LEWIS_FACTORS, roll_str_backbend_state,
+    LEWIS_FACTORS, roll_str_backbend_state, rfq_state, JSON_FILE_PATH,
     get_percent_material_yielded_check
 )
 
-from .utils.lookup_tables import (
+from utils.json_util import load_json_list, append_to_json_list
+
+from utils.lookup_tables import (
     get_material_density, get_material_modulus, get_str_model_value, get_motor_inertia
 )
 
+# Initialize FastAPI router
 router = APIRouter()
 
 class StrUtilityOutput(BaseModel):
+    """
+    Model for the output of the Straightener Utility calculations.
+    """
     requiredForce: float = Field(..., alias="required_force")
     pinchRollDia: float = Field(..., alias="pinch_roll_dia")
     strRollDia: float = Field(..., alias="str_roll_dia")
@@ -46,6 +57,20 @@ class StrUtilityOutput(BaseModel):
 
 @router.post("/calculate")
 def calculate_str_utility(data: StrUtilityInput):
+    """
+    Calculate Straightener Utility values based on input data.
+
+    Args: \n
+        data (StrUtilityInput): Input data for calculations.
+    
+    Returns: \n
+        StrUtilityOutput: Calculated values including required force, torque, horsepower, etc.
+    
+    Raises: \n
+        HTTPException: If any input data is invalid or missing.
+        ValueError: If any lookup fails or if calculations cannot be performed.
+    
+    """
     # Lookups for calculations
     try:
         if data.horsepower == 7.5:
@@ -73,6 +98,7 @@ def calculate_str_utility(data: StrUtilityInput):
     # Needed values for calculations
     str_qty = data.num_str_rolls
 
+    # Calculate the coefficient for the constant based on the number of straightener rolls
     if str_qty < 7:
         k_cons = (str_qty / 3.5) + 0.1
     elif str_qty < 9:
@@ -82,17 +108,21 @@ def calculate_str_utility(data: StrUtilityInput):
     else:
         k_cons = 3
 
+    # Calculate the modulus of elasticity
     if data.str_model == "SPGPS-810" or data.str_model == "CPPS-306" or data.str_model == "CPPS-406" or data.str_model == "CPPS-507":
         ult_tensile_strength = 165100
     else:
         ult_tensile_strength = 128000
 
+    # Calculate Lewis factors for the pinch and straightener rolls
     lewis_factor_pinch = LEWIS_FACTORS[pinch_roll_teeth]
     lewis_factor_str = LEWIS_FACTORS[str_roll_teeth]
 
+    # Calculate the safe working stress
     safe_working_stress = ult_tensile_strength / 3
     accel_time = (data.feed_rate / 60) / data.acceleration
 
+    # Constants
     motor_rpm = MOTOR_RPM
     eff = EFFICIENCY
     pinch_roll_qty = PINCH_ROLL_QTY
@@ -104,26 +134,31 @@ def calculate_str_utility(data: StrUtilityInput):
     required_force = ((16 * data.yield_strength * data.coil_width * (data.material_thickness ** 2) / (15 * center_dist))
                     + (16 * data.yield_strength * data.coil_width * (data.material_thickness ** 2) / (15 * center_dist)) * 0.19)
     
+    # Coil Outer Diameter Calculations
     coil_od_measured = sqrt((data.coil_id ** 2) + ((data.max_coil_weight * 4) / (pi * density * data.coil_width)))
     coil_od = min(coil_od_measured, data.coil_od)
 
     # Pinch / Str Roll / Material length and inertia calculations
+    # Pinch Roll
     pinch_roll_length = data.str_width + 2
     pinch_roll_lbs = ((pinch_roll_dia ** 2) / 4) * pi * pinch_roll_length * pinch_roll_qty * 0.283
     pinch_roll_inertia = (pinch_roll_lbs / 32.3) * 0.5 * (((pinch_roll_dia * 0.5) ** 2) / 144) * 12
     pinch_ratio = motor_rpm / ((data.feed_rate * 12) / (pinch_roll_dia * pi))
     pinch_roll_refl_inertia = pinch_roll_inertia / (pinch_ratio ** 2)
 
+    # Straightener Roll
     str_roll_length = data.str_width + 2
     str_roll_lbs = ((str_roll_dia ** 2) / 4) * pi * str_roll_length * data.num_str_rolls * 0.283
     str_roll_inertia = (str_roll_lbs / 32.3) * 0.5 * (((str_roll_dia * 0.5) ** 2) / 144) * 12
     str_ratio = motor_rpm / ((data.feed_rate * 12) / (str_roll_dia * pi))
     str_roll_refl_inertia = str_roll_inertia / (str_ratio ** 2)
     
+    # Material Length
     mat_length_lbs = data.material_thickness * data.coil_width * density * mat_length
     mat_length_inertia = (mat_length_lbs / 32.3) * (((pinch_roll_dia * 0.5) ** 2) / 144) * 12
     mat_length_refl_inertia = mat_length_inertia / (pinch_ratio ** 2)
 
+    # Max/Min OD Inertia
     max_od_inertia = (
         (
             (
@@ -153,12 +188,15 @@ def calculate_str_utility(data: StrUtilityInput):
           / 144)
        ) * 12
 
+    # Max/Min OD Ratios
     max_od_ratio = (coil_od / pinch_roll_dia) * pinch_ratio
     min_od_ratio = (data.coil_id / pinch_roll_dia) * pinch_ratio
 
+    # Max/Min OD Reflective Inertia
     max_od_refl_inertia = max_od_inertia / (max_od_ratio ** 2)
     min_od_refl_inertia = min_od_inertia / (min_od_ratio ** 2)
 
+    # Max/Min OD Total Inertia
     max_od_total_inertia = pinch_roll_refl_inertia + str_roll_refl_inertia + mat_length_refl_inertia + max_od_refl_inertia
     min_od_total_inertia = pinch_roll_refl_inertia + str_roll_refl_inertia + mat_length_refl_inertia + min_od_refl_inertia
 
@@ -176,6 +214,7 @@ def calculate_str_utility(data: StrUtilityInput):
            / motor_rpm)
        * 12) / eff
     
+    # Coil Brake Torque
     coil_brake_torque = (
         (
             (
@@ -191,9 +230,11 @@ def calculate_str_utility(data: StrUtilityInput):
                    )
                ) / (9.55 * accel_time)
 
+    # Max/Min OD Brake Torque
     max_od_brake_torque = (coil_brake_torque / ((coil_od / pinch_roll_dia) * pinch_ratio)) / eff
     min_od_brake_torque = (coil_brake_torque / ((data.coil_id / pinch_roll_dia) * pinch_ratio)) / eff
 
+    # Max/Min OD Acceleration Torque
     max_od_accel_torque = (
         (
             (max_od_total_inertia * motor_rpm)
@@ -213,6 +254,7 @@ def calculate_str_utility(data: StrUtilityInput):
               / (9.55 * accel_time)
               )
 
+    # Max/Min OD Peak Torque
     max_od_pk_torque = str_torque + max_od_accel_torque + max_od_brake_torque
     min_od_pk_torque = str_torque + min_od_accel_torque + min_od_brake_torque
 
@@ -269,8 +311,8 @@ def calculate_str_utility(data: StrUtilityInput):
     else:
         feed_rate_check = "NOT OK"
     
-    return {
-        "required_force": round(required_force, 3),
+    results = {
+        "required_force": round(required_force, 3), 
         "pinch_roll_dia" : round(pinch_roll_dia, 3),
         "pinch_roll_req_torque" : round(pinch_roll_req_torque, 3),
         "pinch_roll_rated_torque" : round(pinch_roll_rated_torque, 3),
@@ -297,3 +339,34 @@ def calculate_str_utility(data: StrUtilityInput):
         "brake_torque" : round(brake_torque, 3),
         "feed_rate_check" : feed_rate_check
     }
+
+    # Save the results to a JSON file
+    try:
+        append_to_json_list(
+            label="str_utility",
+            data=results,
+            reference_number=rfq_state.reference,
+            directory=JSON_FILE_PATH
+        )
+    except Exception as e:
+        return {"error": f"Failed to save results: {str(e)}"}
+
+    return results
+
+@router.get("/load")
+def load_str_utility_data():
+    """
+    Load previously calculated Straightener Utility data.
+
+    Returns: \n
+        dict: A dictionary containing the loaded data or an error message if loading fails.
+    
+    """
+
+    try:
+        data = load_json_list(label="str_utility", reference_number=rfq_state.reference, directory=JSON_FILE_PATH)
+        return {"data": data}
+    except FileNotFoundError:
+        return {"count": 0, "entries": []}
+    except Exception as e:
+        return {"error": str(e)}

@@ -1,3 +1,8 @@
+"""
+Models for various calculations related to RFQ, FPM, Material Specifications, TDDBHD, Reel Drive, Strapping Utility, Roll Str Backbend, Inertia, Regen, Time, Feed, Shear, and ZigZag
+
+"""
+
 from pydantic import BaseModel
 from typing import Optional
 
@@ -7,7 +12,6 @@ from typing import Optional
 # RFQ is used to define the structure of a Request for Quotation
 class RFQ(BaseModel):
     # Basic details
-    id: int
     date: str # Date in YYYY-MM-DD format
     reference: str
 
@@ -23,8 +27,8 @@ class RFQ(BaseModel):
     contact_phone_number: str 
     contact_email: str
 
-    days_per_week_running: int
-    shifts_per_day: int
+    days_per_week_running: Optional[int]
+    shifts_per_day: Optional[int]
 
     line_application: str
     type_of_line: str
@@ -36,7 +40,7 @@ class RFQ(BaseModel):
     max_coil_od: float
     coil_id: float
     max_coil_weight: float
-    max_coil_handling_cap: float
+    max_coil_handling_cap: Optional[float]
 
     type_of_coil: str
     coil_car: bool
@@ -49,46 +53,103 @@ class RFQ(BaseModel):
     max_material_width: float
     max_material_type: str
     max_yield_strength: float
-    max_tensile_strength: float
+    max_tensile_strength: Optional[float]
 
     # full
     full_material_thickness: float
     full_material_width: float
     full_material_type: str
     full_yield_strength: float
-    full_tensile_strength: float
+    full_tensile_strength: Optional[float]
 
     # min
     min_material_thickness: float
     min_material_width: float
     min_material_type: str
     min_yield_strength: float
-    min_tensile_strength: float
+    min_tensile_strength: Optional[float]
 
     # width
     width_material_thickness: float
     width_material_width: float
     width_material_type: str
     width_yield_strength: float
-    width_tensile_strength: float
+    width_tensile_strength: Optional[float]
 
     cosmetic_material: bool
-    brand_of_feed_equipment: str
+    brand_of_feed_equipment: Optional[str]
     
     # Type of press
-    gap_frame_press: bool
-    hydraulic_press: bool
-    obi: bool
-    servo_press: bool
-    shear_die_application: bool
-    straight_side_press: bool
-    other: bool
+    gap_frame_press: Optional[bool]
+    hydraulic_press: Optional[bool]
+    obi: Optional[bool]
+    servo_press: Optional[bool]
+    shear_die_application: Optional[bool]
+    straight_side_press: Optional[bool]
+    other: Optional[bool]
 
-    tonnage_of_press: str
+    tonnage_of_press: Optional[str]
+    press_stroke_length: Optional[float]
+    press_max_spm: float
+    press_bed_area_width: Optional[float]
+    press_bed_area_length: Optional[float]
+    window_opening_size_of_press: Optional[float]
 
+    transfer_dies: bool
+    progressive_dies: bool
+    blanking_dies: bool
+
+    average_feed_length: float
+    average_spm: float
+    average_fpm: float
+
+    max_feed_length: float
+    max_spm: float
+    max_fpm: float
+
+    min_feed_length: float
+    min_spm: float
+    min_fpm: float
+
+    feed_window_degrees: Optional[float]
+    press_cycle_time: Optional[float]
+    voltage_required: float
+
+    space_allocated_length: float
+    space_allocated_width: float
+    obstructions: str
+    feeder_mountable: Optional[bool]
+    feeder_mount_adequate_support: Optional[bool]
+    custom_mounting: Optional[bool]
+
+    passline_height: Optional[float]
+    loop_pit: Optional[bool]
+
+    coil_change_time_concern: bool
+    coil_change_time_goal: Optional[float]
+
+    feed_direction: str
+    coil_landing: str
+
+    line_guard_safety_req: bool
+    project_decision_date: str # Date in YYYY-MM-DD - YYYY-MM-DD format
+    ideal_delivery_date: str # Date in YYYY-MM-DD format
+    earliest_delivery_date: Optional[str] # Date in YYYY-MM-DD format
+    latest_delivery_date: Optional[str] # Date in YYYY-MM-DD format
+    additional_comments: Optional[str]
+
+# RFQ FPM calculation input
+class FPMInput(BaseModel):
+    feed_length: float  # in inches
+    spm: float          # Strokes per minute
 
 # MaterialSpecsPayload is used to define the payload structure for material specifications
 class MaterialSpecsPayload(BaseModel):
+    # Common variables
+    customer: str
+    date: str  # Date in YYYY-MM-DD format
+    reference: str
+
     # Max view
     material_type_max: str = None
     material_thickness_max: float = None  # in inches
@@ -121,8 +182,25 @@ class MaterialSpecsPayload(BaseModel):
     coil_weight_width: float = None
     coil_id_width: float = None
 
+    feed_direction: str
+    controls_level: str
+    type_of_line: str
+    feed_controls: str
+    passline: str
+
+    selected_roll: str
+    reel_backplate: str
+    reel_style: str
+
+    light_gauge_non_marking: bool # Light gauge reccomended 0.03 / 45000 psi
+    non_marking: bool
+
 # TDDBHDInput is used to define the input structure for TDDBHD calculations
 class TDDBHDInput(BaseModel):
+    customer: str
+    date: str  # Date in YYYY-MM-DD format
+    reference: str
+
     type_of_line: str
     reel_drive_tqempty: Optional[float]
     motor_hp: Optional[float]
@@ -146,12 +224,17 @@ class TDDBHDInput(BaseModel):
     hyd_threading_drive: str
     air_clutch: str
     
-    # For lookup: note the field name expected is material_type (with a capital T)
     material_type: str
     reel_model: str
+    reel_width: float
+    backplate_diameter: float
 
 # ReelDriveInput is used to define the input structure for reel drive calculations    
 class ReelDriveInput(BaseModel):
+    customer: str
+    date: str  # Date in YYYY-MM-DD format
+    reference: str
+
     model: str
     material_type: str
     coil_id: float
@@ -164,6 +247,10 @@ class ReelDriveInput(BaseModel):
 
 # StrUtilityInput is used to define the input structure for strapping utility calculations
 class StrUtilityInput(BaseModel):
+    customer: str
+    date: str  # Date in YYYY-MM-DD format
+    reference: str
+
     max_coil_weight: float
     coil_id: float
     coil_od: float
@@ -187,6 +274,10 @@ class StrUtilityInput(BaseModel):
 ##################################################
 # RollStrBackbendInput is used to define the input structure for roll str backbend calculations
 class RollStrBackbendInput(BaseModel):
+    customer: str
+    date: str  # Date in YYYY-MM-DD format
+    reference: str
+
     yield_strength: float
     thickness: float
     width: float
@@ -259,6 +350,10 @@ class TimeInput(BaseModel):
 ##################################################
 # BaseFeedParams is used to define the common parameters for feed calculations
 class BaseFeedParams(BaseModel):
+    customer: str
+    date: str  # Date in YYYY-MM-DD format
+    reference: str
+
     feed_model: str
     width: int
     loop_pit: str
@@ -298,6 +393,10 @@ class FeedWPullThruInput(BaseFeedParams):
 # Shear Calculation Models
 ######################################################
 class HydShearInput(BaseModel):
+    customer: str
+    date: str  # Date in YYYY-MM-DD format
+    reference: str
+
     max_material_thickness: float
     coil_width: float
     material_tensile: float
@@ -322,6 +421,10 @@ class HydShearInput(BaseModel):
 ######################################################
 # ZigZagInput is used to define the input structure for zigzag calculations
 class ZigZagInput(BaseModel):
+    customer: str
+    date: str  # Date in YYYY-MM-DD format
+    reference: str
+
     material_width: float
     material_thickness: float
     material_length_flat: float
