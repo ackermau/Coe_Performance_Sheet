@@ -16,6 +16,7 @@ router = APIRouter()
 # Global in-memory RFQ storage
 current_rfq: Dict[str, RFQ] = {}
 local_rfqs: Dict[str, RFQ] = {}
+reference: str = ""
 
 @router.post("/")
 def create_rfq(rfq: RFQ):
@@ -61,8 +62,8 @@ def create_rfq(rfq: RFQ):
 
     return {"message": "RFQ created", "rfq": rfq}
 
-@router.get("/")
-def load_rfq(rfq_reference: str):
+@router.get(f"/{reference}")
+def load_rfq():
     """
     Retrieve an RFQ by its reference number.
 
@@ -70,7 +71,7 @@ def load_rfq(rfq_reference: str):
     load the RFQ from disk-based JSON storage.
 
     Args: \n
-        rfq_reference (str): Reference number of the RFQ
+        reference (str): Reference number of the RFQ
 
     Returns: \n
         Dict[str, Any]: 
@@ -80,7 +81,7 @@ def load_rfq(rfq_reference: str):
     """
 
     # First, attempt to retrieve from memory
-    rfq_from_memory = local_rfqs.get(rfq_reference)
+    rfq_from_memory = local_rfqs.get(reference)
     if rfq_from_memory:
         return {"rfq": rfq_from_memory}
 
@@ -88,7 +89,7 @@ def load_rfq(rfq_reference: str):
     try:
         rfq_data = load_json_list(
             label="rfq", 
-            reference_number=rfq_reference, 
+            reference_number=reference, 
             directory=JSON_FILE_PATH
         )
         if rfq_data:

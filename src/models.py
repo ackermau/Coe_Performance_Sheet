@@ -14,6 +14,7 @@ class RFQ(BaseModel):
     # Basic details
     date: str # Date in YYYY-MM-DD format
     reference: str
+    version: str
 
     company_name: str
     state_province: str
@@ -145,11 +146,6 @@ class FPMInput(BaseModel):
 
 # MaterialSpecsPayload is used to define the payload structure for material specifications
 class MaterialSpecsPayload(BaseModel):
-    # Common variables
-    customer: str
-    date: str  # Date in YYYY-MM-DD format
-    reference: str
-
     # Max view
     material_type_max: str = None
     material_thickness_max: float = None  # in inches
@@ -197,10 +193,6 @@ class MaterialSpecsPayload(BaseModel):
 
 # TDDBHDInput is used to define the input structure for TDDBHD calculations
 class TDDBHDInput(BaseModel):
-    customer: str
-    date: str  # Date in YYYY-MM-DD format
-    reference: str
-
     type_of_line: str
     reel_drive_tqempty: Optional[float]
     motor_hp: Optional[float]
@@ -231,10 +223,6 @@ class TDDBHDInput(BaseModel):
 
 # ReelDriveInput is used to define the input structure for reel drive calculations    
 class ReelDriveInput(BaseModel):
-    customer: str
-    date: str  # Date in YYYY-MM-DD format
-    reference: str
-
     model: str
     material_type: str
     coil_id: float
@@ -247,10 +235,6 @@ class ReelDriveInput(BaseModel):
 
 # StrUtilityInput is used to define the input structure for strapping utility calculations
 class StrUtilityInput(BaseModel):
-    customer: str
-    date: str  # Date in YYYY-MM-DD format
-    reference: str
-
     max_coil_weight: float
     coil_id: float
     coil_od: float
@@ -274,10 +258,6 @@ class StrUtilityInput(BaseModel):
 ##################################################
 # RollStrBackbendInput is used to define the input structure for roll str backbend calculations
 class RollStrBackbendInput(BaseModel):
-    customer: str
-    date: str  # Date in YYYY-MM-DD format
-    reference: str
-
     yield_strength: float
     thickness: float
     width: float
@@ -350,10 +330,6 @@ class TimeInput(BaseModel):
 ##################################################
 # BaseFeedParams is used to define the common parameters for feed calculations
 class BaseFeedParams(BaseModel):
-    customer: str
-    date: str  # Date in YYYY-MM-DD format
-    reference: str
-
     feed_model: str
     width: int
     loop_pit: str
@@ -393,10 +369,6 @@ class FeedWPullThruInput(BaseFeedParams):
 # Shear Calculation Models
 ######################################################
 class HydShearInput(BaseModel):
-    customer: str
-    date: str  # Date in YYYY-MM-DD format
-    reference: str
-
     max_material_thickness: float
     coil_width: float
     material_tensile: float
@@ -421,10 +393,6 @@ class HydShearInput(BaseModel):
 ######################################################
 # ZigZagInput is used to define the input structure for zigzag calculations
 class ZigZagInput(BaseModel):
-    customer: str
-    date: str  # Date in YYYY-MM-DD format
-    reference: str
-
     material_width: float
     material_thickness: float
     material_length_flat: float

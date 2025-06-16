@@ -15,6 +15,7 @@ class RFQState:
     State for RFQ calculations.
     """
     reference: str = "0000"
+    version: str = "1.0"
     company_name: str = "Default Company"
     date: str = "2023-01-01"
 
