@@ -12,18 +12,35 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
-# Allow requests from your frontend (React app)
+# Health check endpoint
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy", "message": "Server is running"}
+
+# Allow requests from your TypeScript frontend
 origins = [
-    "http://localhost:3000",  # React dev server
-    # "http://your-prod-domain.com"  <-- add this later for production
+    "http://localhost:5173",  # Vite dev server
+    "http://localhost:4200",  # Angular dev server
+    "http://localhost:3000",  # Next.js dev server
+    "http://localhost:5000",  # Flask dev server
+    "http://localhost:8000",  # FastAPI dev server
+    "http://127.0.0.1:5173",  # Vite dev server (alternative)
+    "http://127.0.0.1:4200",  # Angular dev server (alternative)
+    "http://127.0.0.1:3000",  # Next.js dev server (alternative)
+    "http://127.0.0.1:5000",  # Flask dev server (alternative)
+    "http://127.0.0.1:8000",  # FastAPI dev server (alternative)
+    # Add your production domain when ready
+    # "https://your-production-domain.com"
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,  # allows listed domains
+    allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],  # allow all methods (POST, GET, etc.)
-    allow_headers=["*"],  # allow all headers
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=3600,  # Cache preflight requests for 1 hour
 )
 
 app.include_router(rfq.router, prefix="/rfq", tags=["RFQ"])

@@ -1,14 +1,15 @@
-
 """ 
 Request for Quote (RFQ) Management Module
 
 """
 
-from fastapi import APIRouter, Body
+from fastapi import APIRouter, Body, HTTPException
 from models import RFQ, FPMInput
-from typing import Dict
+from typing import Dict, Optional
 from utils.shared import rfq_state, JSON_FILE_PATH
 from utils.json_util import append_to_json_list, load_json_list
+from datetime import datetime
+from pydantic import BaseModel
 
 # Initialize FastAPI router
 router = APIRouter()
@@ -18,8 +19,14 @@ current_rfq: Dict[str, RFQ] = {}
 local_rfqs: Dict[str, RFQ] = {}
 reference: str = ""
 
-@router.post("/")
-def create_rfq(rfq: RFQ):
+class RFQCreate(BaseModel):
+    """Model for creating a new RFQ with optional fields"""
+    company_name: Optional[str] = None
+    date: Optional[str] = None
+    # Add other optional fields as needed
+
+@router.post("/{reference}")
+def create_rfq(reference: str, rfq: RFQCreate = Body(...)):
     """
     Create and persist a new RFQ entry.
 
@@ -27,43 +34,71 @@ def create_rfq(rfq: RFQ):
     and appends the RFQ data to a JSON file for persistence.
 
     Args: \n
-        rfq (RFQ): The input RFQ object containing:
-            - reference: Unique identifier for the RFQ
-            - company_name: Name of the requesting company
-            - date: RFQ date
+        reference (str): The reference number for the RFQ
+        rfq (RFQCreate): The input RFQ object containing optional fields
 
     Returns: \n
         Dict[str, Any]: 
             - On success: {"message": "RFQ created", "rfq": rfq}
             - On error: {"error": "error message"}
     """
-
-    # Update shared RFQ state
-    rfq_state.reference = rfq.reference
-    rfq_state.company_name = rfq.company_name
-    rfq_state.date = rfq.date
-
-    # Store RFQ in memory for fast access
-    local_rfqs[rfq.reference] = rfq
-
-    # Create a dictionary for persistence
-    current_rfq = Dict[rfq.reference, rfq]
-
-    # Save the RFQ to JSON file storage
     try:
-        append_to_json_list(
-            label="rfq", 
-            data=current_rfq, 
-            reference=rfq.reference, 
-            directory=JSON_FILE_PATH
-        )
+        # Validate reference number
+        if not reference or not reference.strip():
+            raise HTTPException(status_code=400, detail="Reference number is required")
+
+        # Create a new RFQ instance with the reference from the URL
+        new_rfq = RFQ(reference=reference, **rfq.dict(exclude_unset=True))
+
+        # Validate date format if provided
+        if new_rfq.date:
+            try:
+                datetime.strptime(new_rfq.date, "%Y-%m-%d")
+            except ValueError:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Date must be in YYYY-MM-DD format"
+                )
+
+        # Update shared RFQ state with provided values
+        rfq_state.reference = reference
+        if new_rfq.company_name:
+            rfq_state.company_name = new_rfq.company_name
+        if new_rfq.date:
+            rfq_state.date = new_rfq.date
+
+        # Store RFQ in memory for fast access
+        local_rfqs[reference] = new_rfq
+
+        # Create a dictionary for persistence
+        current_rfq = {reference: new_rfq.dict()}
+
+        # Save the RFQ to JSON file storage
+        try:
+            append_to_json_list(
+                label="rfq", 
+                data=current_rfq, 
+                reference_number=reference,
+                directory=JSON_FILE_PATH
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to save RFQ to storage: {str(e)}"
+            )
+
+        return {"message": "RFQ created", "rfq": new_rfq.dict()}
+
+    except HTTPException as he:
+        raise he
     except Exception as e:
-        return {"error": f"Failed to save RFQ: {str(e)}"}
+        raise HTTPException(
+            status_code=500,
+            detail=f"An unexpected error occurred: {str(e)}"
+        )
 
-    return {"message": "RFQ created", "rfq": rfq}
-
-@router.get(f"/{reference}")
-def load_rfq():
+@router.get("/{reference}")
+def load_rfq(reference: str):
     """
     Retrieve an RFQ by its reference number.
 
