@@ -3,10 +3,11 @@ Reel Drive Calculation Module
 
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Body
 from models import ReelDriveInput
 from math import pi
 from typing import Tuple, Dict, Any
+from pydantic import BaseModel
 
 from utils.shared import (
     CHAIN_RATIO, CHAIN_SPRKT_OD, CHAIN_SPRKT_THICKNESS, MOTOR_RPM,
@@ -26,6 +27,74 @@ from utils.lookup_tables import (
 
 # Initialize FastAPI router
 router = APIRouter()
+
+# In-memory storage for reel drive
+local_reel_drive: dict = {}
+
+class ReelDriveCreate(BaseModel):
+    model: str = None
+    material_type: str = None
+    coil_id: float = None
+    coil_od: float = None
+    reel_width: float = None
+    backplate_diameter: float = None
+    motor_hp: float = None
+    type_of_line: str = None
+    required_max_fpm: float = 0
+    # Add other fields as needed for creation
+
+@router.post("/{reference}")
+def create_reel_drive(reference: str, reel_drive: ReelDriveCreate = Body(...)):
+    """
+    Create and persist a new Reel Drive entry for a given reference.
+    Sets the shared rfq_state to the reference, stores in memory, and appends to JSON file.
+    """
+    try:
+        if not reference or not reference.strip():
+            raise HTTPException(status_code=400, detail="Reference number is required")
+        # Store in memory
+        local_reel_drive[reference] = reel_drive.dict(exclude_unset=True)
+        # Update shared state
+        rfq_state.reference = reference
+        # Prepare for persistence
+        current_reel_drive = {reference: reel_drive.dict(exclude_unset=True)}
+        try:
+            append_to_json_list(
+                label="reel_drive",
+                data=current_reel_drive,
+                reference_number=reference,
+                directory=JSON_FILE_PATH
+            )
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to save Reel Drive: {str(e)}")
+        return {"message": "Reel Drive created", "reel_drive": reel_drive.dict(exclude_unset=True)}
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
+
+@router.get("/{reference}")
+def load_reel_drive_by_reference(reference: str):
+    """
+    Retrieve Reel Drive by reference number (memory first, then disk).
+    """
+    reel_drive_from_memory = local_reel_drive.get(reference)
+    if reel_drive_from_memory:
+        return {"reel_drive": reel_drive_from_memory}
+    try:
+        reel_drive_data = load_json_list(
+            label="reel_drive",
+            reference_number=reference,
+            directory=JSON_FILE_PATH
+        )
+        if reel_drive_data:
+            return {"reel_drive": reel_drive_data}
+        else:
+            return {"error": "Reel Drive not found"}
+    except FileNotFoundError:
+        return {"error": "Reel Drive file not found"}
+    except Exception as e:
+        return {"error": f"Failed to load Reel Drive: {str(e)}"}
 
 def calc_mandrel_specs(
         reel: Dict[str, Any], 
@@ -467,38 +536,3 @@ def calculate_reeldrive(data: ReelDriveInput) -> Dict[str, Any]:
         raise HTTPException(status_code=500, detail=f"Failed to save results: {str(e)}")
 
     return results
-
-@router.get("/load")
-def load_reeldrive_data() -> Dict[str, Any]:
-    """
-    Load previously calculated reel drive data from JSON storage.
-    
-    Retrieves stored calculation results for the current RFQ reference number.
-    Used for displaying historical calculations or continuing previous work.
-    
-    Returns: \n
-        Dict[str, Any]: 
-            - Success: {"data": [list_of_calculation_results]}
-            - No data found: {"count": 0, "entries": []}
-            - Error: {"error": "error_description"}
-            
-    Error Handling: \n
-        - FileNotFoundError: Returns empty result set
-        - Other exceptions: Returns error message
-    """
-    try:
-        # Attempt to load data for current RFQ reference
-        data = load_json_list(
-            label="reel_drive", 
-            reference_number=rfq_state.reference, 
-            directory=JSON_FILE_PATH
-        )
-        return {"data": data}
-        
-    except FileNotFoundError:
-        # No previous data exists for this reference - return empty result
-        return {"count": 0, "entries": []}
-        
-    except Exception as e:
-        # Other errors - return error message
-        return {"error": str(e)}

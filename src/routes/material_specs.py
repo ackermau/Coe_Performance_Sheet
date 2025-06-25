@@ -3,10 +3,11 @@ Material Specifications Calculation Module
 
 """
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Body, HTTPException
 from models import MaterialSpecsPayload
 import math
 from typing import Dict, Any, Optional, Union
+from pydantic import BaseModel
 
 # Import the shared lookup table helper function:
 from utils.lookup_tables import get_material
@@ -15,6 +16,20 @@ from utils.shared import JSON_FILE_PATH, rfq_state
 
 # Initialize FastAPI router
 router = APIRouter()
+
+# In-memory storage for material specs
+local_material_specs: Dict[str, dict] = {}
+
+class MaterialSpecsCreate(BaseModel):
+    # Only a subset of fields for creation; adjust as needed
+    material_type_max: Optional[str] = None
+    material_thickness_max: Optional[float] = None
+    yield_strength_max: Optional[float] = None
+    coil_width_max: Optional[float] = None
+    coil_weight_max: Optional[float] = None
+    coil_id_max: Optional[float] = None
+    # Add other fields as needed for creation
+    # ...
 
 def calculate_variant(
     materialType: Optional[str], 
@@ -98,6 +113,59 @@ def calculate_variant(
         "coil_od_calculated": coil_od_calculated
     }
 
+@router.post("/{reference}")
+def create_material_specs(reference: str, specs: MaterialSpecsCreate = Body(...)):
+    """
+    Create and persist a new Material Specs entry for a given reference.
+    Sets the shared rfq_state to the reference, stores in memory, and appends to JSON file.
+    """
+    try:
+        if not reference or not reference.strip():
+            raise HTTPException(status_code=400, detail="Reference number is required")
+        # Store in memory
+        local_material_specs[reference] = specs.dict(exclude_unset=True)
+        # Update shared state
+        rfq_state.reference = reference
+        # Prepare for persistence
+        current_specs = {reference: specs.dict(exclude_unset=True)}
+        try:
+            append_to_json_list(
+                label="material_specs",
+                data=current_specs,
+                reference_number=reference,
+                directory=JSON_FILE_PATH
+            )
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to save Material Specs: {str(e)}")
+        return {"message": "Material Specs created", "material_specs": specs.dict(exclude_unset=True)}
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
+
+@router.get("/{reference}")
+def load_material_specs_by_reference(reference: str):
+    """
+    Retrieve Material Specs by reference number (memory first, then disk).
+    """
+    specs_from_memory = local_material_specs.get(reference)
+    if specs_from_memory:
+        return {"material_specs": specs_from_memory}
+    try:
+        specs_data = load_json_list(
+            label="material_specs",
+            reference_number=reference,
+            directory=JSON_FILE_PATH
+        )
+        if specs_data:
+            return {"material_specs": specs_data}
+        else:
+            return {"error": "Material Specs not found"}
+    except FileNotFoundError:
+        return {"error": "Material Specs file not found"}
+    except Exception as e:
+        return {"error": f"Failed to load Material Specs: {str(e)}"}
+    
 @router.post("/calculate")
 def calculate_specs(payload: MaterialSpecsPayload) -> Dict[str, Any]:
     """
@@ -162,38 +230,3 @@ def calculate_specs(payload: MaterialSpecsPayload) -> Dict[str, Any]:
         return {"error": f"Failed to save results: {str(e)}"}
 
     return results
-
-@router.get("/load")
-def load_material_specs() -> Dict[str, Any]:
-    """
-    Load previously calculated material specifications from JSON storage.
-    
-    Returns: \n
-        Dict[str, Any]: Response dictionary containing:
-            - Success: {"count": int, "entries": [list_of_results]}
-            - No data found: {"count": 0, "entries": []}
-            - Error: {"error": "error_description"}
-            
-    Error Handling: \n
-        - FileNotFoundError: Returns empty result set with count 0
-        - Other exceptions: Returns error message
-    """
-    
-    try:
-        # Attempt to load data for current RFQ reference
-        data = load_json_list(
-            label="material_specs", 
-            reference_number=rfq_state.reference, 
-            directory=JSON_FILE_PATH
-        )
-        
-        # Return successful result with count and data
-        return {"count": len(data), "entries": data}
-        
-    except FileNotFoundError:
-        # No previous data exists for this reference - return empty result
-        return {"count": 0, "entries": []}
-        
-    except Exception as e:
-        # Other errors - return error message
-        return {"error": str(e)}

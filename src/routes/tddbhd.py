@@ -3,7 +3,7 @@ TDDBHD Calculation Module
 
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Body
 from models import TDDBHDInput
 from pydantic import BaseModel
 from typing import Optional
@@ -25,6 +25,9 @@ from utils.lookup_tables import (
 
 # Initialize FastAPI router
 router = APIRouter()
+
+# In-memory storage for TDDBHD
+local_tddbhd: dict = {}
 
 class TDDBHDOutput(BaseModel):
     """
@@ -49,6 +52,85 @@ class TDDBHDOutput(BaseModel):
 
     class Config:
         allow_population_by_field_name = True
+
+class TDDBHDCreate(BaseModel):
+    # Only a subset of fields for creation; adjust as needed
+    type_of_line: Optional[str] = None
+    reel_drive_tqempty: Optional[float] = None
+    motor_hp: Optional[float] = None
+    yield_strength: Optional[float] = None
+    thickness: Optional[float] = None
+    width: Optional[float] = None
+    coil_id: Optional[float] = None
+    coil_od: Optional[float] = None
+    coil_weight: Optional[float] = None
+    decel: Optional[float] = None
+    friction: Optional[float] = None
+    air_pressure: Optional[float] = None
+    brake_qty: Optional[int] = None
+    brake_model: Optional[str] = None
+    cylinder: Optional[str] = None
+    hold_down_assy: Optional[str] = None
+    hyd_threading_drive: Optional[str] = None
+    air_clutch: Optional[str] = None
+    material_type: Optional[str] = None
+    reel_model: Optional[str] = None
+    reel_width: Optional[float] = None
+    backplate_diameter: Optional[float] = None
+    # Add other fields as needed for creation
+
+@router.post("/{reference}")
+def create_tddbhd(reference: str, tddbhd: TDDBHDCreate = Body(...)):
+    """
+    Create and persist a new TDDBHD entry for a given reference.
+    Sets the shared rfq_state to the reference, stores in memory, and appends to JSON file.
+    """
+    try:
+        if not reference or not reference.strip():
+            raise HTTPException(status_code=400, detail="Reference number is required")
+        # Store in memory
+        local_tddbhd[reference] = tddbhd.dict(exclude_unset=True)
+        # Update shared state
+        rfq_state.reference = reference
+        # Prepare for persistence
+        current_tddbhd = {reference: tddbhd.dict(exclude_unset=True)}
+        try:
+            append_to_json_list(
+                label="tddbhd",
+                data=current_tddbhd,
+                reference_number=reference,
+                directory=JSON_FILE_PATH
+            )
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to save TDDBHD: {str(e)}")
+        return {"message": "TDDBHD created", "tddbhd": tddbhd.dict(exclude_unset=True)}
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
+
+@router.get("/{reference}")
+def load_tddbhd_by_reference(reference: str):
+    """
+    Retrieve TDDBHD by reference number (memory first, then disk).
+    """
+    tddbhd_from_memory = local_tddbhd.get(reference)
+    if tddbhd_from_memory:
+        return {"tddbhd": tddbhd_from_memory}
+    try:
+        tddbhd_data = load_json_list(
+            label="tddbhd",
+            reference_number=reference,
+            directory=JSON_FILE_PATH
+        )
+        if tddbhd_data:
+            return {"tddbhd": tddbhd_data}
+        else:
+            return {"error": "TDDBHD not found"}
+    except FileNotFoundError:
+        return {"error": "TDDBHD file not found"}
+    except Exception as e:
+        return {"error": f"Failed to load TDDBHD: {str(e)}"}
 
 @router.post("/calculate")
 def calculate_tbdbhd(data: TDDBHDInput):
@@ -224,26 +306,3 @@ def calculate_tbdbhd(data: TDDBHDInput):
         raise HTTPException(status_code=500, detail=f"Error saving results: {str(e)}")
 
     return results
-
-@router.get("/load")
-def load_tddbhd_data():
-    """
-    Load previously calculated TDDBHD data from JSON storage.
-    
-    Returns: \n
-        dict: Response dictionary containing:
-            - Success: {"data": data}
-            - No data found: {"count": 0, "entries": []}
-            - Error: {"error": "error_description"}
-
-    Raises: \n
-        - FileNotFoundError: Returns empty result set with count 0
-        - Other exceptions: Returns error message
-    """
-    try:
-        data = load_json_list(label="tddbhd", reference_number=rfq_state.reference, directory=JSON_FILE_PATH)
-        return {"data": data}
-    except FileNotFoundError:
-        return {"count": 0, "entries": []}
-    except Exception as e:
-        return {"error": str(e)}

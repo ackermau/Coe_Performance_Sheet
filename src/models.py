@@ -414,3 +414,77 @@ class ZigZagInput(BaseModel):
 
     min_length: float
     incriment: float
+
+class MaterialSpecsCreate(BaseModel):
+    material_type_max: Optional[str] = None
+    material_thickness_max: Optional[float] = None
+    yield_strength_max: Optional[float] = None
+    coil_width_max: Optional[float] = None
+    coil_weight_max: Optional[float] = None
+    coil_id_max: Optional[float] = None
+    # Add other fields as needed for creation
+
+class TDDBHDCreate(BaseModel):
+    type_of_line: Optional[str] = None
+    reel_drive_tqempty: Optional[float] = None
+    motor_hp: Optional[float] = None
+    yield_strength: Optional[float] = None
+    thickness: Optional[float] = None
+    width: Optional[float] = None
+    coil_id: Optional[float] = None
+    coil_od: Optional[float] = None
+    coil_weight: Optional[float] = None
+    decel: Optional[float] = None
+    friction: Optional[float] = None
+    air_pressure: Optional[float] = None
+    brake_qty: Optional[int] = None
+    brake_model: Optional[str] = None
+    cylinder: Optional[str] = None
+    hold_down_assy: Optional[str] = None
+    hyd_threading_drive: Optional[str] = None
+    air_clutch: Optional[str] = None
+    material_type: Optional[str] = None
+    reel_model: Optional[str] = None
+    reel_width: Optional[float] = None
+    backplate_diameter: Optional[float] = None
+    # Add other fields as needed for creation
+
+class ReelDriveCreate(BaseModel):
+    model: str = None
+    material_type: str = None
+    coil_id: float = None
+    coil_od: float = None
+    reel_width: float = None
+    backplate_diameter: float = None
+    motor_hp: float = None
+    type_of_line: str = None
+    required_max_fpm: float = 0
+    # Add other fields as needed for creation
+
+class RollStrBackbendCreate(BaseModel):
+    yield_strength: float = None
+    thickness: float = None
+    width: float = None
+    material_type: str = None
+    str_model: str = None
+    num_str_rolls: int = None
+    calc_const: float = None
+    # Add other fields as needed for creation
+
+class StrUtilityCreate(BaseModel):
+    max_coil_weight: float = None
+    coil_id: float = None
+    coil_od: float = None
+    coil_width: float = None
+    material_thickness: float = None
+    yield_strength: float = None
+    material_type: str = None
+    str_model: str = None
+    str_width: float = None
+    horsepower: float = None
+    feed_rate: float = None
+    max_feed_rate: float = None
+    auto_brake_compensation: str = None
+    acceleration: float = None
+    num_str_rolls: int = None
+    # Add other fields as needed for creation
