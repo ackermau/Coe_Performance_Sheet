@@ -32,6 +32,37 @@ class BowTieHydShearCreate(BaseModel):
     dwell_time: float = None
     # Add other fields as needed for creation
 
+@router.post("/calculate")
+def calculate_bow_tie_hyd_shear(data: HydShearInput, spec_type: str = "bow_tie"):
+    """
+    Calculate hydraulic shear parameters for a bow tie shear.
+
+    Args: \n
+        data (HydShearInput): Input data containing shear parameters.
+        spec_type (str): Type of shear specification, either "single_rake" or "bow_tie".
+
+    Returns: \n
+        dict: A dictionary containing calculated shear parameters. 
+
+    Raises: \n
+        ValueError: If the spec_type is not recognized.
+
+    """
+    
+    results = calculate_hyd_shear(data, spec_type)
+
+    # Save the result to a JSON file
+    try:
+        append_to_json_list(
+            label="load_bow_tie_hyd_shear", 
+            reference_number=rfq_state.reference, 
+            data=results, 
+            directory=JSON_FILE_PATH
+        )
+    except Exception as e:
+        return {"error": str(e)}
+    
+    return results
 
 @router.post("/{reference}")
 def create_bow_tie_hyd_shear(reference: str, shear: BowTieHydShearCreate = Body(...)):
@@ -85,35 +116,3 @@ def load_bow_tie_hyd_shear_by_reference(reference: str):
         return {"error": "Bow Tie Hyd Shear file not found"}
     except Exception as e:
         return {"error": f"Failed to load Bow Tie Hyd Shear: {str(e)}"}
-    
-@router.post("/calculate")
-def calculate_bow_tie_hyd_shear(data: HydShearInput, spec_type: str = "bow_tie"):
-    """
-    Calculate hydraulic shear parameters for a bow tie shear.
-
-    Args: \n
-        data (HydShearInput): Input data containing shear parameters.
-        spec_type (str): Type of shear specification, either "single_rake" or "bow_tie".
-
-    Returns: \n
-        dict: A dictionary containing calculated shear parameters. 
-
-    Raises: \n
-        ValueError: If the spec_type is not recognized.
-
-    """
-    
-    results = calculate_hyd_shear(data, spec_type)
-
-    # Save the result to a JSON file
-    try:
-        append_to_json_list(
-            label="load_bow_tie_hyd_shear", 
-            reference_number=rfq_state.reference, 
-            data=results, 
-            directory=JSON_FILE_PATH
-        )
-    except Exception as e:
-        return {"error": str(e)}
-    
-    return results

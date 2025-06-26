@@ -32,6 +32,37 @@ class SingleRakeHydShearCreate(BaseModel):
     dwell_time: float = None
     # Add other fields as needed for creation
 
+@router.post("/calculate")
+def calculate_single_rake_hyd_shear(data: HydShearInput, spec_type: str = "single_rake"):
+    """
+    Calculate hydraulic shear parameters for a single rake shear.
+
+    Args: \n
+        data (HydShearInput): Input data containing shear parameters.
+        spec_type (str): Type of shear specification, either "single_rake" or "bow_tie".
+
+    Returns: \n
+        dict: A dictionary containing calculated shear parameters.
+
+    Raises: \n
+        ValueError: If the spec_type is not recognized.
+
+    """
+    
+    results = calculate_hyd_shear(data, spec_type)
+
+    # Save the result to a JSON file
+    try:
+        append_to_json_list(
+            label="load_single_rake_hyd_shear", 
+            reference_number=rfq_state.reference, 
+            data=results, 
+            directory=JSON_FILE_PATH
+        )
+    except Exception as e:
+        return {"error": str(e)}
+
+    return results
 
 @router.post("/{reference}")
 def create_single_rake_hyd_shear(reference: str, shear: SingleRakeHydShearCreate = Body(...)):
@@ -85,35 +116,3 @@ def load_single_rake_hyd_shear_by_reference(reference: str):
         return {"error": "Single Rake Hyd Shear file not found"}
     except Exception as e:
         return {"error": f"Failed to load Single Rake Hyd Shear: {str(e)}"}
-    
-@router.post("/calculate")
-def calculate_single_rake_hyd_shear(data: HydShearInput, spec_type: str = "single_rake"):
-    """
-    Calculate hydraulic shear parameters for a single rake shear.
-
-    Args: \n
-        data (HydShearInput): Input data containing shear parameters.
-        spec_type (str): Type of shear specification, either "single_rake" or "bow_tie".
-
-    Returns: \n
-        dict: A dictionary containing calculated shear parameters.
-
-    Raises: \n
-        ValueError: If the spec_type is not recognized.
-
-    """
-    
-    results = calculate_hyd_shear(data, spec_type)
-
-    # Save the result to a JSON file
-    try:
-        append_to_json_list(
-            label="load_single_rake_hyd_shear", 
-            reference_number=rfq_state.reference, 
-            data=results, 
-            directory=JSON_FILE_PATH
-        )
-    except Exception as e:
-        return {"error": str(e)}
-
-    return results

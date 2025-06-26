@@ -113,59 +113,6 @@ def calculate_variant(
         "coil_od_calculated": coil_od_calculated
     }
 
-@router.post("/{reference}")
-def create_material_specs(reference: str, specs: MaterialSpecsCreate = Body(...)):
-    """
-    Create and persist a new Material Specs entry for a given reference.
-    Sets the shared rfq_state to the reference, stores in memory, and appends to JSON file.
-    """
-    try:
-        if not reference or not reference.strip():
-            raise HTTPException(status_code=400, detail="Reference number is required")
-        # Store in memory
-        local_material_specs[reference] = specs.dict(exclude_unset=True)
-        # Update shared state
-        rfq_state.reference = reference
-        # Prepare for persistence
-        current_specs = {reference: specs.dict(exclude_unset=True)}
-        try:
-            append_to_json_list(
-                label="material_specs",
-                data=current_specs,
-                reference_number=reference,
-                directory=JSON_FILE_PATH
-            )
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to save Material Specs: {str(e)}")
-        return {"message": "Material Specs created", "material_specs": specs.dict(exclude_unset=True)}
-    except HTTPException as he:
-        raise he
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
-
-@router.get("/{reference}")
-def load_material_specs_by_reference(reference: str):
-    """
-    Retrieve Material Specs by reference number (memory first, then disk).
-    """
-    specs_from_memory = local_material_specs.get(reference)
-    if specs_from_memory:
-        return {"material_specs": specs_from_memory}
-    try:
-        specs_data = load_json_list(
-            label="material_specs",
-            reference_number=reference,
-            directory=JSON_FILE_PATH
-        )
-        if specs_data:
-            return {"material_specs": specs_data}
-        else:
-            return {"error": "Material Specs not found"}
-    except FileNotFoundError:
-        return {"error": "Material Specs file not found"}
-    except Exception as e:
-        return {"error": f"Failed to load Material Specs: {str(e)}"}
-    
 @router.post("/calculate")
 def calculate_specs(payload: MaterialSpecsPayload) -> Dict[str, Any]:
     """
@@ -230,3 +177,56 @@ def calculate_specs(payload: MaterialSpecsPayload) -> Dict[str, Any]:
         return {"error": f"Failed to save results: {str(e)}"}
 
     return results
+
+@router.post("/{reference}")
+def create_material_specs(reference: str, specs: MaterialSpecsCreate = Body(...)):
+    """
+    Create and persist a new Material Specs entry for a given reference.
+    Sets the shared rfq_state to the reference, stores in memory, and appends to JSON file.
+    """
+    try:
+        if not reference or not reference.strip():
+            raise HTTPException(status_code=400, detail="Reference number is required")
+        # Store in memory
+        local_material_specs[reference] = specs.dict(exclude_unset=True)
+        # Update shared state
+        rfq_state.reference = reference
+        # Prepare for persistence
+        current_specs = {reference: specs.dict(exclude_unset=True)}
+        try:
+            append_to_json_list(
+                label="material_specs",
+                data=current_specs,
+                reference_number=reference,
+                directory=JSON_FILE_PATH
+            )
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to save Material Specs: {str(e)}")
+        return {"message": "Material Specs created", "material_specs": specs.dict(exclude_unset=True)}
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
+
+@router.get("/{reference}")
+def load_material_specs_by_reference(reference: str):
+    """
+    Retrieve Material Specs by reference number (memory first, then disk).
+    """
+    specs_from_memory = local_material_specs.get(reference)
+    if specs_from_memory:
+        return {"material_specs": specs_from_memory}
+    try:
+        specs_data = load_json_list(
+            label="material_specs",
+            reference_number=reference,
+            directory=JSON_FILE_PATH
+        )
+        if specs_data:
+            return {"material_specs": specs_data}
+        else:
+            return {"error": "Material Specs not found"}
+    except FileNotFoundError:
+        return {"error": "Material Specs file not found"}
+    except Exception as e:
+        return {"error": f"Failed to load Material Specs: {str(e)}"}

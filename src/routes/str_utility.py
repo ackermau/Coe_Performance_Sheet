@@ -76,59 +76,6 @@ class StrUtilityCreate(BaseModel):
     num_str_rolls: int = None
     # Add other fields as needed for creation
 
-@router.post("/{reference}")
-def create_str_utility(reference: str, str_utility: StrUtilityCreate = Body(...)):
-    """
-    Create and persist a new Str Utility entry for a given reference.
-    Sets the shared rfq_state to the reference, stores in memory, and appends to JSON file.
-    """
-    try:
-        if not reference or not reference.strip():
-            raise HTTPException(status_code=400, detail="Reference number is required")
-        # Store in memory
-        local_str_utility[reference] = str_utility.dict(exclude_unset=True)
-        # Update shared state
-        rfq_state.reference = reference
-        # Prepare for persistence
-        current_str_utility = {reference: str_utility.dict(exclude_unset=True)}
-        try:
-            append_to_json_list(
-                label="str_utility",
-                data=current_str_utility,
-                reference_number=reference,
-                directory=JSON_FILE_PATH
-            )
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to save Str Utility: {str(e)}")
-        return {"message": "Str Utility created", "str_utility": str_utility.dict(exclude_unset=True)}
-    except HTTPException as he:
-        raise he
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
-
-@router.get("/{reference}")
-def load_str_utility_by_reference(reference: str):
-    """
-    Retrieve Str Utility by reference number (memory first, then disk).
-    """
-    str_utility_from_memory = local_str_utility.get(reference)
-    if str_utility_from_memory:
-        return {"str_utility": str_utility_from_memory}
-    try:
-        str_utility_data = load_json_list(
-            label="str_utility",
-            reference_number=reference,
-            directory=JSON_FILE_PATH
-        )
-        if str_utility_data:
-            return {"str_utility": str_utility_data}
-        else:
-            return {"error": "Str Utility not found"}
-    except FileNotFoundError:
-        return {"error": "Str Utility file not found"}
-    except Exception as e:
-        return {"error": f"Failed to load Str Utility: {str(e)}"}
-
 @router.post("/calculate")
 def calculate_str_utility(data: StrUtilityInput):
     """
@@ -426,3 +373,56 @@ def calculate_str_utility(data: StrUtilityInput):
         return {"error": f"Failed to save results: {str(e)}"}
 
     return results
+
+@router.post("/{reference}")
+def create_str_utility(reference: str, str_utility: StrUtilityCreate = Body(...)):
+    """
+    Create and persist a new Str Utility entry for a given reference.
+    Sets the shared rfq_state to the reference, stores in memory, and appends to JSON file.
+    """
+    try:
+        if not reference or not reference.strip():
+            raise HTTPException(status_code=400, detail="Reference number is required")
+        # Store in memory
+        local_str_utility[reference] = str_utility.dict(exclude_unset=True)
+        # Update shared state
+        rfq_state.reference = reference
+        # Prepare for persistence
+        current_str_utility = {reference: str_utility.dict(exclude_unset=True)}
+        try:
+            append_to_json_list(
+                label="str_utility",
+                data=current_str_utility,
+                reference_number=reference,
+                directory=JSON_FILE_PATH
+            )
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to save Str Utility: {str(e)}")
+        return {"message": "Str Utility created", "str_utility": str_utility.dict(exclude_unset=True)}
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
+
+@router.get("/{reference}")
+def load_str_utility_by_reference(reference: str):
+    """
+    Retrieve Str Utility by reference number (memory first, then disk).
+    """
+    str_utility_from_memory = local_str_utility.get(reference)
+    if str_utility_from_memory:
+        return {"str_utility": str_utility_from_memory}
+    try:
+        str_utility_data = load_json_list(
+            label="str_utility",
+            reference_number=reference,
+            directory=JSON_FILE_PATH
+        )
+        if str_utility_data:
+            return {"str_utility": str_utility_data}
+        else:
+            return {"error": "Str Utility not found"}
+    except FileNotFoundError:
+        return {"error": "Str Utility file not found"}
+    except Exception as e:
+        return {"error": f"Failed to load Str Utility: {str(e)}"}

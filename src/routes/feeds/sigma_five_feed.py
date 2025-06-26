@@ -36,6 +36,36 @@ class SigmaFiveFeedCreate(BaseModel):
     feed_angle_2: float = None
     # Add other fields as needed for creation
 
+@router.post("/calculate")
+def calculate_sigma_five(data: FeedInput):
+    """
+    Calculate Sigma Five feed parameters.
+
+    Args: \n
+        data (FeedInput): Input data containing feed parameters.
+
+    Returns: \n
+        dict: A dictionary containing calculated feed parameters.
+
+    Raises: \n
+        Exception: If an error occurs during the calculation or saving process.
+    
+    """
+
+    result = run_sigma_five_calculation(data, "sigma_five")
+
+    # Save the result to a JSON file
+    try:
+        append_to_json_list(
+            label="load_sigma_five", 
+            reference_number=rfq_state.reference, 
+            data=result, 
+            directory=JSON_FILE_PATH
+        )
+    except Exception as e:
+        return {"error": str(e)}
+
+    return result
 
 @router.post("/{reference}")
 def create_sigma_five_feed(reference: str, feed: SigmaFiveFeedCreate = Body(...)):
@@ -89,34 +119,3 @@ def load_sigma_five_feed_by_reference(reference: str):
         return {"error": "Sigma Five Feed file not found"}
     except Exception as e:
         return {"error": f"Failed to load Sigma Five Feed: {str(e)}"}
-
-@router.post("/calculate")
-def calculate_sigma_five(data: FeedInput):
-    """
-    Calculate Sigma Five feed parameters.
-
-    Args: \n
-        data (FeedInput): Input data containing feed parameters.
-
-    Returns: \n
-        dict: A dictionary containing calculated feed parameters.
-
-    Raises: \n
-        Exception: If an error occurs during the calculation or saving process.
-    
-    """
-
-    result = run_sigma_five_calculation(data, "sigma_five")
-
-    # Save the result to a JSON file
-    try:
-        append_to_json_list(
-            label="load_sigma_five", 
-            reference_number=rfq_state.reference, 
-            data=result, 
-            directory=JSON_FILE_PATH
-        )
-    except Exception as e:
-        return {"error": str(e)}
-
-    return result

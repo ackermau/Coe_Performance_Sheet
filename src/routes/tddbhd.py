@@ -79,59 +79,6 @@ class TDDBHDCreate(BaseModel):
     backplate_diameter: Optional[float] = None
     # Add other fields as needed for creation
 
-@router.post("/{reference}")
-def create_tddbhd(reference: str, tddbhd: TDDBHDCreate = Body(...)):
-    """
-    Create and persist a new TDDBHD entry for a given reference.
-    Sets the shared rfq_state to the reference, stores in memory, and appends to JSON file.
-    """
-    try:
-        if not reference or not reference.strip():
-            raise HTTPException(status_code=400, detail="Reference number is required")
-        # Store in memory
-        local_tddbhd[reference] = tddbhd.dict(exclude_unset=True)
-        # Update shared state
-        rfq_state.reference = reference
-        # Prepare for persistence
-        current_tddbhd = {reference: tddbhd.dict(exclude_unset=True)}
-        try:
-            append_to_json_list(
-                label="tddbhd",
-                data=current_tddbhd,
-                reference_number=reference,
-                directory=JSON_FILE_PATH
-            )
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to save TDDBHD: {str(e)}")
-        return {"message": "TDDBHD created", "tddbhd": tddbhd.dict(exclude_unset=True)}
-    except HTTPException as he:
-        raise he
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
-
-@router.get("/{reference}")
-def load_tddbhd_by_reference(reference: str):
-    """
-    Retrieve TDDBHD by reference number (memory first, then disk).
-    """
-    tddbhd_from_memory = local_tddbhd.get(reference)
-    if tddbhd_from_memory:
-        return {"tddbhd": tddbhd_from_memory}
-    try:
-        tddbhd_data = load_json_list(
-            label="tddbhd",
-            reference_number=reference,
-            directory=JSON_FILE_PATH
-        )
-        if tddbhd_data:
-            return {"tddbhd": tddbhd_data}
-        else:
-            return {"error": "TDDBHD not found"}
-    except FileNotFoundError:
-        return {"error": "TDDBHD file not found"}
-    except Exception as e:
-        return {"error": f"Failed to load TDDBHD: {str(e)}"}
-
 @router.post("/calculate")
 def calculate_tbdbhd(data: TDDBHDInput):
     """
@@ -306,3 +253,56 @@ def calculate_tbdbhd(data: TDDBHDInput):
         raise HTTPException(status_code=500, detail=f"Error saving results: {str(e)}")
 
     return results
+
+@router.post("/{reference}")
+def create_tddbhd(reference: str, tddbhd: TDDBHDCreate = Body(...)):
+    """
+    Create and persist a new TDDBHD entry for a given reference.
+    Sets the shared rfq_state to the reference, stores in memory, and appends to JSON file.
+    """
+    try:
+        if not reference or not reference.strip():
+            raise HTTPException(status_code=400, detail="Reference number is required")
+        # Store in memory
+        local_tddbhd[reference] = tddbhd.dict(exclude_unset=True)
+        # Update shared state
+        rfq_state.reference = reference
+        # Prepare for persistence
+        current_tddbhd = {reference: tddbhd.dict(exclude_unset=True)}
+        try:
+            append_to_json_list(
+                label="tddbhd",
+                data=current_tddbhd,
+                reference_number=reference,
+                directory=JSON_FILE_PATH
+            )
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to save TDDBHD: {str(e)}")
+        return {"message": "TDDBHD created", "tddbhd": tddbhd.dict(exclude_unset=True)}
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
+
+@router.get("/{reference}")
+def load_tddbhd_by_reference(reference: str):
+    """
+    Retrieve TDDBHD by reference number (memory first, then disk).
+    """
+    tddbhd_from_memory = local_tddbhd.get(reference)
+    if tddbhd_from_memory:
+        return {"tddbhd": tddbhd_from_memory}
+    try:
+        tddbhd_data = load_json_list(
+            label="tddbhd",
+            reference_number=reference,
+            directory=JSON_FILE_PATH
+        )
+        if tddbhd_data:
+            return {"tddbhd": tddbhd_data}
+        else:
+            return {"error": "TDDBHD not found"}
+    except FileNotFoundError:
+        return {"error": "TDDBHD file not found"}
+    except Exception as e:
+        return {"error": f"Failed to load TDDBHD: {str(e)}"}

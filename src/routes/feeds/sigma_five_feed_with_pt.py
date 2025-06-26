@@ -40,6 +40,43 @@ class SigmaFiveFeedWithPTCreate(BaseModel):
     req_max_fpm: float = None
     # Add other fields as needed for creation
 
+@router.post("/calculate")
+def calculate_sigma_five_pt(data: FeedWPullThruInput):
+    """
+    Calculate Sigma Five feed parameters with pull-thru configuration.
+
+    Args: \n
+        data (FeedWPullThruInput): Input data containing feed parameters with pull-thru.
+
+    Returns: \n
+        dict: A dictionary containing calculated feed parameters with pull-thru.
+
+    Raises: \n
+        Exception: If an error occurs during the calculation or saving process.
+    
+    """
+
+    base_result = run_sigma_five_calculation(data, "sigma_five_pt")
+    pt_result = run_sigma_five_pt_calculation(base_result, 
+                data.straightening_rolls, data.material_width, data.material_thickness, 
+                data.feed_model, data.yield_strength, data.str_pinch_rolls, data.req_max_fpm, "sigma_five_pt")
+    
+    base_result["peak_torque"] += pt_result["straightner_torque"]
+
+    result = base_result | pt_result
+
+    # Save the result to a JSON file
+    try:
+        append_to_json_list(
+            label="load_sigma_five_pt", 
+            reference_number=rfq_state.reference, 
+            data=result, 
+            directory=JSON_FILE_PATH
+        )
+    except Exception as e:
+        return {"error": str(e)}
+
+    return result
 
 @router.post("/{reference}")
 def create_sigma_five_feed_pt(reference: str, feed: SigmaFiveFeedWithPTCreate = Body(...)):
@@ -94,40 +131,3 @@ def load_sigma_five_feed_pt_by_reference(reference: str):
     except Exception as e:
         return {"error": f"Failed to load Sigma Five Feed With PT: {str(e)}"}
     
-@router.post("/calculate")
-def calculate_sigma_five_pt(data: FeedWPullThruInput):
-    """
-    Calculate Sigma Five feed parameters with pull-thru configuration.
-
-    Args: \n
-        data (FeedWPullThruInput): Input data containing feed parameters with pull-thru.
-
-    Returns: \n
-        dict: A dictionary containing calculated feed parameters with pull-thru.
-
-    Raises: \n
-        Exception: If an error occurs during the calculation or saving process.
-    
-    """
-
-    base_result = run_sigma_five_calculation(data, "sigma_five_pt")
-    pt_result = run_sigma_five_pt_calculation(base_result, 
-                data.straightening_rolls, data.material_width, data.material_thickness, 
-                data.feed_model, data.yield_strength, data.str_pinch_rolls, data.req_max_fpm, "sigma_five_pt")
-    
-    base_result["peak_torque"] += pt_result["straightner_torque"]
-
-    result = base_result | pt_result
-
-    # Save the result to a JSON file
-    try:
-        append_to_json_list(
-            label="load_sigma_five_pt", 
-            reference_number=rfq_state.reference, 
-            data=result, 
-            directory=JSON_FILE_PATH
-        )
-    except Exception as e:
-        return {"error": str(e)}
-
-    return result

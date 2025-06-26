@@ -36,6 +36,35 @@ class AllenBradleyFeedCreate(BaseModel):
     feed_angle_2: float = None
     # Add other fields as needed for creation
 
+@router.post("/calculate")
+def calculate_allen_bradley(data: AllenBradleyInput):
+    """
+    Calculate Allen Bradley MPL feed parameters.
+
+    Args: \n
+        data (AllenBradleyInput): Input data containing feed parameters.
+
+    Returns: \n
+        dict: A dictionary containing calculated feed parameters.
+
+    Raises: \n
+        Exception: If an error occurs during the calculation or saving process.
+
+    """
+    result = run_allen_bradley_calculation(data, "allen_bradley")
+
+    # Save the result to a JSON file
+    try:
+        append_to_json_list(
+            label="load_allen_bradley", 
+            reference_number=rfq_state.reference, 
+            data=result, 
+            directory=JSON_FILE_PATH
+        )
+    except Exception as e:
+        return {"error": str(e)}
+
+    return result
 
 @router.post("/{reference}")
 def create_allen_bradley_feed(reference: str, feed: AllenBradleyFeedCreate = Body(...)):
@@ -90,32 +119,3 @@ def load_allen_bradley_feed_by_reference(reference: str):
     except Exception as e:
         return {"error": f"Failed to load Allen Bradley Feed: {str(e)}"}
     
-@router.post("/calculate")
-def calculate_allen_bradley(data: AllenBradleyInput):
-    """
-    Calculate Allen Bradley MPL feed parameters.
-
-    Args: \n
-        data (AllenBradleyInput): Input data containing feed parameters.
-
-    Returns: \n
-        dict: A dictionary containing calculated feed parameters.
-
-    Raises: \n
-        Exception: If an error occurs during the calculation or saving process.
-
-    """
-    result = run_allen_bradley_calculation(data, "allen_bradley")
-
-    # Save the result to a JSON file
-    try:
-        append_to_json_list(
-            label="load_allen_bradley", 
-            reference_number=rfq_state.reference, 
-            data=result, 
-            directory=JSON_FILE_PATH
-        )
-    except Exception as e:
-        return {"error": str(e)}
-
-    return result
