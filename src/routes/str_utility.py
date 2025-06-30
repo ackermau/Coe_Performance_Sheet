@@ -364,8 +364,7 @@ def calculate_str_utility(data: StrUtilityInput):
     # Save the results to a JSON file
     try:
         append_to_json_list(
-            label="str_utility",
-            data=results,
+            data={rfq_state.reference: results},
             reference_number=rfq_state.reference,
             directory=JSON_FILE_PATH
         )
@@ -373,6 +372,50 @@ def calculate_str_utility(data: StrUtilityInput):
         return {"error": f"Failed to save results: {str(e)}"}
 
     return results
+
+@router.put("/{reference}")
+def update_str_utility(reference: str, str_utility: StrUtilityCreate = Body(...)):
+    """
+    Update an existing Str Utility entry by reference.
+    Updates the in-memory storage and persists the changes to disk.
+    Returns the updated Str Utility. If the reference does not exist, returns 404.
+    """
+    # Check if the Str Utility exists in memory or on disk
+    if reference not in local_str_utility:
+        # Try to load from disk
+        try:
+            str_utility_data = load_json_list(
+                reference_number=reference,
+                directory=JSON_FILE_PATH
+            )
+            if not str_utility_data or reference not in str_utility_data:
+                raise HTTPException(status_code=404, detail="Str Utility not found")
+            existing = str_utility_data[reference]
+        except Exception:
+            raise HTTPException(status_code=404, detail="Str Utility not found")
+    else:
+        existing = local_str_utility[reference]
+
+    # Merge updates
+    updated_str_utility = dict(existing)
+    updated_str_utility.update(str_utility.dict(exclude_unset=True))
+    local_str_utility[reference] = updated_str_utility
+
+    # Save the updated Str Utility to disk
+    current_str_utility = {reference: updated_str_utility}
+    try:
+        append_to_json_list(
+            data=current_str_utility,
+            reference_number=reference,
+            directory=JSON_FILE_PATH
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to update Str Utility in storage: {str(e)}"
+        )
+
+    return {"message": "Str Utility updated", "str_utility": updated_str_utility}
 
 @router.post("/{reference}")
 def create_str_utility(reference: str, str_utility: StrUtilityCreate = Body(...)):
@@ -391,7 +434,6 @@ def create_str_utility(reference: str, str_utility: StrUtilityCreate = Body(...)
         current_str_utility = {reference: str_utility.dict(exclude_unset=True)}
         try:
             append_to_json_list(
-                label="str_utility",
                 data=current_str_utility,
                 reference_number=reference,
                 directory=JSON_FILE_PATH
@@ -411,15 +453,14 @@ def load_str_utility_by_reference(reference: str):
     """
     str_utility_from_memory = local_str_utility.get(reference)
     if str_utility_from_memory:
-        return {"str_utility": str_utility_from_memory}
+        return str_utility_from_memory
     try:
         str_utility_data = load_json_list(
-            label="str_utility",
             reference_number=reference,
             directory=JSON_FILE_PATH
         )
-        if str_utility_data:
-            return {"str_utility": str_utility_data}
+        if str_utility_data and reference in str_utility_data:
+            return str_utility_data[reference]
         else:
             return {"error": "Str Utility not found"}
     except FileNotFoundError:

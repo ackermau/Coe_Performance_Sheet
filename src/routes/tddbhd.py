@@ -244,15 +244,58 @@ def calculate_tbdbhd(data: TDDBHDInput):
     # Save the results to a JSON file
     try:
         append_to_json_list(
-            label="tddbhd", 
-            data=results, 
-            reference_number=rfq_state.reference, 
+            data={rfq_state.reference: results},
+            reference_number=rfq_state.reference,
             directory=JSON_FILE_PATH
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error saving results: {str(e)}")
 
     return results
+
+@router.put("/{reference}")
+def update_tddbhd(reference: str, tddbhd: TDDBHDCreate = Body(...)):
+    """
+    Update an existing TDDBHD entry by reference.
+    Updates the in-memory storage and persists the changes to disk.
+    Returns the updated TDDBHD. If the reference does not exist, returns 404.
+    """
+    # Check if the TDDBHD exists in memory or on disk
+    if reference not in local_tddbhd:
+        # Try to load from disk
+        try:
+            tddbhd_data = load_json_list(
+                reference_number=reference,
+                directory=JSON_FILE_PATH
+            )
+            if not tddbhd_data or reference not in tddbhd_data:
+                raise HTTPException(status_code=404, detail="TDDBHD not found")
+            existing = tddbhd_data[reference]
+        except Exception:
+            raise HTTPException(status_code=404, detail="TDDBHD not found")
+    else:
+        existing = local_tddbhd[reference]
+
+    # Merge updates
+    updated_tddbhd = dict(existing)
+    updated_tddbhd.update(tddbhd.dict(exclude_unset=True))
+    local_tddbhd[reference] = updated_tddbhd
+
+    # Save the updated TDDBHD to disk
+    current_tddbhd = {reference: updated_tddbhd}
+    try:
+        append_to_json_list(
+            data=current_tddbhd,
+            reference_number=reference,
+            directory=JSON_FILE_PATH
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to update TDDBHD in storage: {str(e)}"
+        )
+
+    return {"message": "TDDBHD updated", "tddbhd": updated_tddbhd}
 
 @router.post("/{reference}")
 def create_tddbhd(reference: str, tddbhd: TDDBHDCreate = Body(...)):
@@ -271,7 +314,6 @@ def create_tddbhd(reference: str, tddbhd: TDDBHDCreate = Body(...)):
         current_tddbhd = {reference: tddbhd.dict(exclude_unset=True)}
         try:
             append_to_json_list(
-                label="tddbhd",
                 data=current_tddbhd,
                 reference_number=reference,
                 directory=JSON_FILE_PATH
@@ -291,15 +333,14 @@ def load_tddbhd_by_reference(reference: str):
     """
     tddbhd_from_memory = local_tddbhd.get(reference)
     if tddbhd_from_memory:
-        return {"tddbhd": tddbhd_from_memory}
+        return tddbhd_from_memory
     try:
         tddbhd_data = load_json_list(
-            label="tddbhd",
             reference_number=reference,
             directory=JSON_FILE_PATH
         )
-        if tddbhd_data:
-            return {"tddbhd": tddbhd_data}
+        if tddbhd_data and reference in tddbhd_data:
+            return tddbhd_data[reference]
         else:
             return {"error": "TDDBHD not found"}
     except FileNotFoundError:

@@ -54,15 +54,49 @@ def calculate_single_rake_hyd_shear(data: HydShearInput, spec_type: str = "singl
     # Save the result to a JSON file
     try:
         append_to_json_list(
-            label="load_single_rake_hyd_shear", 
-            reference_number=rfq_state.reference, 
-            data=results, 
+            data={rfq_state.reference: results},
+            reference_number=rfq_state.reference,
             directory=JSON_FILE_PATH
         )
     except Exception as e:
         return {"error": str(e)}
 
     return results
+
+@router.put("/{reference}")
+def update_single_rake_hyd_shear(reference: str, shear: SingleRakeHydShearCreate = Body(...)):
+    """
+    Update an existing Single Rake Hyd Shear entry by reference.
+    Only provided fields are updated; all other fields are preserved.
+    """
+    # Load existing data
+    try:
+        shear_data = load_json_list(
+            reference_number=reference,
+            directory=JSON_FILE_PATH
+        )
+        if not shear_data or reference not in shear_data:
+            raise HTTPException(status_code=404, detail="Single Rake Hyd Shear not found")
+        existing = shear_data[reference]
+    except Exception:
+        raise HTTPException(status_code=404, detail="Single Rake Hyd Shear not found")
+    # Merge updates
+    updated_shear = dict(existing)
+    updated_shear.update(shear.dict(exclude_unset=True))
+    local_single_rake_hyd_shear[reference] = updated_shear
+    current_shear = {reference: updated_shear}
+    try:
+        append_to_json_list(
+            data=current_shear,
+            reference_number=reference,
+            directory=JSON_FILE_PATH
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to update Single Rake Hyd Shear in storage: {str(e)}"
+        )
+    return {"message": "Single Rake Hyd Shear updated", "single_rake_hyd_shear": updated_shear}
 
 @router.post("/{reference}")
 def create_single_rake_hyd_shear(reference: str, shear: SingleRakeHydShearCreate = Body(...)):
@@ -81,7 +115,6 @@ def create_single_rake_hyd_shear(reference: str, shear: SingleRakeHydShearCreate
         current_shear = {reference: shear.dict(exclude_unset=True)}
         try:
             append_to_json_list(
-                label="single_rake_hyd_shear",
                 data=current_shear,
                 reference_number=reference,
                 directory=JSON_FILE_PATH
@@ -101,15 +134,14 @@ def load_single_rake_hyd_shear_by_reference(reference: str):
     """
     shear_from_memory = local_single_rake_hyd_shear.get(reference)
     if shear_from_memory:
-        return {"single_rake_hyd_shear": shear_from_memory}
+        return shear_from_memory
     try:
         shear_data = load_json_list(
-            label="single_rake_hyd_shear",
             reference_number=reference,
             directory=JSON_FILE_PATH
         )
-        if shear_data:
-            return {"single_rake_hyd_shear": shear_data}
+        if shear_data and reference in shear_data:
+            return shear_data[reference]
         else:
             return {"error": "Single Rake Hyd Shear not found"}
     except FileNotFoundError:

@@ -484,6 +484,52 @@ def calculate_reeldrive(data: ReelDriveInput) -> Dict[str, Any]:
 
     return results
 
+@router.put("/{reference}")
+def update_reel_drive(reference: str, reel_drive: ReelDriveCreate = Body(...)):
+    """
+    Update an existing Reel Drive entry by reference.
+    Updates the in-memory storage and persists the changes to disk.
+    Returns the updated Reel Drive. If the reference does not exist, returns 404.
+    """
+    # Check if the Reel Drive exists in memory or on disk
+    if reference not in local_reel_drive:
+        # Try to load from disk
+        try:
+            reel_drive_data = load_json_list(
+                label="reel_drive",
+                reference_number=reference,
+                directory=JSON_FILE_PATH
+            )
+            if not reel_drive_data or reference not in reel_drive_data:
+                raise HTTPException(status_code=404, detail="Reel Drive not found")
+            existing = reel_drive_data[reference]
+        except Exception:
+            raise HTTPException(status_code=404, detail="Reel Drive not found")
+    else:
+        existing = local_reel_drive[reference]
+
+    # Merge updates
+    updated_reel_drive = dict(existing)
+    updated_reel_drive.update(reel_drive.dict(exclude_unset=True))
+    local_reel_drive[reference] = updated_reel_drive
+
+    # Save the updated Reel Drive to disk
+    current_reel_drive = {reference: updated_reel_drive}
+    try:
+        append_to_json_list(
+            label="reel_drive",
+            data=current_reel_drive,
+            reference_number=reference,
+            directory=JSON_FILE_PATH
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to update Reel Drive in storage: {str(e)}"
+        )
+
+    return {"message": "Reel Drive updated", "reel_drive": updated_reel_drive}
+
 @router.post("/{reference}")
 def create_reel_drive(reference: str, reel_drive: ReelDriveCreate = Body(...)):
     """
@@ -521,15 +567,15 @@ def load_reel_drive_by_reference(reference: str):
     """
     reel_drive_from_memory = local_reel_drive.get(reference)
     if reel_drive_from_memory:
-        return {"reel_drive": reel_drive_from_memory}
+        return reel_drive_from_memory
     try:
         reel_drive_data = load_json_list(
             label="reel_drive",
             reference_number=reference,
             directory=JSON_FILE_PATH
         )
-        if reel_drive_data:
-            return {"reel_drive": reel_drive_data}
+        if reel_drive_data and reference in reel_drive_data:
+            return reel_drive_data[reference]
         else:
             return {"error": "Reel Drive not found"}
     except FileNotFoundError:

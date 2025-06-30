@@ -8,13 +8,12 @@ import os
 from typing import Any, Optional
 
 
-def append_to_json_list(label: str, data: dict, reference_number: str, directory: str = "./outputs") -> str:
+def append_to_json_list(data: dict, reference_number: str, directory: str = "./outputs") -> str:
     """
-    Appends or updates labeled data under a reference-number-named JSON file.
+    Appends or updates data under a reference-number-named JSON file.
 
     Args:
-        label (str): Key to store the data under (e.g., "tddbhd").
-        data (dict): The result data to store.
+        data (dict): The result data to store, with the reference number as the key.
         reference_number (str): Used as the filename.
         directory (str): Target output directory.
 
@@ -33,7 +32,8 @@ def append_to_json_list(label: str, data: dict, reference_number: str, directory
     else:
         content = {}
 
-    content[label] = data
+    # Expect data to be {reference_number: {...}}
+    content.update(data)
 
     with open(full_path, "w") as f:
         json.dump(content, f, indent=4)
@@ -41,21 +41,20 @@ def append_to_json_list(label: str, data: dict, reference_number: str, directory
     return full_path
 
 
-def load_json_list(label: str, reference_number: str, directory: str = "./outputs") -> dict:
+def load_json_list(reference_number: str, directory: str = "./outputs") -> dict:
     """
-    Loads a specific labeled block from a JSON file named after the reference number.
+    Loads the data block from a JSON file named after the reference number.
 
     Args:
-        label (str): The label key to extract (e.g., "tddbhd").
         reference_number (str): Name of the file (without extension).
         directory (str): Directory where the JSON file resides.
 
     Returns:
-        dict: The labeled section of the JSON.
+        dict: The data section of the JSON, keyed by reference number.
 
     Raises:
         FileNotFoundError: If the reference JSON does not exist.
-        KeyError: If the label is not found in the file.
+        KeyError: If the reference number is not found in the file.
     """
     file_path = os.path.join(directory, f"{reference_number}.json")
 
@@ -65,7 +64,7 @@ def load_json_list(label: str, reference_number: str, directory: str = "./output
     with open(file_path, "r") as f:
         content = json.load(f)
 
-    if label not in content:
-        raise KeyError(f"Label '{label}' not found in file '{reference_number}.json'.")
+    if reference_number not in content:
+        raise KeyError(f"Reference '{reference_number}' not found in file '{reference_number}.json'.")
 
-    return content[label]
+    return {reference_number: content[reference_number]}

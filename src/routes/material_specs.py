@@ -22,14 +22,62 @@ local_material_specs: Dict[str, dict] = {}
 
 class MaterialSpecsCreate(BaseModel):
     # Only a subset of fields for creation; adjust as needed
-    material_type_max: Optional[str] = None
-    material_thickness_max: Optional[float] = None
-    yield_strength_max: Optional[float] = None
-    coil_width_max: Optional[float] = None
-    coil_weight_max: Optional[float] = None
-    coil_id_max: Optional[float] = None
-    # Add other fields as needed for creation
-    # ...
+    customer: Optional[str] = None
+    date: Optional[str] = None
+    max_coil_width: Optional[float] = None
+    max_coil_weight: Optional[float] = None
+    max_material_thickness: Optional[float] = None
+    max_material_type: Optional[str] = None
+    max_yield_strength: Optional[float] = None
+    max_tensile_strength: Optional[float] = None
+    max_fpm: Optional[float] = None
+    max_min_bend_rad: Optional[float] = None
+    max_min_loop_length: Optional[float] = None
+    max_coil_od: Optional[float] = None
+    max_coil_od_calculated: Optional[float] = None
+    full_coil_width: Optional[float] = None
+    full_coil_weight: Optional[float] = None
+    full_material_thickness: Optional[float] = None
+    full_material_type: Optional[str] = None
+    full_yield_strength: Optional[float] = None
+    full_tensile_strength: Optional[float] = None
+    full_fpm: Optional[float] = None
+    full_min_bend_rad: Optional[float] = None
+    full_min_loop_length: Optional[float] = None
+    full_coil_od: Optional[float] = None
+    full_coil_od_calculated: Optional[float] = None
+    min_coil_width: Optional[float] = None
+    min_coil_weight: Optional[float] = None
+    min_material_thickness: Optional[float] = None
+    min_material_type: Optional[str] = None
+    min_yield_strength: Optional[float] = None
+    min_tensile_strength: Optional[float] = None
+    min_fpm: Optional[float] = None
+    min_min_bend_rad: Optional[float] = None
+    min_min_loop_length: Optional[float] = None
+    min_coil_od: Optional[float] = None
+    min_coil_od_calculated: Optional[float] = None
+    width_coil_width: Optional[float] = None
+    width_coil_weight: Optional[float] = None
+    width_material_thickness: Optional[float] = None
+    width_material_type: Optional[str] = None
+    width_yield_strength: Optional[float] = None
+    width_tensile_strength: Optional[float] = None
+    width_fpm: Optional[float] = None
+    width_min_bend_rad: Optional[float] = None
+    width_min_loop_length: Optional[float] = None
+    width_coil_od: Optional[float] = None
+    width_coil_od_calculated: Optional[float] = None
+    feed_direction: Optional[str] = None
+    controls_level: Optional[str] = None
+    type_of_line: Optional[str] = None
+    feed_controls: Optional[str] = None
+    passline: Optional[str] = None
+    selected_roll: Optional[str] = None
+    reel_backplate: Optional[str] = None
+    reel_style: Optional[str] = None
+    light_guage: Optional[str] = None
+    non_marking: Optional[str] = None
 
 def calculate_variant(
     materialType: Optional[str], 
@@ -114,69 +162,66 @@ def calculate_variant(
     }
 
 @router.post("/calculate")
-def calculate_specs(payload: MaterialSpecsPayload) -> Dict[str, Any]:
+def calculate_specs(payload: MaterialSpecsCreate) -> Dict[str, Any]:
     """
-    Calculate material specifications for all variants.
-    
-    Processes material specifications for four different variants (max, full, min, width)
-    by extracting parameters for each variant and performing calculations.
-    Results are saved to JSON storage and returned.
-    
-    Args: \n
-        payload (MaterialSpecsPayload): Input payload containing material parameters
-            for all variants. Each variant should have:
-            - material_type_{variant}: Material type identifier
-            - material_thickness_{variant}: Material thickness in inches
-            - yield_strength_{variant}: Material yield strength in PSI
-            - coil_width_{variant}: Coil width in inches
-            - coil_weight_{variant}: Coil weight in pounds
-            - coil_id_{variant}: Coil inner diameter in inches
-            
-    Returns: \n
-        Dict[str, Any]: Results dictionary containing calculated values for all variants:
-            - min_bend_radius_{variant}: Minimum bend radius for each variant
-            - min_loop_length_{variant}: Minimum loop length for each variant
-            - coil_od_calculated_{variant}: Calculated coil OD for each variant
-            
-    Error Handling: \n
-        Returns error dictionary if JSON save operation fails
-        
+    Calculate material specifications for all variants using the new flat field names.
     """
-    
-    # Initialize results dictionary
     results = {}
-    
-    # Process each variant individually
-    # Variants: max, full, min, width
     for view in ["max", "full", "min", "width"]:
-        
-        # Extract parameters for current variant using getattr with fallback to None
-        mType = getattr(payload, f"material_type_{view}", None)
-        thickness = getattr(payload, f"material_thickness_{view}", None)
-        yld = getattr(payload, f"yield_strength_{view}", None)
-        cWidth = getattr(payload, f"coil_width_{view}", None)
-        cWeight = getattr(payload, f"coil_weight_{view}", None)
-        cID = getattr(payload, f"coil_id_{view}", None)
-
-        # Calculate specifications for current variant
+        mType = getattr(payload, f"{view}_material_type", None)
+        thickness = getattr(payload, f"{view}_material_thickness", None)
+        yld = getattr(payload, f"{view}_yield_strength", None)
+        cWidth = getattr(payload, f"{view}_coil_width", None)
+        cWeight = getattr(payload, f"{view}_coil_weight", None)
+        cID = getattr(payload, f"{view}_coil_id", None)
         computed = calculate_variant(mType, thickness, yld, cWidth, cWeight, cID)
-        
-        # Store results with variant-specific keys
-        results[f"min_bend_radius_{view}"] = computed["min_bend_radius"]
-        results[f"min_loop_length_{view}"] = computed["min_loop_length"]
-        results[f"coil_od_calculated_{view}"] = computed["coil_od_calculated"]
+        results[f"{view}_min_bend_rad"] = computed["min_bend_radius"]
+        results[f"{view}_min_loop_length"] = computed["min_loop_length"]
+        results[f"{view}_coil_od_calculated"] = computed["coil_od_calculated"]
     try:
         append_to_json_list(
-            label="material_specs", 
-            data=results, 
-            reference_number=rfq_state.reference, 
+            data={rfq_state.reference: {**payload.dict(exclude_unset=True), **results}},
+            reference_number=rfq_state.reference,
             directory=JSON_FILE_PATH
         )
     except Exception as e:
-        # Return error if save operation fails
         return {"error": f"Failed to save results: {str(e)}"}
+    return {**payload.dict(exclude_unset=True), **results}
 
-    return results
+@router.put("/{reference}")
+def update_material_specs(reference: str, specs: MaterialSpecsCreate = Body(...)):
+    """
+    Update an existing Material Specs entry by reference.
+    Only provided fields are updated; all other fields are preserved.
+    """
+    # Load existing data
+    try:
+        specs_data = load_json_list(
+            reference_number=reference,
+            directory=JSON_FILE_PATH
+        )
+        if not specs_data or reference not in specs_data:
+            raise HTTPException(status_code=404, detail="Material Specs not found")
+        existing = specs_data[reference]
+    except Exception:
+        raise HTTPException(status_code=404, detail="Material Specs not found")
+    # Merge updates
+    updated_specs = dict(existing)
+    updated_specs.update(specs.dict(exclude_unset=True))
+    local_material_specs[reference] = updated_specs
+    current_specs = {reference: updated_specs}
+    try:
+        append_to_json_list(
+            data=current_specs,
+            reference_number=reference,
+            directory=JSON_FILE_PATH
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to update Material Specs in storage: {str(e)}"
+        )
+    return {"message": "Material Specs updated", "material_specs": updated_specs}
 
 @router.post("/{reference}")
 def create_material_specs(reference: str, specs: MaterialSpecsCreate = Body(...)):
@@ -187,15 +232,11 @@ def create_material_specs(reference: str, specs: MaterialSpecsCreate = Body(...)
     try:
         if not reference or not reference.strip():
             raise HTTPException(status_code=400, detail="Reference number is required")
-        # Store in memory
         local_material_specs[reference] = specs.dict(exclude_unset=True)
-        # Update shared state
         rfq_state.reference = reference
-        # Prepare for persistence
         current_specs = {reference: specs.dict(exclude_unset=True)}
         try:
             append_to_json_list(
-                label="material_specs",
                 data=current_specs,
                 reference_number=reference,
                 directory=JSON_FILE_PATH
@@ -210,23 +251,39 @@ def create_material_specs(reference: str, specs: MaterialSpecsCreate = Body(...)
 
 @router.get("/{reference}")
 def load_material_specs_by_reference(reference: str):
-    """
-    Retrieve Material Specs by reference number (memory first, then disk).
-    """
     specs_from_memory = local_material_specs.get(reference)
     if specs_from_memory:
-        return {"material_specs": specs_from_memory}
+        return specs_from_memory
     try:
         specs_data = load_json_list(
-            label="material_specs",
             reference_number=reference,
             directory=JSON_FILE_PATH
         )
-        if specs_data:
-            return {"material_specs": specs_data}
+        if specs_data and reference in specs_data:
+            data = specs_data[reference]
+            # If the data already has calculated fields, return as is
+            if any(k.endswith("_min_bend_rad") for k in data.keys()):
+                return data
+            # Otherwise, treat as base data and calculate
+            base_data = data
         else:
-            return {"error": "Material Specs not found"}
+            raise HTTPException(status_code=404, detail="No data found for reference")
+        result = {}
+        for view in ["max", "full", "min", "width"]:
+            mType = base_data.get(f"{view}_material_type")
+            thickness = base_data.get(f"{view}_material_thickness")
+            yld = base_data.get(f"{view}_yield_strength")
+            cWidth = base_data.get(f"{view}_coil_width")
+            cWeight = base_data.get(f"{view}_coil_weight")
+            cID = base_data.get(f"{view}_coil_id")
+            computed = calculate_variant(mType, thickness, yld, cWidth, cWeight, cID)
+            result[f"{view}_min_bend_rad"] = computed["min_bend_radius"]
+            result[f"{view}_min_loop_length"] = computed["min_loop_length"]
+            result[f"{view}_coil_od_calculated"] = computed["coil_od_calculated"]
+        merged = dict(base_data)
+        merged.update(result)
+        return merged
     except FileNotFoundError:
-        return {"error": "Material Specs file not found"}
+        raise HTTPException(status_code=404, detail="Data file not found for reference")
     except Exception as e:
-        return {"error": f"Failed to load Material Specs: {str(e)}"}
+        raise HTTPException(status_code=500, detail=f"Failed to load data: {str(e)}")

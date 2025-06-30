@@ -57,15 +57,49 @@ def calculate_sigma_five(data: FeedInput):
     # Save the result to a JSON file
     try:
         append_to_json_list(
-            label="load_sigma_five", 
-            reference_number=rfq_state.reference, 
-            data=result, 
+            data={rfq_state.reference: result},
+            reference_number=rfq_state.reference,
             directory=JSON_FILE_PATH
         )
     except Exception as e:
         return {"error": str(e)}
 
     return result
+
+@router.put("/{reference}")
+def update_sigma_five_feed(reference: str, feed: SigmaFiveFeedCreate = Body(...)):
+    """
+    Update an existing Sigma Five Feed entry by reference.
+    Only provided fields are updated; all other fields are preserved.
+    """
+    # Load existing data
+    try:
+        feed_data = load_json_list(
+            reference_number=reference,
+            directory=JSON_FILE_PATH
+        )
+        if not feed_data or reference not in feed_data:
+            raise HTTPException(status_code=404, detail="Sigma Five Feed not found")
+        existing = feed_data[reference]
+    except Exception:
+        raise HTTPException(status_code=404, detail="Sigma Five Feed not found")
+    # Merge updates
+    updated_feed = dict(existing)
+    updated_feed.update(feed.dict(exclude_unset=True))
+    local_sigma_five_feed[reference] = updated_feed
+    current_feed = {reference: updated_feed}
+    try:
+        append_to_json_list(
+            data=current_feed,
+            reference_number=reference,
+            directory=JSON_FILE_PATH
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to update Sigma Five Feed in storage: {str(e)}"
+        )
+    return {"message": "Sigma Five Feed updated", "sigma_five_feed": updated_feed}
 
 @router.post("/{reference}")
 def create_sigma_five_feed(reference: str, feed: SigmaFiveFeedCreate = Body(...)):
@@ -84,7 +118,6 @@ def create_sigma_five_feed(reference: str, feed: SigmaFiveFeedCreate = Body(...)
         current_feed = {reference: feed.dict(exclude_unset=True)}
         try:
             append_to_json_list(
-                label="sigma_five_feed",
                 data=current_feed,
                 reference_number=reference,
                 directory=JSON_FILE_PATH
@@ -104,15 +137,14 @@ def load_sigma_five_feed_by_reference(reference: str):
     """
     feed_from_memory = local_sigma_five_feed.get(reference)
     if feed_from_memory:
-        return {"sigma_five_feed": feed_from_memory}
+        return feed_from_memory
     try:
         feed_data = load_json_list(
-            label="sigma_five_feed",
             reference_number=reference,
             directory=JSON_FILE_PATH
         )
-        if feed_data:
-            return {"sigma_five_feed": feed_data}
+        if feed_data and reference in feed_data:
+            return feed_data[reference]
         else:
             return {"error": "Sigma Five Feed not found"}
     except FileNotFoundError:

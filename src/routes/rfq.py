@@ -141,32 +141,28 @@ def calculate_fpm(data: FPMInput):
 @router.put("/{reference}")
 def update_rfq(reference: str, rfq: RFQCreate = Body(...)):
     """
-    Update an existing RFQ entry.
+    Update an existing RFQ entry by reference.
+    Only provided fields are updated; all other fields are preserved.
     """
-    # Check if the RFQ exists in memory or on disk
-    if reference not in local_rfqs:
-        # Try to load from disk
-        try:
-            rfq_data = load_json_list(
-                label="rfq", 
-                reference_number=reference, 
-                directory=JSON_FILE_PATH
-            )
-            if not rfq_data or reference not in rfq_data:
-                raise HTTPException(status_code=404, detail="RFQ not found")
-        except Exception:
+    # Load existing data
+    try:
+        rfq_data = load_json_list(
+            reference_number=reference,
+            directory=JSON_FILE_PATH
+        )
+        if not rfq_data or reference not in rfq_data:
             raise HTTPException(status_code=404, detail="RFQ not found")
-    
-    # Update the RFQ in memory
-    updated_rfq = RFQ(reference=reference, **rfq.dict(exclude_unset=True))
-    local_rfqs[reference] = updated_rfq
-
-    # Save the updated RFQ to disk
-    current_rfq = {reference: updated_rfq.dict()}
+        existing = rfq_data[reference]
+    except Exception:
+        raise HTTPException(status_code=404, detail="RFQ not found")
+    # Merge updates
+    updated_rfq = dict(existing)
+    updated_rfq.update(rfq.dict(exclude_unset=True))
+    local_rfqs[reference] = RFQ(reference=reference, **updated_rfq)
+    current_rfq = {reference: updated_rfq}
     try:
         append_to_json_list(
-            label="rfq", 
-            data=current_rfq, 
+            data=current_rfq,
             reference_number=reference,
             directory=JSON_FILE_PATH
         )
@@ -175,8 +171,7 @@ def update_rfq(reference: str, rfq: RFQCreate = Body(...)):
             status_code=500,
             detail=f"Failed to update RFQ in storage: {str(e)}"
         )
-
-    return {"message": "RFQ updated", "rfq": updated_rfq.dict()}
+    return {"message": "RFQ updated", "rfq": updated_rfq}
 
 @router.post("/{reference}")
 def create_rfq(reference: str, rfq: RFQCreate = Body(...)):
@@ -229,8 +224,7 @@ def create_rfq(reference: str, rfq: RFQCreate = Body(...)):
         # Save the RFQ to JSON file storage
         try:
             append_to_json_list(
-                label="rfq", 
-                data=current_rfq, 
+                data=current_rfq,
                 reference_number=reference,
                 directory=JSON_FILE_PATH
             )
@@ -254,39 +248,23 @@ def create_rfq(reference: str, rfq: RFQCreate = Body(...)):
 def load_rfq(reference: str):
     """
     Retrieve an RFQ by its reference number.
-
-    Checks in-memory RFQ storage first. If not found, attempts to
-    load the RFQ from disk-based JSON storage.
-
-    Args: \n
-        reference (str): Reference number of the RFQ
-
-    Returns: \n
-        Dict[str, Any]: 
-            - On success: {"rfq": rfq}
-            - If not found: {"error": "RFQ not found"}
-            - If file errors: {"error": "error message"}
     """
-
     # First, attempt to retrieve from memory
     rfq_from_memory = local_rfqs.get(reference)
     if rfq_from_memory:
-        return {"rfq": rfq_from_memory.dict()}
-
+        return rfq_from_memory.dict()
     # Attempt to retrieve from disk
     try:
         rfq_data = load_json_list(
-            label="rfq", 
-            reference_number=reference, 
+            reference_number=reference,
             directory=JSON_FILE_PATH
         )
-        # rfq_data is expected to be a dict with the reference as the key
         if rfq_data and reference in rfq_data:
-            return {"rfq": rfq_data[reference]}
+            return rfq_data[reference]
         else:
-            return {"error": "RFQ not found"}
+            raise HTTPException(status_code=404, detail="RFQ not found")
     except FileNotFoundError:
-        return {"error": "RFQ file not found"}
+        raise HTTPException(status_code=404, detail="RFQ file not found")
     except Exception as e:
-        return {"error": f"Failed to load RFQ: {str(e)}"}
+        raise HTTPException(status_code=500, detail=f"Failed to load RFQ: {str(e)}")
 
