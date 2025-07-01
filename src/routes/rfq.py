@@ -38,12 +38,12 @@ class RFQCreate(BaseModel):
     line_application: Optional[str] = None
     type_of_line: Optional[str] = None
     pull_thru: Optional[str] = None
-    max_coil_width: Optional[float] = None
-    min_coil_width: Optional[float] = None
+    coil_width_max: Optional[float] = None
+    coil_width_min: Optional[float] = None
     max_coil_od: Optional[float] = None
     coil_id: Optional[float] = None
-    max_coil_weight: Optional[float] = None
-    max_coil_handling_cap: Optional[float] = None
+    coil_weight_max: Optional[float] = None
+    coil_handling_cap_max: Optional[float] = None
     type_of_coil: Optional[str] = None
     coil_car: Optional[bool] = None
     run_off_backplate: Optional[bool] = None

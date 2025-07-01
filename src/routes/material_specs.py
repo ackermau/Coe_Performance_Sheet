@@ -24,8 +24,8 @@ class MaterialSpecsCreate(BaseModel):
     # Only a subset of fields for creation; adjust as needed
     customer: Optional[str] = None
     date: Optional[str] = None
-    max_coil_width: Optional[float] = None
-    max_coil_weight: Optional[float] = None
+    coil_width_max: Optional[float] = None
+    coil_weight_max: Optional[float] = None
     max_material_thickness: Optional[float] = None
     max_material_type: Optional[str] = None
     max_yield_strength: Optional[float] = None
@@ -167,13 +167,13 @@ def calculate_specs(payload: MaterialSpecsCreate) -> Dict[str, Any]:
     Calculate material specifications for all variants using the new flat field names.
     """
     results = {}
+    cWeight = getattr(payload, f"coil_weight_max", None)
+    cID = getattr(payload, f"coil_id", None)
     for view in ["max", "full", "min", "width"]:
         mType = getattr(payload, f"{view}_material_type", None)
         thickness = getattr(payload, f"{view}_material_thickness", None)
         yld = getattr(payload, f"{view}_yield_strength", None)
-        cWidth = getattr(payload, f"{view}_coil_width", None)
-        cWeight = getattr(payload, f"{view}_coil_weight", None)
-        cID = getattr(payload, f"{view}_coil_id", None)
+        cWidth = getattr(payload, f"{view}_material_width", None)
         computed = calculate_variant(mType, thickness, yld, cWidth, cWeight, cID)
         results[f"{view}_min_bend_rad"] = computed["min_bend_radius"]
         results[f"{view}_min_loop_length"] = computed["min_loop_length"]
@@ -273,9 +273,9 @@ def load_material_specs_by_reference(reference: str):
             mType = base_data.get(f"{view}_material_type")
             thickness = base_data.get(f"{view}_material_thickness")
             yld = base_data.get(f"{view}_yield_strength")
-            cWidth = base_data.get(f"{view}_coil_width")
-            cWeight = base_data.get(f"{view}_coil_weight")
-            cID = base_data.get(f"{view}_coil_id")
+            cWidth = base_data.get(f"{view}_material_width")
+            cWeight = base_data.get(f"coil_weight_max")
+            cID = base_data.get(f"coil_id")
             computed = calculate_variant(mType, thickness, yld, cWidth, cWeight, cID)
             result[f"{view}_min_bend_rad"] = computed["min_bend_radius"]
             result[f"{view}_min_loop_length"] = computed["min_loop_length"]
