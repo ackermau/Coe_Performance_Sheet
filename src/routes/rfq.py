@@ -7,12 +7,15 @@ from fastapi import APIRouter, Body, HTTPException
 from models import RFQ, FPMInput
 from typing import Dict, Optional
 from utils.shared import rfq_state, JSON_FILE_PATH
-from utils.json_util import append_to_json_list, load_json_list
+from utils.database import get_default_db
 from datetime import datetime
 from pydantic import BaseModel
 
 # Initialize FastAPI router
 router = APIRouter()
+
+# Initialize the database connection (move credentials to env/config in production)
+db = get_default_db()
 
 # Global in-memory RFQ storage
 current_rfq: Dict[str, RFQ] = {}
@@ -23,7 +26,7 @@ class RFQCreate(BaseModel):
     """Model for creating a new RFQ with optional fields"""
     date: Optional[str] = None
     version: Optional[str] = None
-    company_name: Optional[str] = None
+    customer: Optional[str] = None
     state_province: Optional[str] = None
     street_address: Optional[str] = None
     zip_code: Optional[int] = None
@@ -144,51 +147,25 @@ def update_rfq(reference: str, rfq: RFQCreate = Body(...)):
     Update an existing RFQ entry by reference.
     Only provided fields are updated; all other fields are preserved.
     """
-    # Load existing data
-    try:
-        rfq_data = load_json_list(
-            reference_number=reference,
-            directory=JSON_FILE_PATH
-        )
-        if not rfq_data or reference not in rfq_data:
-            raise HTTPException(status_code=404, detail="RFQ not found")
-        existing = rfq_data[reference]
-    except Exception:
+    # Load existing data from database
+    record = db.get_by_reference_number(reference)
+    if not record:
         raise HTTPException(status_code=404, detail="RFQ not found")
+    record_id = record['id']
+    existing = record['data']
     # Merge updates
     updated_rfq = dict(existing)
     updated_rfq.update(rfq.dict(exclude_unset=True))
     local_rfqs[reference] = RFQ(reference=reference, **updated_rfq)
-    current_rfq = {reference: updated_rfq}
-    try:
-        append_to_json_list(
-            data=current_rfq,
-            reference_number=reference,
-            directory=JSON_FILE_PATH
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to update RFQ in storage: {str(e)}"
-        )
+    # Save to database
+    db.update(record_id, updated_rfq)
     return {"message": "RFQ updated", "rfq": updated_rfq}
 
 @router.post("/{reference}")
 def create_rfq(reference: str, rfq: RFQCreate = Body(...)):
     """
     Create and persist a new RFQ entry.
-
-    Sets the shared rfq_state to the new RFQ, stores it in memory,
-    and appends the RFQ data to a JSON file for persistence.
-
-    Args: \n
-        reference (str): The reference number for the RFQ
-        rfq (RFQCreate): The input RFQ object containing optional fields
-
-    Returns: \n
-        Dict[str, Any]: 
-            - On success: {"message": "RFQ created", "rfq": rfq}
-            - On error: {"error": "error message"}
+    Sets the shared rfq_state to the new RFQ, stores it in memory, and saves to the database.
     """
     try:
         # Validate reference number
@@ -210,29 +187,16 @@ def create_rfq(reference: str, rfq: RFQCreate = Body(...)):
 
         # Update shared RFQ state with provided values
         rfq_state.reference = reference
-        if new_rfq.company_name:
-            rfq_state.company_name = new_rfq.company_name
+        if new_rfq.customer:
+            rfq_state.customer = new_rfq.customer
         if new_rfq.date:
             rfq_state.date = new_rfq.date
 
         # Store RFQ in memory for fast access
         local_rfqs[reference] = new_rfq
 
-        # Create a dictionary for persistence
-        current_rfq = {reference: new_rfq.dict()}
-
-        # Save the RFQ to JSON file storage
-        try:
-            append_to_json_list(
-                data=current_rfq,
-                reference_number=reference,
-                directory=JSON_FILE_PATH
-            )
-        except Exception as e:
-            raise HTTPException(
-                status_code=500,
-                detail=f"Failed to save RFQ to storage: {str(e)}"
-            )
+        # Save the RFQ to the database
+        db.create(reference, new_rfq.dict())
 
         return {"message": "RFQ created", "rfq": new_rfq.dict()}
 
@@ -253,18 +217,10 @@ def load_rfq(reference: str):
     rfq_from_memory = local_rfqs.get(reference)
     if rfq_from_memory:
         return rfq_from_memory.dict()
-    # Attempt to retrieve from disk
-    try:
-        rfq_data = load_json_list(
-            reference_number=reference,
-            directory=JSON_FILE_PATH
-        )
-        if rfq_data and reference in rfq_data:
-            return rfq_data[reference]
-        else:
-            raise HTTPException(status_code=404, detail="RFQ not found")
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="RFQ file not found")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to load RFQ: {str(e)}")
+    # Attempt to retrieve from database
+    record = db.get_by_reference_number(reference)
+    if record:
+        return record['data']
+    else:
+        raise HTTPException(status_code=404, detail="RFQ not found")
 

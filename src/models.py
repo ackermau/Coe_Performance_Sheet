@@ -18,7 +18,7 @@ class RFQ(BaseModel):
     date: Optional[str] = None  # Date in YYYY-MM-DD format
     version: Optional[str] = None
 
-    company_name: Optional[str] = None
+    customer: Optional[str] = None
     state_province: Optional[str] = None
     street_address: Optional[str] = None
     zip_code: Optional[int] = None
@@ -38,8 +38,8 @@ class RFQ(BaseModel):
     pull_thru: Optional[str] = None
 
     # Coil specifications
-    max_coil_width: Optional[float] = None
-    min_coil_width: Optional[float] = None
+    coil_width_max: Optional[float] = None
+    coil_width_min: Optional[float] = None
     max_coil_od: Optional[float] = None
     coil_id: Optional[float] = None
     max_coil_weight: Optional[float] = None

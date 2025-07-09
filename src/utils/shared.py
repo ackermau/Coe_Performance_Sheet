@@ -16,7 +16,7 @@ class RFQState:
     """
     reference: str = "0000"
     version: str = "1.0"
-    company_name: str = "Default Company"
+    customer: str = "Default Company"
     date: str = "2023-01-01"
 
 rfq_state = RFQState()
