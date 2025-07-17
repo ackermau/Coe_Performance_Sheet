@@ -2,17 +2,12 @@
 Request for Quote (RFQ) Management Module
 
 """
-
-from fastapi import APIRouter, Body, HTTPException
 from models import RFQ, FPMInput
 from typing import Dict, Optional
 from utils.shared import rfq_state, JSON_FILE_PATH
 from utils.database import get_default_db
 from datetime import datetime
 from pydantic import BaseModel
-
-# Initialize FastAPI router
-router = APIRouter()
 
 # Initialize the database connection (move credentials to env/config in production)
 db = get_default_db()
@@ -51,26 +46,12 @@ class RFQCreate(BaseModel):
     coil_car: Optional[bool] = None
     run_off_backplate: Optional[bool] = None
     req_rewinding: Optional[bool] = None
-    max_material_thickness: Optional[float] = None
-    max_material_width: Optional[float] = None
-    max_material_type: Optional[str] = None
-    max_yield_strength: Optional[float] = None
-    max_tensile_strength: Optional[float] = None
-    full_material_thickness: Optional[float] = None
-    full_material_width: Optional[float] = None
-    full_material_type: Optional[str] = None
-    full_yield_strength: Optional[float] = None
-    full_tensile_strength: Optional[float] = None
-    min_material_thickness: Optional[float] = None
-    min_material_width: Optional[float] = None
-    min_material_type: Optional[str] = None
-    min_yield_strength: Optional[float] = None
-    min_tensile_strength: Optional[float] = None
-    width_material_thickness: Optional[float] = None
-    width_material_width: Optional[float] = None
-    width_material_type: Optional[str] = None
-    width_yield_strength: Optional[float] = None
-    width_tensile_strength: Optional[float] = None
+    # Material specifications (single version)
+    material_thickness: Optional[float] = None
+    material_width: Optional[float] = None
+    material_type: Optional[str] = None
+    yield_strength: Optional[float] = None
+    tensile_strength: Optional[float] = None
     cosmetic_material: Optional[bool] = None
     brand_of_feed_equipment: Optional[str] = None
     gap_frame_press: Optional[bool] = None
@@ -120,7 +101,6 @@ class RFQCreate(BaseModel):
     latest_delivery_date: Optional[str] = None
     additional_comments: Optional[str] = None
 
-@router.post("/calculate_fpm")
 def calculate_fpm(data: FPMInput):
     """
     Calculate feed speed in feet per minute (FPM).
@@ -140,87 +120,4 @@ def calculate_fpm(data: FPMInput):
         fpm = round((data.feed_length * data.spm) / 12, 2)
         return {"fpm": fpm}
     return {"fpm": ""}
-
-@router.put("/{reference}")
-def update_rfq(reference: str, rfq: RFQCreate = Body(...)):
-    """
-    Update an existing RFQ entry by reference.
-    Only provided fields are updated; all other fields are preserved.
-    """
-    # Load existing data from database
-    record = db.get_by_reference_number(reference)
-    if not record:
-        raise HTTPException(status_code=404, detail="RFQ not found")
-    record_id = record['id']
-    existing = record['data']
-    # Merge updates
-    updated_rfq = dict(existing)
-    updated_rfq.update(rfq.dict(exclude_unset=True))
-    local_rfqs[reference] = RFQ(reference=reference, **updated_rfq)
-    # Save to database
-    db.update(record_id, updated_rfq)
-    return {"message": "RFQ updated", "rfq": updated_rfq}
-
-@router.post("/{reference}")
-def create_rfq(reference: str, rfq: RFQCreate = Body(...)):
-    """
-    Create and persist a new RFQ entry.
-    Sets the shared rfq_state to the new RFQ, stores it in memory, and saves to the database.
-    """
-    try:
-        # Validate reference number
-        if not reference or not reference.strip():
-            raise HTTPException(status_code=400, detail="Reference number is required")
-
-        # Create a new RFQ instance with the reference from the URL
-        new_rfq = RFQ(reference=reference, **rfq.dict(exclude_unset=True))
-
-        # Validate date format if provided
-        if new_rfq.date:
-            try:
-                datetime.strptime(new_rfq.date, "%Y-%m-%d")
-            except ValueError:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Date must be in YYYY-MM-DD format"
-                )
-
-        # Update shared RFQ state with provided values
-        rfq_state.reference = reference
-        if new_rfq.customer:
-            rfq_state.customer = new_rfq.customer
-        if new_rfq.date:
-            rfq_state.date = new_rfq.date
-
-        # Store RFQ in memory for fast access
-        local_rfqs[reference] = new_rfq
-
-        # Save the RFQ to the database
-        db.create(reference, new_rfq.dict())
-
-        return {"message": "RFQ created", "rfq": new_rfq.dict()}
-
-    except HTTPException as he:
-        raise he
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"An unexpected error occurred: {str(e)}"
-        )
-
-@router.get("/{reference}")
-def load_rfq(reference: str):
-    """
-    Retrieve an RFQ by its reference number.
-    """
-    # First, attempt to retrieve from memory
-    rfq_from_memory = local_rfqs.get(reference)
-    if rfq_from_memory:
-        return rfq_from_memory.dict()
-    # Attempt to retrieve from database
-    record = db.get_by_reference_number(reference)
-    if record:
-        return record['data']
-    else:
-        raise HTTPException(status_code=404, detail="RFQ not found")
 

@@ -2,8 +2,6 @@
 Regenerative utilities for physics-based calculations.
 
 """
-
-from fastapi import HTTPException
 from models import RegenInput
 
 def calculate_regen(data: RegenInput):
@@ -39,5 +37,5 @@ def calculate_regen(data: RegenInput):
         wk = ek / (0.2 * data.cycle_time)
 
         return regen
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except:
+        return "ERROR: Regen calculations failed to save."

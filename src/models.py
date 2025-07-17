@@ -42,7 +42,7 @@ class RFQ(BaseModel):
     coil_width_min: Optional[float] = None
     max_coil_od: Optional[float] = None
     coil_id: Optional[float] = None
-    max_coil_weight: Optional[float] = None
+    coil_weight_max: Optional[float] = None
     max_coil_handling_cap: Optional[float] = None
 
     type_of_coil: Optional[str] = None
@@ -51,34 +51,12 @@ class RFQ(BaseModel):
     req_rewinding: Optional[bool] = None
 
     # Material specifications
-    # max
-    max_material_thickness: Optional[float] = None
-    max_material_width: Optional[float] = None
-    max_material_type: Optional[str] = None
-    max_yield_strength: Optional[float] = None
-    max_tensile_strength: Optional[float] = None
-
-    # full
-    full_material_thickness: Optional[float] = None
-    full_material_width: Optional[float] = None
-    full_material_type: Optional[str] = None
-    full_yield_strength: Optional[float] = None
-    full_tensile_strength: Optional[float] = None
-
-    # min
-    min_material_thickness: Optional[float] = None
-    min_material_width: Optional[float] = None
-    min_material_type: Optional[str] = None
-    min_yield_strength: Optional[float] = None
-    min_tensile_strength: Optional[float] = None
-
-    # width
-    width_material_thickness: Optional[float] = None
-    width_material_width: Optional[float] = None
-    width_material_type: Optional[str] = None
-    width_yield_strength: Optional[float] = None
-    width_tensile_strength: Optional[float] = None
-
+    material_thickness: Optional[float] = None
+    material_width: Optional[float] = None
+    material_type: Optional[str] = None
+    yield_strength: Optional[float] = None
+    tensile_strength: Optional[float] = None
+    
     cosmetic_material: Optional[bool] = None
     brand_of_feed_equipment: Optional[str] = None
     
@@ -148,50 +126,22 @@ class FPMInput(BaseModel):
 
 # MaterialSpecsPayload is used to define the payload structure for material specifications
 class MaterialSpecsPayload(BaseModel):
-    # Max view
-    material_type_max: str = None
-    material_thickness_max: float = None  # in inches
-    yield_strength_max: float = None       # in psi
-    coil_width_max: float = None           # in inches
-    coil_weight_max: float = None          # in lbs
-    coil_id_max: float = None              # in inches
-
-    # Full view
-    material_type_full: str = None
-    material_thickness_full: float = None
-    yield_strength_full: float = None
-    coil_width_full: float = None
-    coil_weight_full: float = None
-    coil_id_full: float = None
-
-    # Min view
-    material_type_min: str = None
-    material_thickness_min: float = None
-    yield_strength_min: float = None
-    coil_width_min: float = None
-    coil_weight_min: float = None
-    coil_id_min: float = None
-
-    # Width view
-    material_type_width: str = None
-    material_thickness_width: float = None
-    yield_strength_width: float = None
-    coil_width_width: float = None
-    coil_weight_width: float = None
-    coil_id_width: float = None
-
-    feed_direction: str
-    controls_level: str
-    type_of_line: str
-    feed_controls: str
-    passline: str
-
-    selected_roll: str
-    reel_backplate: str
-    reel_style: str
-
-    light_gauge_non_marking: bool # Light gauge reccomended 0.03 / 45000 psi
-    non_marking: bool
+    material_type: Optional[str] = None
+    material_thickness: Optional[float] = None  # in inches
+    yield_strength: Optional[float] = None       # in psi
+    coil_width: Optional[float] = None           # in inches
+    coil_weight: Optional[float] = None          # in lbs
+    coil_id: Optional[float] = None              # in inches
+    feed_direction: Optional[str] = None
+    controls_level: Optional[str] = None
+    type_of_line: Optional[str] = None
+    feed_controls: Optional[str] = None
+    passline: Optional[str] = None
+    selected_roll: Optional[str] = None
+    reel_backplate: Optional[str] = None
+    reel_style: Optional[str] = None
+    light_gauge_non_marking: Optional[bool] = None
+    non_marking: Optional[bool] = None
 
 # TDDBHDInput is used to define the input structure for TDDBHD calculations
 class TDDBHDInput(BaseModel):
@@ -416,12 +366,12 @@ class ZigZagInput(BaseModel):
     incriment: float
 
 class MaterialSpecsCreate(BaseModel):
-    material_type_max: Optional[str] = None
-    material_thickness_max: Optional[float] = None
-    yield_strength_max: Optional[float] = None
-    coil_width_max: Optional[float] = None
-    coil_weight_max: Optional[float] = None
-    coil_id_max: Optional[float] = None
+    material_type: Optional[str] = None
+    material_thickness: Optional[float] = None
+    yield_strength: Optional[float] = None
+    coil_width: Optional[float] = None
+    coil_weight: Optional[float] = None
+    coil_id: Optional[float] = None
     # Add other fields as needed for creation
 
 class TDDBHDCreate(BaseModel):

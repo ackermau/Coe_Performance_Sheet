@@ -1,56 +1,123 @@
-"""
-Main entry point for the FastAPI application.
+import argparse
+import json
+from utils.database import get_default_repository
+from utils.shared import rfq_state
+from models import (
+    RFQ, FPMInput, MaterialSpecsPayload, TDDBHDInput, ReelDriveInput, StrUtilityInput, RollStrBackbendInput,
+    FeedInput, FeedWPullThruInput, AllenBradleyInput, HydShearInput, ZigZagInput
+)
+# Calculation imports
+from calculations.rfq import calculate_fpm
+from calculations.material_specs import calculate_specs
+from calculations.tddbhd import calculate_tbdbhd
+from calculations.reel_drive import calculate_reeldrive
+from calculations.str_utility import calculate_str_utility
+from calculations.rolls.roll_str_backbend import calculate_roll_str_backbend
+from calculations.feeds.sigma_five_feed import calculate_sigma_five
+from calculations.feeds.sigma_five_feed_with_pt import calculate_sigma_five_pt
+from calculations.feeds.allen_bradley_mpl_feed import calculate_allen_bradley
+from calculations.shears.single_rake_hyd_shear import calculate_single_rake_hyd_shear
+from calculations.shears.bow_tie_hyd_shear import calculate_bow_tie_hyd_shear
+from calculations.zig_zag import calculate_zig_zag
 
-"""
-
-from fastapi import FastAPI
-from routes import rfq, material_specs, tddbhd, reel_drive, str_utility
-from routes.rolls import roll_str_backbend
-from routes.feeds import sigma_five_feed, sigma_five_feed_with_pt, allen_bradley_mpl_feed
-from routes.shears import single_rake_hyd_shear, bow_tie_hyd_shear
-from fastapi.middleware.cors import CORSMiddleware
-
-app = FastAPI()
-
-# Health check endpoint
-@app.get("/health")
-async def health_check():
-    return {"status": "healthy", "message": "Server is running"}
-
-# Allow requests from your TypeScript frontend
-origins = [
-    "http://localhost:5173",  # Vite dev server
-    "http://localhost:4200",  # Angular dev server
-    "http://localhost:3000",  # Next.js dev server
-    "http://localhost:5000",  # Flask dev server
-    "http://localhost:8000",  # FastAPI dev server
-    "http://127.0.0.1:5173",  # Vite dev server (alternative)
-    "http://127.0.0.1:4200",  # Angular dev server (alternative)
-    "http://127.0.0.1:3000",  # Next.js dev server (alternative)
-    "http://127.0.0.1:5000",  # Flask dev server (alternative)
-    "http://127.0.0.1:8000",  # FastAPI dev server (alternative)
-    # Add your production domain when ready
-    # "https://your-production-domain.com"
+# Map calculation names to (input model, calculation function)
+CALCULATIONS = [
+    ("rfq", RFQ, calculate_fpm),
+    ("material_specs", MaterialSpecsPayload, calculate_specs),
+    ("tddbhd", TDDBHDInput, calculate_tbdbhd),
+    ("reel_drive", ReelDriveInput, calculate_reeldrive),
+    ("str_utility", StrUtilityInput, calculate_str_utility),
+    ("roll_str_backbend", RollStrBackbendInput, calculate_roll_str_backbend),
+    ("sigma_five_feed", FeedInput, calculate_sigma_five),
+    ("sigma_five_feed_with_pt", FeedWPullThruInput, calculate_sigma_five_pt),
+    ("allen_bradley_mpl_feed", AllenBradleyInput, calculate_allen_bradley),
+    ("single_rake_hyd_shear", HydShearInput, calculate_single_rake_hyd_shear),
+    ("bow_tie_hyd_shear", HydShearInput, calculate_bow_tie_hyd_shear),
+    ("zig_zag", ZigZagInput, calculate_zig_zag),
 ]
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allow_headers=["*"],
-    expose_headers=["*"],
-    max_age=3600,  # Cache preflight requests for 1 hour
-)
+def prompt_for_data(model_class, reference=None, input_data=None):
+    data = {}
+    for field in model_class.__fields__:
+        if field == "reference" and reference is not None:
+            data[field] = reference
+            continue
+        if input_data and field in input_data:
+            data[field] = input_data[field]
+            continue
+        val = input(f"Enter value for {field} (leave blank for None): ")
+        if val == "":
+            data[field] = None
+        else:
+            typ = model_class.__fields__[field].type_
+            try:
+                if typ == int:
+                    data[field] = int(val)
+                elif typ == float:
+                    data[field] = float(val)
+                elif typ == bool:
+                    data[field] = val.lower() in ("1", "true", "yes", "y")
+                else:
+                    data[field] = val
+            except Exception:
+                data[field] = val
+    return model_class(**data)
 
-app.include_router(rfq.router, prefix="/rfq", tags=["RFQ"])
-app.include_router(material_specs.router, prefix="/material_specs", tags=["Material Specs"])
-app.include_router(tddbhd.router, prefix="/tddbhd", tags=["TDDBHD"])
-app.include_router(reel_drive.router, prefix="/reel_drive", tags=["Reel Drive"])
-app.include_router(str_utility.router, prefix="/str_utility", tags=["Str Utility"])
-app.include_router(roll_str_backbend.router, prefix="/rolls/roll_str_backbend", tags=["Roll Str Backbend"])
-app.include_router(sigma_five_feed.router, prefix="/feeds/sigma_five_feed", tags=["Feeds"])
-app.include_router(sigma_five_feed_with_pt.router, prefix="/feeds/sigma_five_feed_with_pt", tags=["Feeds"])
-app.include_router(allen_bradley_mpl_feed.router, prefix="/feeds/allen_bradley_mpl_feed", tags=["Feeds"])
-app.include_router(single_rake_hyd_shear.router, prefix="/shears/single_rake_hyd_shear", tags=["Shears"])
-app.include_router(bow_tie_hyd_shear.router, prefix="/shears/bow_tie_hyd_shear", tags=["Shears"])
+def main():
+    parser = argparse.ArgumentParser(description="COE Performance Sheet Main Entrypoint")
+    parser.add_argument("reference", type=str, help="Reference number")
+    parser.add_argument("--action", type=str, choices=["upsert", "get", "delete"], default="upsert", help="CRUD action to perform")
+    parser.add_argument("--input", type=str, help="Path to JSON file with input data")
+    args = parser.parse_args()
+    reference = args.reference
+    rfq_state.reference = reference
+    repo = get_default_repository()
+
+    input_data = None
+    if args.input:
+        with open(args.input) as f:
+            input_data = json.load(f)
+
+    if args.action == "get":
+        result = repo.get(reference)
+        if result:
+            print(f"Data for reference {reference}:")
+            print(result)
+        else:
+            print(f"No data found for reference {reference}.")
+        return
+
+    if args.action == "delete":
+        deleted = repo.delete(reference)
+        if deleted:
+            print(f"Deleted data for reference {reference}.")
+        else:
+            print(f"No data found for reference {reference} to delete.")
+        return
+
+    # Default: upsert (create or update all calculations)
+    existing = repo.get(reference)
+    if existing:
+        print(f"Found existing data for reference {reference}. Updating calculations...")
+        for name, model_class, calc_func in CALCULATIONS:
+            print(f"Updating {name}...")
+            data_dict = existing['data'].get(name)
+            if data_dict:
+                obj = model_class(**data_dict)
+            else:
+                obj = prompt_for_data(model_class, reference, input_data.get(name) if input_data else None)
+            result = calc_func(obj)
+            repo.upsert(reference, {name: result})
+            print(f"{name} updated.")
+    else:
+        print(f"No data found for reference {reference}. Creating new entry...")
+        for name, model_class, calc_func in CALCULATIONS:
+            print(f"Creating {name}...")
+            obj = prompt_for_data(model_class, reference, input_data.get(name) if input_data else None)
+            result = calc_func(obj)
+            repo.upsert(reference, {name: result})
+            print(f"{name} created.")
+    print("All calculations complete.")
+
+if __name__ == "__main__":
+    main() 

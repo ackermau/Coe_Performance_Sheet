@@ -2,8 +2,6 @@
 Zig Zag Calculation Module
 
 """
-
-from fastapi import APIRouter
 from models import ZigZagInput
 from math import pi, sqrt, floor, atan
 import json
@@ -11,9 +9,9 @@ import os
 
 from utils.physics.time import calculate_feed_time
 
-# Build path to the JSON file
-base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-json_file_path = os.path.join(base_dir, "data", "zig_zag_lookups.json")
+# Build path to the JSON file in utils
+json_file_path = os.path.join(os.path.dirname(__file__), '..', 'utils', 'zig_zag_lookups.json')
+json_file_path = os.path.abspath(json_file_path)
 
 # Load the JSON data from the file
 with open(json_file_path, 'r') as file:
@@ -23,9 +21,6 @@ with open(json_file_path, 'r') as file:
 zz_42_tooth = zig_zag_data.get("42_tooth", {})
 zz_24_tooth = zig_zag_data.get("24_tooth", {})
 gear_box = zig_zag_data.get("g_box", {})
-
-# Initialize FastAPI router
-router = APIRouter()
 
 def calculate_lbs_inertia(o_dia: float, i_dia: float, length: float, density: float) -> float:
     """
@@ -304,8 +299,6 @@ def calculate_table_values(min_length: float, init_length: float, incriment: flo
         "ln_lb_torque_force_out": ln_lb_torque_force_out
     }
 
-
-@router.post("/calculate")
 def calculate_zig_zag(data: ZigZagInput):
     """
     Calculate the zig-zag motion parameters based on the input data.

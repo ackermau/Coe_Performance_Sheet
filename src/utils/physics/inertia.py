@@ -2,8 +2,6 @@
 Inertia utilities for physics-based calculations.
 
 """
-
-from fastapi import HTTPException
 from models import InertiaInput
 from math import pi
 
@@ -219,7 +217,6 @@ def calculate_total_refl_inertia(data: InertiaInput):
         results += refl
 
         return results
-    except ValueError as e:
-        print(f"Error calculating total reflected inertia: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
-        
+    except:
+        return "ERROR: Inertia calculations failed to save."
+    

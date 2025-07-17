@@ -2,8 +2,6 @@
 Roll Str Backbend Calculation Module
 
 """
-
-from fastapi import APIRouter, HTTPException, Body
 from models import RollStrBackbendInput
 from math import sqrt
 from pydantic import BaseModel
@@ -20,9 +18,6 @@ from utils.lookup_tables import (
     get_material_modulus,
 );
 
-# Initialize FastAPI router
-router = APIRouter()
-
 # In-memory storage for roll str backbend
 local_roll_str_backbend: dict = {}
 
@@ -36,7 +31,6 @@ class RollStrBackbendCreate(BaseModel):
     calc_const: float = None
     # Add other fields as needed for creation
 
-@router.post("/calculate")
 def calculate_roll_str_backbend(data: RollStrBackbendInput):
     """
     Calculate roll str backbend parameters.
@@ -61,8 +55,8 @@ def calculate_roll_str_backbend(data: RollStrBackbendInput):
         top = get_str_model_value(data.str_model, "top", "top")
         bottom = get_str_model_value(data.str_model, "bottom", "bottom")
         modules = get_material_modulus(data.material_type)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Error in lookup: {e}")
+    except:
+        return "ERROR: Roll Str Backbend lookup failed."
 
     if data.num_str_rolls == 7:
         num_mid_rolls = 1
@@ -71,7 +65,7 @@ def calculate_roll_str_backbend(data: RollStrBackbendInput):
     elif data.num_str_rolls == 11:
         num_mid_rolls = 3
     else:
-        raise HTTPException(status_code=400, detail="Invalid roll str backbend value")
+        return "ERROR: Invalid number of rolls for backbend."
 
     # Values needed for calculations
     main_value = roll_str_backbend_state["calc_const"]
@@ -296,93 +290,7 @@ def calculate_roll_str_backbend(data: RollStrBackbendInput):
             reference_number=rfq_state.reference,
             directory=JSON_FILE_PATH
         )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error saving results: {str(e)}")
+    except:
+        return "ERROR: Roll Str Backbend calculations failed to save."
 
     return result
-
-@router.put("/{reference}")
-def update_roll_str_backbend(reference: str, roll_str: RollStrBackbendCreate = Body(...)):
-    """
-    Update an existing Roll Str Backbend entry by reference.
-    Only provided fields are updated; all other fields are preserved.
-    """
-    # Load existing data
-    try:
-        roll_str_data = load_json_list(
-            reference_number=reference,
-            directory=JSON_FILE_PATH
-        )
-        if not roll_str_data or reference not in roll_str_data:
-            raise HTTPException(status_code=404, detail="Roll Str Backbend not found")
-        existing = roll_str_data[reference]
-    except Exception:
-        raise HTTPException(status_code=404, detail="Roll Str Backbend not found")
-    # Merge updates
-    updated_roll_str = dict(existing)
-    updated_roll_str.update(roll_str.dict(exclude_unset=True))
-    local_roll_str_backbend[reference] = updated_roll_str
-    current_roll_str = {reference: updated_roll_str}
-    try:
-        append_to_json_list(
-            data=current_roll_str,
-            reference_number=reference,
-            directory=JSON_FILE_PATH
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to update Roll Str Backbend in storage: {str(e)}"
-        )
-    return {"message": "Roll Str Backbend updated", "roll_str_backbend": updated_roll_str}
-
-@router.post("/{reference}")
-def create_roll_str_backbend(reference: str, roll_str: RollStrBackbendCreate = Body(...)):
-    """
-    Create and persist a new Roll Str Backbend entry for a given reference.
-    Sets the shared rfq_state to the reference, stores in memory, and appends to JSON file.
-    """
-    try:
-        if not reference or not reference.strip():
-            raise HTTPException(status_code=400, detail="Reference number is required")
-        # Store in memory
-        local_roll_str_backbend[reference] = roll_str.dict(exclude_unset=True)
-        # Update shared state
-        rfq_state.reference = reference
-        # Prepare for persistence
-        current_roll_str = {reference: roll_str.dict(exclude_unset=True)}
-        try:
-            append_to_json_list(
-                data=current_roll_str,
-                reference_number=reference,
-                directory=JSON_FILE_PATH
-            )
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to save Roll Str Backbend: {str(e)}")
-        return {"message": "Roll Str Backbend created", "roll_str_backbend": roll_str.dict(exclude_unset=True)}
-    except HTTPException as he:
-        raise he
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
-
-@router.get("/{reference}")
-def load_roll_str_backbend_by_reference(reference: str):
-    """
-    Retrieve Roll Str Backbend by reference number (memory first, then disk).
-    """
-    roll_from_memory = local_roll_str_backbend.get(reference)
-    if roll_from_memory:
-        return roll_from_memory
-    try:
-        roll_data = load_json_list(
-            reference_number=reference,
-            directory=JSON_FILE_PATH
-        )
-        if roll_data and reference in roll_data:
-            return roll_data[reference]
-        else:
-            return {"error": "Roll Str Backbend not found"}
-    except FileNotFoundError:
-        return {"error": "Roll Str Backbend file not found"}
-    except Exception as e:
-        return {"error": f"Failed to load Roll Str Backbend: {str(e)}"}

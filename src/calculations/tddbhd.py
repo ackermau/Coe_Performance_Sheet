@@ -2,8 +2,6 @@
 TDDBHD Calculation Module
 
 """
-
-from fastapi import APIRouter, HTTPException, Body
 from models import TDDBHDInput
 from pydantic import BaseModel
 from typing import Optional
@@ -15,7 +13,7 @@ from utils.shared import (
     NUM_BRAKEPADS, BRAKE_DISTANCE, CYLINDER_ROD, STATIC_FRICTION,
     JSON_FILE_PATH, rfq_state
 )
-from utils.json_util import load_json_list, append_to_json_list
+from utils.database import get_default_db
 
 # Import your lookup functions
 from utils.lookup_tables import (
@@ -23,11 +21,9 @@ from utils.lookup_tables import (
     get_pressure_psi, get_holddown_force_available, get_min_material_width, get_type_of_line, get_drive_key, get_drive_torque 
     )
 
-# Initialize FastAPI router
-router = APIRouter()
-
 # In-memory storage for TDDBHD
 local_tddbhd: dict = {}
+db = get_default_db()
 
 class TDDBHDOutput(BaseModel):
     """
@@ -79,7 +75,6 @@ class TDDBHDCreate(BaseModel):
     backplate_diameter: Optional[float] = None
     # Add other fields as needed for creation
 
-@router.post("/calculate")
 def calculate_tbdbhd(data: TDDBHDInput):
     """
     Calculate TDDBHD values based on the provided input data.
@@ -114,8 +109,8 @@ def calculate_tbdbhd(data: TDDBHDInput):
         reel_type_lookup = get_type_of_line(data.type_of_line)
         drive_key_lookup = get_drive_key(data.reel_model, data.air_clutch, data.hyd_threading_drive)
         drive_torque_lookup = get_drive_torque(drive_key_lookup)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
+    except:
+        return "ERROR: TDDBHD lookups failed."
 
     density = density_lookup
     max_weight = reel_max_weight
@@ -139,7 +134,7 @@ def calculate_tbdbhd(data: TDDBHDInput):
     # Coil Weight Calculation
     # Check that density and width are not zero.
     if density == 0 or data.width == 0:
-        raise HTTPException(status_code=400, detail="Density and width must be non-zero for coil weight calculation.")
+        return "ERROR: TDDBHD density or width are 0."
     calculated_cw = (((data.coil_od**2) - data.coil_id**2) / 4) * pi * data.width * density
     coil_weight = min(calculated_cw, max_weight)
 
@@ -150,14 +145,14 @@ def calculate_tbdbhd(data: TDDBHDInput):
             raise ZeroDivisionError
         od_calc = sqrt(((4 * coil_weight) / od_denominator) + (data.coil_id**2))
     except ZeroDivisionError:
-        raise HTTPException(status_code=400, detail="Density or width cannot be zero for OD calculation.")
+        return "ERROR: TDDBHD coilOD zero division."
     coil_od = min(od_calc, data.coil_od) 
 
     # Display Reel Motor (simulate mapping)
     if data.hyd_threading_drive != "None":
         match = re.match(r"\d+", data.hyd_threading_drive)
         if not match:
-            raise HTTPException(status_code=422, detail="Invalid hyd_threading_drive format. Expected to start with digits.")
+            return "ERROR: TDDBHD hyd threading drive."
 
         hyd_drive_number = int(match.group())
         disp_reel_mtr = {22: 22.6, 38: 38, 60: 60}.get(hyd_drive_number, hyd_drive_number)
@@ -177,11 +172,11 @@ def calculate_tbdbhd(data: TDDBHDInput):
     # Denom for hold down force: friction * (coil_id/2)
     hold_down_denominator = static_friction * (data.coil_id / 2)
     if hold_down_denominator == 0:
-        raise HTTPException(status_code=400, detail="Friction and coil_id must be non-zero for hold down force calculation.")
+        return "ERROR: TDDBHD holddown denominator 0."
 
     # Additional check for thickness in the else clause:
     if M >= My and data.thickness == 0:
-        raise HTTPException(status_code=400, detail="Thickness must be non-zero for hold down force calculation.")
+        return "ERROR: TDDBHD thickness check."
 
     if M < My:
         hold_down_force_req = M / hold_down_denominator
@@ -191,7 +186,7 @@ def calculate_tbdbhd(data: TDDBHDInput):
     # Torque Required Calculation
     # Check that coil_od isn't zero.
     if coil_od == 0:
-        raise HTTPException(status_code=400, detail="Calculated coil OD must be non-zero for torque calculation.")
+        return "ERROR: TDDBHD coilOD 0."
     torque_required = ((3 * data.decel * coil_weight * (coil_od**2 + data.coil_id**2)) / (386 * coil_od)) + rewind_torque
 
     # Brake Press Required Calculation
@@ -204,7 +199,7 @@ def calculate_tbdbhd(data: TDDBHDInput):
     elif data.brake_model == "Triple Stage":
         last = (3 * (cylinder_bore ** 2) - 2 * (cyl_rod ** 2))
     else:
-        raise HTTPException(status_code=400, detail="Invalid brake model.")
+        return "ERROR: TDDBHD brake press invalid."
 
     denominator = partial_denominator * last
     press_required = numerator / denominator
@@ -219,7 +214,7 @@ def calculate_tbdbhd(data: TDDBHDInput):
         hold_force = 0
 
     if data.brake_qty < 1 or data.brake_qty > 4:
-        raise HTTPException(status_code=400, detail="Brake quantity must be between 1 and 4.")
+        return "ERROR: TDDBHD brake quantity invalid."
 
     failsafe_holding_force = hold_force * friction * num_brakepads * brake_dist * data.brake_qty 
     results = {
@@ -240,110 +235,6 @@ def calculate_tbdbhd(data: TDDBHDInput):
         "failsafe_required": round(brake_press_required, 3),
         "failsafe_holding_force": round(failsafe_holding_force, 3),
     }
-
-    # Save the results to a JSON file
-    try:
-        append_to_json_list(
-            data={rfq_state.reference: results},
-            reference_number=rfq_state.reference,
-            directory=JSON_FILE_PATH
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error saving results: {str(e)}")
-
+    # Save the results to the database
+    db.create(rfq_state.reference, results)
     return results
-
-@router.put("/{reference}")
-def update_tddbhd(reference: str, tddbhd: TDDBHDCreate = Body(...)):
-    """
-    Update an existing TDDBHD entry by reference.
-    Updates the in-memory storage and persists the changes to disk.
-    Returns the updated TDDBHD. If the reference does not exist, returns 404.
-    """
-    # Check if the TDDBHD exists in memory or on disk
-    if reference not in local_tddbhd:
-        # Try to load from disk
-        try:
-            tddbhd_data = load_json_list(
-                reference_number=reference,
-                directory=JSON_FILE_PATH
-            )
-            if not tddbhd_data or reference not in tddbhd_data:
-                raise HTTPException(status_code=404, detail="TDDBHD not found")
-            existing = tddbhd_data[reference]
-        except Exception:
-            raise HTTPException(status_code=404, detail="TDDBHD not found")
-    else:
-        existing = local_tddbhd[reference]
-
-    # Merge updates
-    updated_tddbhd = dict(existing)
-    updated_tddbhd.update(tddbhd.dict(exclude_unset=True))
-    local_tddbhd[reference] = updated_tddbhd
-
-    # Save the updated TDDBHD to disk
-    current_tddbhd = {reference: updated_tddbhd}
-    try:
-        append_to_json_list(
-            data=current_tddbhd,
-            reference_number=reference,
-            directory=JSON_FILE_PATH
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to update TDDBHD in storage: {str(e)}"
-        )
-
-    return {"message": "TDDBHD updated", "tddbhd": updated_tddbhd}
-
-@router.post("/{reference}")
-def create_tddbhd(reference: str, tddbhd: TDDBHDCreate = Body(...)):
-    """
-    Create and persist a new TDDBHD entry for a given reference.
-    Sets the shared rfq_state to the reference, stores in memory, and appends to JSON file.
-    """
-    try:
-        if not reference or not reference.strip():
-            raise HTTPException(status_code=400, detail="Reference number is required")
-        # Store in memory
-        local_tddbhd[reference] = tddbhd.dict(exclude_unset=True)
-        # Update shared state
-        rfq_state.reference = reference
-        # Prepare for persistence
-        current_tddbhd = {reference: tddbhd.dict(exclude_unset=True)}
-        try:
-            append_to_json_list(
-                data=current_tddbhd,
-                reference_number=reference,
-                directory=JSON_FILE_PATH
-            )
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to save TDDBHD: {str(e)}")
-        return {"message": "TDDBHD created", "tddbhd": tddbhd.dict(exclude_unset=True)}
-    except HTTPException as he:
-        raise he
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
-
-@router.get("/{reference}")
-def load_tddbhd_by_reference(reference: str):
-    """
-    Retrieve TDDBHD by reference number (memory first, then disk).
-    """
-    tddbhd_from_memory = local_tddbhd.get(reference)
-    if tddbhd_from_memory:
-        return tddbhd_from_memory
-    try:
-        tddbhd_data = load_json_list(
-            reference_number=reference,
-            directory=JSON_FILE_PATH
-        )
-        if tddbhd_data and reference in tddbhd_data:
-            return tddbhd_data[reference]
-        else:
-            return {"error": "TDDBHD not found"}
-    except FileNotFoundError:
-        return {"error": "TDDBHD file not found"}
-    except Exception as e:
-        return {"error": f"Failed to load TDDBHD: {str(e)}"}

@@ -2,8 +2,6 @@
 Reel Drive Calculation Module
 
 """
-
-from fastapi import APIRouter, HTTPException, Body
 from models import ReelDriveInput
 from math import pi
 from typing import Tuple, Dict, Any
@@ -15,7 +13,7 @@ from utils.shared import (
     rfq_state, JSON_FILE_PATH
 )
 
-from utils.json_util import load_json_list, append_to_json_list
+from utils.database import get_default_db
 
 from utils.lookup_tables import (
     get_reel_dimensions,
@@ -25,11 +23,10 @@ from utils.lookup_tables import (
     get_fpm_buffer
 )
 
-# Initialize FastAPI router
-router = APIRouter()
-
 # In-memory storage for reel drive
 local_reel_drive: dict = {}
+
+db = get_default_db()
 
 class ReelDriveCreate(BaseModel):
     model: str = None
@@ -165,9 +162,6 @@ def calc_coil_specs(
 
     return coil_density, coil_width, coil_inertia, coil_refl
 
-
-
-@router.post("/calculate")
 def calculate_reeldrive(data: ReelDriveInput) -> Dict[str, Any]:
     """
     Main calculation endpoint for reel drive system analysis.
@@ -213,8 +207,8 @@ def calculate_reeldrive(data: ReelDriveInput) -> Dict[str, Any]:
         # Get speed safety buffer factor
         fpm_buffer = get_fpm_buffer("DEFAULT")
         
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except:
+        return "ERROR: Reel Drive lookup failed."
 
     # Chain drive specifications
     chain_ratio = CHAIN_RATIO
@@ -472,113 +466,6 @@ def calculate_reeldrive(data: ReelDriveInput) -> Dict[str, Any]:
         "use_pulloff": pulloff                 
     }
 
-    try:
-        append_to_json_list(
-            label="reel_drive", 
-            data=results, 
-            reference_number=rfq_state.reference, 
-            directory=JSON_FILE_PATH
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to save results: {str(e)}")
-
+    # Save the results to the database
+    db.create(rfq_state.reference, results)
     return results
-
-@router.put("/{reference}")
-def update_reel_drive(reference: str, reel_drive: ReelDriveCreate = Body(...)):
-    """
-    Update an existing Reel Drive entry by reference.
-    Updates the in-memory storage and persists the changes to disk.
-    Returns the updated Reel Drive. If the reference does not exist, returns 404.
-    """
-    # Check if the Reel Drive exists in memory or on disk
-    if reference not in local_reel_drive:
-        # Try to load from disk
-        try:
-            reel_drive_data = load_json_list(
-                label="reel_drive",
-                reference_number=reference,
-                directory=JSON_FILE_PATH
-            )
-            if not reel_drive_data or reference not in reel_drive_data:
-                raise HTTPException(status_code=404, detail="Reel Drive not found")
-            existing = reel_drive_data[reference]
-        except Exception:
-            raise HTTPException(status_code=404, detail="Reel Drive not found")
-    else:
-        existing = local_reel_drive[reference]
-
-    # Merge updates
-    updated_reel_drive = dict(existing)
-    updated_reel_drive.update(reel_drive.dict(exclude_unset=True))
-    local_reel_drive[reference] = updated_reel_drive
-
-    # Save the updated Reel Drive to disk
-    current_reel_drive = {reference: updated_reel_drive}
-    try:
-        append_to_json_list(
-            label="reel_drive",
-            data=current_reel_drive,
-            reference_number=reference,
-            directory=JSON_FILE_PATH
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to update Reel Drive in storage: {str(e)}"
-        )
-
-    return {"message": "Reel Drive updated", "reel_drive": updated_reel_drive}
-
-@router.post("/{reference}")
-def create_reel_drive(reference: str, reel_drive: ReelDriveCreate = Body(...)):
-    """
-    Create and persist a new Reel Drive entry for a given reference.
-    Sets the shared rfq_state to the reference, stores in memory, and appends to JSON file.
-    """
-    try:
-        if not reference or not reference.strip():
-            raise HTTPException(status_code=400, detail="Reference number is required")
-        # Store in memory
-        local_reel_drive[reference] = reel_drive.dict(exclude_unset=True)
-        # Update shared state
-        rfq_state.reference = reference
-        # Prepare for persistence
-        current_reel_drive = {reference: reel_drive.dict(exclude_unset=True)}
-        try:
-            append_to_json_list(
-                label="reel_drive",
-                data=current_reel_drive,
-                reference_number=reference,
-                directory=JSON_FILE_PATH
-            )
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to save Reel Drive: {str(e)}")
-        return {"message": "Reel Drive created", "reel_drive": reel_drive.dict(exclude_unset=True)}
-    except HTTPException as he:
-        raise he
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
-
-@router.get("/{reference}")
-def load_reel_drive_by_reference(reference: str):
-    """
-    Retrieve Reel Drive by reference number (memory first, then disk).
-    """
-    reel_drive_from_memory = local_reel_drive.get(reference)
-    if reel_drive_from_memory:
-        return reel_drive_from_memory
-    try:
-        reel_drive_data = load_json_list(
-            label="reel_drive",
-            reference_number=reference,
-            directory=JSON_FILE_PATH
-        )
-        if reel_drive_data and reference in reel_drive_data:
-            return reel_drive_data[reference]
-        else:
-            return {"error": "Reel Drive not found"}
-    except FileNotFoundError:
-        return {"error": "Reel Drive file not found"}
-    except Exception as e:
-        return {"error": f"Failed to load Reel Drive: {str(e)}"}

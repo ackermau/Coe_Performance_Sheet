@@ -2,8 +2,6 @@
 Straightener Utility Calculation Module
 
 """
-
-from fastapi import APIRouter, HTTPException, Body
 from models import StrUtilityInput
 from pydantic import BaseModel
 from pydantic import Field
@@ -20,9 +18,6 @@ from utils.json_util import load_json_list, append_to_json_list
 from utils.lookup_tables import (
     get_material_density, get_material_modulus, get_str_model_value, get_motor_inertia
 )
-
-# Initialize FastAPI router
-router = APIRouter()
 
 # In-memory storage for str utility
 local_str_utility: dict = {}
@@ -76,7 +71,6 @@ class StrUtilityCreate(BaseModel):
     num_str_rolls: int = None
     # Add other fields as needed for creation
 
-@router.post("/calculate")
 def calculate_str_utility(data: StrUtilityInput):
     """
     Calculate Straightener Utility values based on input data.
@@ -113,8 +107,8 @@ def calculate_str_utility(data: StrUtilityInput):
         str_roll_dp = get_str_model_value(data.str_model, "sroll_dp", "str_roll_dp")
         face_width = get_str_model_value(data.str_model, "face_width", "face_width")
         motor_inertia = get_motor_inertia(horsepower_string)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except:
+        return "ERROR: Str Utility lookup failed."
 
     # Needed values for calculations
     str_qty = data.num_str_rolls
@@ -304,7 +298,7 @@ def calculate_str_utility(data: StrUtilityInput):
         accel_torque = max_od_accel_torque
         brake_torque = max_od_brake_torque
     else:
-        raise HTTPException(status_code=400, detail="Invalid auto brake compensation value")
+        return "ERROR: Str Utility brake quantity invalid."
 
     # Pinch Roll
     pinch_roll_req_torque = (str_torque * pinch_ratio / str_gear_torque) + min_od_brake_torque / 2 * pinch_ratio + (((max_od_total_inertia * motor_rpm) / (9.55 * accel_time)) * (1/eff)) * pinch_ratio / 2
@@ -368,102 +362,7 @@ def calculate_str_utility(data: StrUtilityInput):
             reference_number=rfq_state.reference,
             directory=JSON_FILE_PATH
         )
-    except Exception as e:
-        return {"error": f"Failed to save results: {str(e)}"}
+    except:
+        return "ERROR: Str Utility calculations failed to save."
 
     return results
-
-@router.put("/{reference}")
-def update_str_utility(reference: str, str_utility: StrUtilityCreate = Body(...)):
-    """
-    Update an existing Str Utility entry by reference.
-    Updates the in-memory storage and persists the changes to disk.
-    Returns the updated Str Utility. If the reference does not exist, returns 404.
-    """
-    # Check if the Str Utility exists in memory or on disk
-    if reference not in local_str_utility:
-        # Try to load from disk
-        try:
-            str_utility_data = load_json_list(
-                reference_number=reference,
-                directory=JSON_FILE_PATH
-            )
-            if not str_utility_data or reference not in str_utility_data:
-                raise HTTPException(status_code=404, detail="Str Utility not found")
-            existing = str_utility_data[reference]
-        except Exception:
-            raise HTTPException(status_code=404, detail="Str Utility not found")
-    else:
-        existing = local_str_utility[reference]
-
-    # Merge updates
-    updated_str_utility = dict(existing)
-    updated_str_utility.update(str_utility.dict(exclude_unset=True))
-    local_str_utility[reference] = updated_str_utility
-
-    # Save the updated Str Utility to disk
-    current_str_utility = {reference: updated_str_utility}
-    try:
-        append_to_json_list(
-            data=current_str_utility,
-            reference_number=reference,
-            directory=JSON_FILE_PATH
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to update Str Utility in storage: {str(e)}"
-        )
-
-    return {"message": "Str Utility updated", "str_utility": updated_str_utility}
-
-@router.post("/{reference}")
-def create_str_utility(reference: str, str_utility: StrUtilityCreate = Body(...)):
-    """
-    Create and persist a new Str Utility entry for a given reference.
-    Sets the shared rfq_state to the reference, stores in memory, and appends to JSON file.
-    """
-    try:
-        if not reference or not reference.strip():
-            raise HTTPException(status_code=400, detail="Reference number is required")
-        # Store in memory
-        local_str_utility[reference] = str_utility.dict(exclude_unset=True)
-        # Update shared state
-        rfq_state.reference = reference
-        # Prepare for persistence
-        current_str_utility = {reference: str_utility.dict(exclude_unset=True)}
-        try:
-            append_to_json_list(
-                data=current_str_utility,
-                reference_number=reference,
-                directory=JSON_FILE_PATH
-            )
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to save Str Utility: {str(e)}")
-        return {"message": "Str Utility created", "str_utility": str_utility.dict(exclude_unset=True)}
-    except HTTPException as he:
-        raise he
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
-
-@router.get("/{reference}")
-def load_str_utility_by_reference(reference: str):
-    """
-    Retrieve Str Utility by reference number (memory first, then disk).
-    """
-    str_utility_from_memory = local_str_utility.get(reference)
-    if str_utility_from_memory:
-        return str_utility_from_memory
-    try:
-        str_utility_data = load_json_list(
-            reference_number=reference,
-            directory=JSON_FILE_PATH
-        )
-        if str_utility_data and reference in str_utility_data:
-            return str_utility_data[reference]
-        else:
-            return {"error": "Str Utility not found"}
-    except FileNotFoundError:
-        return {"error": "Str Utility file not found"}
-    except Exception as e:
-        return {"error": f"Failed to load Str Utility: {str(e)}"}

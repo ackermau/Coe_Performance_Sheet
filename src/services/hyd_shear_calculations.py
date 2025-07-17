@@ -26,10 +26,10 @@ def calculate_hyd_shear(data: HydShearInput, spec_type: str = "single_rake"):
     shear_strength = data.material_tensile * 0.75
 
     angle_of_blade = atan(data.rake_of_blade / 12) / pi * 180
-    length_of_init_cut = data.max_material_thickness / tan(radians(angle_of_blade))
-    area_of_cut = (data.max_material_thickness * length_of_init_cut) / 2
+    length_of_init_cut = data.material_thickness / tan(radians(angle_of_blade))
+    area_of_cut = (data.material_thickness * length_of_init_cut) / 2
 
-    min_stroke_for_blade = data.coil_width * (radians(angle_of_blade)) + data.max_material_thickness + data.overlap
+    min_stroke_for_blade = data.coil_width * (radians(angle_of_blade)) + data.material_thickness + data.overlap
     min_stroke_req_for_opening = min_stroke_for_blade + data.blade_opening
 
     cylinder_area = ((data.bore_size / 2) ** 2) * pi - ((data.rod_dia / 2) ** 2) * pi
@@ -50,10 +50,10 @@ def calculate_hyd_shear(data: HydShearInput, spec_type: str = "single_rake"):
     fluid_velocity = instant_gallons_per_minute_req / (3.117 * cylinder_area)
 
     if spec_type == "bow_tie":
-        area_of_cut = (data.max_material_thickness * length_of_init_cut)
+        area_of_cut = (data.material_thickness * length_of_init_cut)
         actual_opening_above_max_material = data.coil_width / 2 * (radians(angle_of_blade)) + data.overlap
     else:
-        area_of_cut = (data.max_material_thickness * length_of_init_cut) / 2
+        area_of_cut = (data.material_thickness * length_of_init_cut) / 2
         actual_opening_above_max_material = data.stroke - min_stroke_for_blade
 
     return {

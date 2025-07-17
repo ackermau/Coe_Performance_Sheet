@@ -2,8 +2,6 @@
 Time utilities for physics-based calculations.
 
 """
-
-from fastapi import HTTPException
 from models import TimeInput
 from math import sqrt, floor
 
@@ -170,5 +168,5 @@ def calculate_time(data: TimeInput):
             "feed_angle_1": feed_angle_1_values,
             "feed_angle_2": feed_angle_2_values
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except:
+        return "ERROR: Time calculations failed to save."
