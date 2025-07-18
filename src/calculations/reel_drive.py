@@ -2,18 +2,15 @@
 Reel Drive Calculation Module
 
 """
-from models import ReelDriveInput
+from models import reel_drive_input
 from math import pi
 from typing import Tuple, Dict, Any
-from pydantic import BaseModel
 
 from utils.shared import (
     CHAIN_RATIO, CHAIN_SPRKT_OD, CHAIN_SPRKT_THICKNESS, MOTOR_RPM,
     REDUCER_DRIVING, REDUCER_BACKDRIVING, REDUCER_INERTIA, ACCEL_RATE,
-    rfq_state, JSON_FILE_PATH
+    rfq_state
 )
-
-from utils.database import get_default_db
 
 from utils.lookup_tables import (
     get_reel_dimensions,
@@ -22,23 +19,6 @@ from utils.lookup_tables import (
     get_type_of_line,
     get_fpm_buffer
 )
-
-# In-memory storage for reel drive
-local_reel_drive: dict = {}
-
-db = get_default_db()
-
-class ReelDriveCreate(BaseModel):
-    model: str = None
-    material_type: str = None
-    coil_id: float = None
-    coil_od: float = None
-    reel_width: float = None
-    backplate_diameter: float = None
-    motor_hp: float = None
-    type_of_line: str = None
-    required_max_fpm: float = 0
-    # Add other fields as needed for creation
 
 def calc_mandrel_specs(
         reel: Dict[str, Any], 
@@ -162,7 +142,7 @@ def calc_coil_specs(
 
     return coil_density, coil_width, coil_inertia, coil_refl
 
-def calculate_reeldrive(data: ReelDriveInput) -> Dict[str, Any]:
+def calculate_reeldrive(data: reel_drive_input) -> Dict[str, Any]:
     """
     Main calculation endpoint for reel drive system analysis.
     
@@ -465,7 +445,5 @@ def calculate_reeldrive(data: ReelDriveInput) -> Dict[str, Any]:
         },
         "use_pulloff": pulloff                 
     }
-
-    # Save the results to the database
-    db.create(rfq_state.reference, results)
+    
     return results

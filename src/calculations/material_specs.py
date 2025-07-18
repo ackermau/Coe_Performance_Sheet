@@ -2,73 +2,12 @@
 Material Specifications Calculation Module
 
 """
-from models import MaterialSpecsPayload
 import math
-from typing import Dict, Any, Optional, Union
-from pydantic import BaseModel
-
-# Import the shared lookup table helper function:
+from models import material_specs_input
+from utils.to_float import to_float
 from utils.lookup_tables import get_material
-from utils.database import get_default_db
-from utils.shared import JSON_FILE_PATH, rfq_state
 
-db = get_default_db()
-
-# In-memory storage for material specs
-local_material_specs: Dict[str, dict] = {}
-
-class MaterialSpecsCreate(BaseModel):
-    # Fields for a single material spec variant
-    customer: Optional[str] = None
-    date: Optional[str] = None
-    coil_width: Optional[Union[float, str]] = None
-    coil_weight: Optional[Union[float, str]] = None
-    material_thickness: Optional[Union[float, str]] = None
-    material_type: Optional[str] = None
-    yield_strength: Optional[Union[float, str]] = None
-    tensile_strength: Optional[Union[float, str]] = None
-    coil_id: Optional[Union[float, str]] = None
-    feed_direction: Optional[str] = None
-    controls_level: Optional[str] = None
-    type_of_line: Optional[str] = None
-    feed_controls: Optional[str] = None
-    passline: Optional[str] = None
-    selected_roll: Optional[str] = None
-    reel_backplate: Optional[str] = None
-    reel_style: Optional[str] = None
-    light_guage: Optional[bool] = None
-    non_marking: Optional[bool] = None
-    # Additional calculated fields
-    min_bend_radius: Optional[float] = None
-    min_loop_length: Optional[float] = None
-    coil_od_calculated: Optional[float] = None
-
-class VariantCalculationPayload(BaseModel):
-    material_type: str
-    material_thickness: float
-    yield_strength: float
-    material_width: float
-    coil_weight_max: float
-    coil_id: float
-
-def to_float(val):
-    try:
-        if isinstance(val, str) and val.strip() != "":
-            return float(val)
-        elif isinstance(val, (int, float)):
-            return float(val)
-    except Exception as e:
-        print(f"Could not convert value to float: {val} ({e})")
-    return None
-
-def calculate_variant(
-    materialType: Optional[str], 
-    thickness: Optional[float], 
-    yield_strength: Optional[float], 
-    coil_width: Optional[float], 
-    coil_weight: Optional[float], 
-    coil_id: Optional[float]
-) -> Dict[str, Union[float, int, str]]:
+def calculate_variant(data: material_specs_input):
     """
     Calculate material specifications for a single variant.
     
@@ -76,7 +15,7 @@ def calculate_variant(
     and calculated coil outer diameter based on material properties
     and dimensional parameters.
     
-    Args:
+    Args: \n
         materialType (Optional[str]): Material type identifier for lookup
         thickness (Optional[float]): Material thickness in inches
         yield_strength (Optional[float]): Material yield strength in PSI
@@ -84,7 +23,7 @@ def calculate_variant(
         coil_weight (Optional[float]): Coil weight in pounds
         coil_id (Optional[float]): Coil inner diameter in inches
         
-    Returns:
+    Returns: \n
         Dict[str, Union[float, int, str]]: Dictionary containing:
             - min_bend_radius: Minimum bend radius in inches (float)
             - min_loop_length: Minimum loop length in feet (float)  
@@ -94,7 +33,7 @@ def calculate_variant(
     
     # Look up material properties using shared lookup table
     try:
-        mat = get_material(materialType)
+        mat = get_material(data.material_type)
     except ValueError:
         # Default to empty dict if material type not found
         mat = {}
@@ -104,8 +43,8 @@ def calculate_variant(
     density = mat.get("density")      # Material density
     
     # Formula: min_bend_radius = (modulus * (thickness/2)) / yield_strength
-    if thickness and yield_strength and modulus:
-        min_bend_radius = round((modulus * (thickness / 2)) / yield_strength, 4)
+    if data.material_thickness and data.yield_strength and modulus:
+        min_bend_radius = round((modulus * (data.material_thickness / 2)) / data.yield_strength, 4)
     else:
         min_bend_radius = 0
 
@@ -146,19 +85,3 @@ def calculate_variant(
         "min_loop_length": min_loop_length,
         "coil_od_calculated": coil_od_calculated
     }
-
-def calculate_specs(payload: MaterialSpecsCreate) -> Dict[str, Any]:
-    """
-    Calculate material specifications for a single variant.
-    """
-    computed = calculate_variant(
-        payload.material_type,
-        payload.material_thickness,
-        payload.yield_strength,
-        payload.coil_width,
-        payload.coil_weight,
-        payload.coil_id
-    )
-    # Save to database
-    db.create(rfq_state.reference, {**payload.dict(exclude_unset=True), **computed})
-    return {**payload.dict(exclude_unset=True), **computed}

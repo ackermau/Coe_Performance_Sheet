@@ -176,7 +176,7 @@ def get_motor_inertia(motor_hp: str) -> float:
         raise ValueError(f"Unknown motor HP: {motor_hp}")
 
 ## Type of Line
-def get_type_of_line(type_of_line: str) -> float:
+def get_type_of_line(type_of_line: str) -> str:
     """Return Type of Line based off Type of Line"""
     try:
         return lookup_type_of_line[type_of_line]["reel_type"]

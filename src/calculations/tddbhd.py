@@ -2,80 +2,20 @@
 TDDBHD Calculation Module
 
 """
-from models import TDDBHDInput
-from pydantic import BaseModel
-from typing import Optional
-from pydantic import BaseModel, Field
+from models import tddbhd_input
 from math import pi, sqrt
 import re
 
 from utils.shared import (
-    NUM_BRAKEPADS, BRAKE_DISTANCE, CYLINDER_ROD, STATIC_FRICTION,
-    JSON_FILE_PATH, rfq_state
+    NUM_BRAKEPADS, BRAKE_DISTANCE, CYLINDER_ROD, STATIC_FRICTION, rfq_state
 )
-from utils.database import get_default_db
-
 # Import your lookup functions
 from utils.lookup_tables import (
     get_cylinder_bore, get_hold_down_matrix_label, get_material_density, get_material_modulus, get_reel_max_weight, 
     get_pressure_psi, get_holddown_force_available, get_min_material_width, get_type_of_line, get_drive_key, get_drive_torque 
     )
 
-# In-memory storage for TDDBHD
-local_tddbhd: dict = {}
-db = get_default_db()
-
-class TDDBHDOutput(BaseModel):
-    """
-    TDDBHD Output Model
-    """
-    friction: float = Field(..., alias="friction")
-    webTensionPsi: float = Field(..., alias="web_tension_psi")
-    webTensionLbs: float = Field(..., alias="web_tension_lbs")
-    coilWeight: float = Field(..., alias="coil_weight")
-    coilOd: float = Field(..., alias="coil_od")
-    dispReelMtr: float = Field(..., alias="disp_reel_mtr")
-    cylinderBore: float = Field(..., alias="cylinder_bore")
-    torqueAtMandrel: Optional[float] = Field(None, alias="torque_at_mandrel")
-    rewindTorque: float = Field(..., alias="rewind_torque")
-    holddownPressure: float = Field(..., alias="holddown_pressure")
-    holdDownForceRequired: float = Field(..., alias="hold_down_force_required")
-    holdDownForceAvailable: float = Field(..., alias="hold_down_force_available")
-    minMaterialWidth: float = Field(..., alias="min_material_width")
-    torqueRequired: float = Field(..., alias="torque_required")
-    brakePressRequired: float = Field(..., alias="brake_press_required")
-    brakePressHoldingForce: float = Field(..., alias="failsafe_holding_force")
-
-    class Config:
-        allow_population_by_field_name = True
-
-class TDDBHDCreate(BaseModel):
-    # Only a subset of fields for creation; adjust as needed
-    type_of_line: Optional[str] = None
-    reel_drive_tqempty: Optional[float] = None
-    motor_hp: Optional[float] = None
-    yield_strength: Optional[float] = None
-    thickness: Optional[float] = None
-    width: Optional[float] = None
-    coil_id: Optional[float] = None
-    coil_od: Optional[float] = None
-    coil_weight: Optional[float] = None
-    decel: Optional[float] = None
-    friction: Optional[float] = None
-    air_pressure: Optional[float] = None
-    brake_qty: Optional[int] = None
-    brake_model: Optional[str] = None
-    cylinder: Optional[str] = None
-    hold_down_assy: Optional[str] = None
-    hyd_threading_drive: Optional[str] = None
-    air_clutch: Optional[str] = None
-    material_type: Optional[str] = None
-    reel_model: Optional[str] = None
-    reel_width: Optional[float] = None
-    backplate_diameter: Optional[float] = None
-    # Add other fields as needed for creation
-
-def calculate_tbdbhd(data: TDDBHDInput):
+def calculate_tbdbhd(data: tddbhd_input):
     """
     Calculate TDDBHD values based on the provided input data.
 
@@ -217,7 +157,7 @@ def calculate_tbdbhd(data: TDDBHDInput):
         return "ERROR: TDDBHD brake quantity invalid."
 
     failsafe_holding_force = hold_force * friction * num_brakepads * brake_dist * data.brake_qty 
-    results = {
+    return {
         "friction": round(friction, 3),
         "web_tension_psi": round(web_tension_psi, 3),
         "web_tension_lbs": round(web_tension_lbs, 3),
@@ -235,6 +175,3 @@ def calculate_tbdbhd(data: TDDBHDInput):
         "failsafe_required": round(brake_press_required, 3),
         "failsafe_holding_force": round(failsafe_holding_force, 3),
     }
-    # Save the results to the database
-    db.create(rfq_state.reference, results)
-    return results

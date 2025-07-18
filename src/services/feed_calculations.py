@@ -3,12 +3,12 @@ Feed calculations service module
 
 """
 
-from models import FeedInput, FeedWPullThruInput, AllenBradleyInput, BaseFeedParams
+from models import feed_w_pull_thru_input, base_feed_params, time_input, inertia_input, regen_input
 from math import pi, sqrt
 from utils.lookup_tables import get_material_density, get_sigma_five_specs, get_sigma_five_pt_specs, get_ab_feed_specs, get_selected_str_used
-from utils.physics.inertia import calculate_total_refl_inertia, InertiaInput
-from utils.physics.time import calculate_time, TimeInput
-from utils.physics.regen import calculate_regen, RegenInput
+from utils.physics.inertia import calculate_total_refl_inertia
+from utils.physics.time import calculate_time
+from utils.physics.regen import calculate_regen
 
 # Map for dynamic getter selection
 SPEC_GETTERS = {
@@ -61,7 +61,7 @@ def get_all_specs_for(spec_type, feed_model, spec_keys):
                 raise ValueError(f"Failed to get spec for {var_name} using {lookup1} or {lookup2} in {spec_type}")
     return results
 
-def run_sigma_five_calculation(data: FeedInput, spec_type="sigma_five"):
+def run_sigma_five_calculation(data: base_feed_params, spec_type="sigma_five"):
     """
     Sigma Five feed calculation service function.
     
@@ -111,7 +111,7 @@ def run_sigma_five_calculation(data: FeedInput, spec_type="sigma_five"):
     loop_torque = ((data.material_width * data.material_thickness * density * material_loop * 0.5) * u_roll * 0.5) / ratio / efficiency
 
     # Calculate refl inertia
-    inertia_input = InertiaInput(
+    inertia = inertia_input(
         feed_model = data.feed_model,
         width = data.width,
         thickness = data.material_thickness,
@@ -125,7 +125,7 @@ def run_sigma_five_calculation(data: FeedInput, spec_type="sigma_five"):
     )
 
     # Calculate refl inertia
-    refl_inertia = calculate_total_refl_inertia(inertia_input)
+    refl_inertia = calculate_total_refl_inertia(inertia)
 
     # Match calculation
     match = refl_inertia / motor_inertia
@@ -152,7 +152,7 @@ def run_sigma_five_calculation(data: FeedInput, spec_type="sigma_five"):
         str_max_sp_inch = 0
 
     # Time calculations
-    time_import = TimeInput(
+    time = time_input(
         acceleration = data.acceleration_rate,
         application = data.application,
         feed_angle_1 = data.feed_angle_1,
@@ -186,7 +186,7 @@ def run_sigma_five_calculation(data: FeedInput, spec_type="sigma_five"):
     )
 
     # Calculate time values
-    time_values = calculate_time(time_import)
+    time_values = calculate_time(time)
     feed_angle_1_values = time_values["feed_angle_1"]
     feed_angle_2_values = time_values["feed_angle_2"]
 
@@ -230,7 +230,7 @@ def run_sigma_five_calculation(data: FeedInput, spec_type="sigma_five"):
                                 (feed_angle_2_values[0]["cycle_time"]))
 
     # Calculate Regen
-    regen_input = RegenInput(
+    regen = regen_input(
         match = match,
         motor_inertia = motor_inertia,
         rpm = rpm,
@@ -239,7 +239,7 @@ def run_sigma_five_calculation(data: FeedInput, spec_type="sigma_five"):
         watts_lost = watts_lost,
         ec = ec
     )
-    regen = calculate_regen(regen_input)
+    regen = calculate_regen(regen)
 
     return {
         "max_motor_rpm": max_motor_rpm,
@@ -266,9 +266,7 @@ def run_sigma_five_calculation(data: FeedInput, spec_type="sigma_five"):
         "table_values": table_values,
     }
 
-def run_sigma_five_pt_calculation(data: FeedWPullThruInput, 
-                straightening_rolls, material_width, material_thickness,
-                feed_model, yield_strength, str_pinch_rolls, req_max_fpm, spec_type="sigma_five_pt"):
+def run_sigma_five_pt_calculation(data: feed_w_pull_thru_input, spec_type="sigma_five_pt"):
     """
     Sigma Five feed calculation service function with pull-thru specs.
     
@@ -293,40 +291,45 @@ def run_sigma_five_pt_calculation(data: FeedWPullThruInput,
     """
     
     # Lookups
-    u_roll = get_sigma_five_pt_specs(feed_model, "u_roll", "upper_roll")
-    ratio = get_sigma_five_pt_specs(feed_model, "ratio", "ratio")
-    mot_peak_torque = get_sigma_five_pt_specs(feed_model, "mot_peak_torque", "motor_peak_torque")
-    efficiency = get_sigma_five_pt_specs(feed_model, "efficiency", "efficiency")
-    cent_dist = get_sigma_five_pt_specs(feed_model, "cent_dist", "center_distance")
+    u_roll = get_sigma_five_pt_specs(data.feed_model, "u_roll", "upper_roll")
+    ratio = get_sigma_five_pt_specs(data.feed_model, "ratio", "ratio")
+    efficiency = get_sigma_five_pt_specs(data.feed_model, "efficiency", "efficiency")
+    cent_dist = get_sigma_five_pt_specs(data.feed_model, "cent_dist", "center_distance")
 
     # Constants
     fpm_buffer = 1.2
 
-    if str_pinch_rolls.lower() == "y" or str_pinch_rolls.lower() == "yes":
+    if data.str_pinch_rolls.lower() == "y" or data.str_pinch_rolls.lower() == "yes":
         pinch_rolls = 2
     else:
         pinch_rolls = 0
 
-    if straightening_rolls == 5:
-        k_const = straightening_rolls / 3.5 + 0.1
-    elif straightening_rolls == 7:
-        k_const = straightening_rolls / 3.5
-    elif straightening_rolls == 9:
-        k_const = straightening_rolls / 3.5 - 0.1
+    if data.straightening_rolls == 5:
+        k_const = data.straightening_rolls / 3.5 + 0.1
+    elif data.straightening_rolls == 7:
+        k_const = data.straightening_rolls / 3.5
+    elif data.straightening_rolls == 9:
+        k_const = data.straightening_rolls / 3.5 - 0.1
     else:
         k_const = 3
     
-    straightner_torque = (0.667 * yield_strength * material_width * (material_thickness ** 2) / cent_dist) * k_const * u_roll * 0.125 / ratio / efficiency
+    straightner_torque = (0.667 * data.yield_strength * data.material_width * (data.material_thickness ** 2) / cent_dist) * k_const * u_roll * 0.125 / ratio / efficiency
 
-    payoff_max_speed = req_max_fpm * fpm_buffer
+    payoff_max_speed = data.req_max_fpm * fpm_buffer
 
-    return {
+    results = run_sigma_five_calculation(data, spec_type)
+
+    calc_results = {
         "pinch_rolls": pinch_rolls,
         "straightner_torque": straightner_torque,
         "payoff_max_speed": payoff_max_speed,
     }
 
-def run_allen_bradley_calculation(data: AllenBradleyInput, spec_type="allen_bradley"):
+    final_results = results + calc_results
+
+    return final_results
+
+def run_allen_bradley_calculation(data: base_feed_params, spec_type="allen_bradley"):
     """
     Allen Bradley feed calculation service function.
     

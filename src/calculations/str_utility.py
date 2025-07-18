@@ -2,76 +2,19 @@
 Straightener Utility Calculation Module
 
 """
-from models import StrUtilityInput
-from pydantic import BaseModel
-from pydantic import Field
+from models import str_utility_input
 from math import pi, sqrt
 
 from utils.shared import (
     MOTOR_RPM, EFFICIENCY, PINCH_ROLL_QTY, MAT_LENGTH, CONT_ANGLE, FEED_RATE_BUFFER,
-    LEWIS_FACTORS, roll_str_backbend_state, rfq_state, JSON_FILE_PATH,
-    get_percent_material_yielded_check
+    LEWIS_FACTORS, roll_str_backbend_state, get_percent_material_yielded_check
 )
-
-from utils.json_util import load_json_list, append_to_json_list
 
 from utils.lookup_tables import (
     get_material_density, get_material_modulus, get_str_model_value, get_motor_inertia
 )
 
-# In-memory storage for str utility
-local_str_utility: dict = {}
-
-class StrUtilityOutput(BaseModel):
-    """
-    Model for the output of the Straightener Utility calculations.
-    """
-    requiredForce: float = Field(..., alias="required_force")
-    pinchRollDia: float = Field(..., alias="pinch_roll_dia")
-    strRollDia: float = Field(..., alias="str_roll_dia")
-    pinchRollReqTorque: float = Field(..., alias="pinch_roll_req_torque")
-    pinchRollRatedTorque: float = Field(..., alias="pinch_roll_rated_torque")
-    strRollReqTorque: float = Field(..., alias="str_roll_req_torque")
-    strRollRatedTorque: float = Field(..., alias="str_roll_rated_torque")
-    horsepowerRequired: float = Field(..., alias="horsepower_required")
-
-    centerDist: float = Field(..., alias="center_dist")
-    jackForceAvailable: float = Field(..., alias="jack_force_available")
-    maxRollDepth: float = Field(..., alias="max_roll_depth")
-    modulus: float = Field(..., alias="modulus")
-    pinchRollTeeth: float = Field(..., alias="pinch_roll_teeth")
-    pinchRollDP: float = Field(..., alias="pinch_roll_dp")
-    strRollTeeth: float = Field(..., alias="str_roll_teeth")
-    strRollDP: float = Field(..., alias="str_roll_dp")
-
-    contAngle: float = Field(..., alias="cont_angle")
-    faceWidth: float = Field(..., alias="face_width")
-    actualCoilWeight: float = Field(..., alias="actual_coil_weight")
-    coilOD: float = Field(..., alias="coil_od")
-    strTorque: float = Field(..., alias="str_torque")
-    accelerationTorque: float = Field(..., alias="acceleration_torque")
-    brakeTorque: float = Field(..., alias="brake_torque")
-    feedRateCheck: str = Field(..., alias="feed_rate_check")
-
-class StrUtilityCreate(BaseModel):
-    max_coil_weight: float = None
-    coil_id: float = None
-    coil_od: float = None
-    coil_width: float = None
-    material_thickness: float = None
-    yield_strength: float = None
-    material_type: str = None
-    str_model: str = None
-    str_width: float = None
-    horsepower: float = None
-    feed_rate: float = None
-    max_feed_rate: float = None
-    auto_brake_compensation: str = None
-    acceleration: float = None
-    num_str_rolls: int = None
-    # Add other fields as needed for creation
-
-def calculate_str_utility(data: StrUtilityInput):
+def calculate_str_utility(data: str_utility_input):
     """
     Calculate Straightener Utility values based on input data.
 
@@ -326,7 +269,7 @@ def calculate_str_utility(data: StrUtilityInput):
     else:
         feed_rate_check = "NOT OK"
     
-    results = {
+    return {
         "required_force": round(required_force, 3), 
         "pinch_roll_dia" : round(pinch_roll_dia, 3),
         "pinch_roll_req_torque" : round(pinch_roll_req_torque, 3),
@@ -354,15 +297,3 @@ def calculate_str_utility(data: StrUtilityInput):
         "brake_torque" : round(brake_torque, 3),
         "feed_rate_check" : feed_rate_check
     }
-
-    # Save the results to a JSON file
-    try:
-        append_to_json_list(
-            data={rfq_state.reference: results},
-            reference_number=rfq_state.reference,
-            directory=JSON_FILE_PATH
-        )
-    except:
-        return "ERROR: Str Utility calculations failed to save."
-
-    return results

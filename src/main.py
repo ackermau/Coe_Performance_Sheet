@@ -1,14 +1,11 @@
-import argparse
 import json
-from utils.database import get_default_repository
-from utils.shared import rfq_state
+import argparse
 from models import (
-    RFQ, FPMInput, MaterialSpecsPayload, TDDBHDInput, ReelDriveInput, StrUtilityInput, RollStrBackbendInput,
-    FeedInput, FeedWPullThruInput, AllenBradleyInput, HydShearInput, ZigZagInput
+    rfq_input, material_specs_input, tddbhd_input, reel_drive_input, StrUtilityInput, RollStrBackbendInput,
+    FeedInput, FeedWPullThruInput, AllenBradleyInput, HydShearInput
 )
-# Calculation imports
 from calculations.rfq import calculate_fpm
-from calculations.material_specs import calculate_specs
+from calculations.material_specs import calculate_variant
 from calculations.tddbhd import calculate_tbdbhd
 from calculations.reel_drive import calculate_reeldrive
 from calculations.str_utility import calculate_str_utility
@@ -18,106 +15,298 @@ from calculations.feeds.sigma_five_feed_with_pt import calculate_sigma_five_pt
 from calculations.feeds.allen_bradley_mpl_feed import calculate_allen_bradley
 from calculations.shears.single_rake_hyd_shear import calculate_single_rake_hyd_shear
 from calculations.shears.bow_tie_hyd_shear import calculate_bow_tie_hyd_shear
-from calculations.zig_zag import calculate_zig_zag
 
-# Map calculation names to (input model, calculation function)
-CALCULATIONS = [
-    ("rfq", RFQ, calculate_fpm),
-    ("material_specs", MaterialSpecsPayload, calculate_specs),
-    ("tddbhd", TDDBHDInput, calculate_tbdbhd),
-    ("reel_drive", ReelDriveInput, calculate_reeldrive),
-    ("str_utility", StrUtilityInput, calculate_str_utility),
-    ("roll_str_backbend", RollStrBackbendInput, calculate_roll_str_backbend),
-    ("sigma_five_feed", FeedInput, calculate_sigma_five),
-    ("sigma_five_feed_with_pt", FeedWPullThruInput, calculate_sigma_five_pt),
-    ("allen_bradley_mpl_feed", AllenBradleyInput, calculate_allen_bradley),
-    ("single_rake_hyd_shear", HydShearInput, calculate_single_rake_hyd_shear),
-    ("bow_tie_hyd_shear", HydShearInput, calculate_bow_tie_hyd_shear),
-    ("zig_zag", ZigZagInput, calculate_zig_zag),
-]
+# --- Helper functions ---
+def str2bool(val):
+    if isinstance(val, bool):
+        return val
+    if isinstance(val, (int, float)):
+        return bool(val)
+    if val is None:
+        return None
+    return str(val).strip().lower() in ("yes", "true", "1", "y")
 
-def prompt_for_data(model_class, reference=None, input_data=None):
-    data = {}
-    for field in model_class.__fields__:
-        if field == "reference" and reference is not None:
-            data[field] = reference
-            continue
-        if input_data and field in input_data:
-            data[field] = input_data[field]
-            continue
-        val = input(f"Enter value for {field} (leave blank for None): ")
-        if val == "":
-            data[field] = None
+def get_nested(d, keys, default=None):
+    for k in keys:
+        if isinstance(d, dict) and k in d:
+            d = d[k]
         else:
-            typ = model_class.__fields__[field].type_
-            try:
-                if typ == int:
-                    data[field] = int(val)
-                elif typ == float:
-                    data[field] = float(val)
-                elif typ == bool:
-                    data[field] = val.lower() in ("1", "true", "yes", "y")
-                else:
-                    data[field] = val
-            except Exception:
-                data[field] = val
-    return model_class(**data)
+            return default
+    return d
 
+def parse_float(val):
+    try:
+        return float(val)
+    except (TypeError, ValueError):
+        return None
+
+def parse_int(val):
+    try:
+        return int(val)
+    except (TypeError, ValueError):
+        return None
+
+def parse_str(val):
+    if val is None:
+        return None
+    return str(val)
+
+# --- Main mapping and calculation logic ---
 def main():
-    parser = argparse.ArgumentParser(description="COE Performance Sheet Main Entrypoint")
-    parser.add_argument("reference", type=str, help="Reference number")
-    parser.add_argument("--action", type=str, choices=["upsert", "get", "delete"], default="upsert", help="CRUD action to perform")
-    parser.add_argument("--input", type=str, help="Path to JSON file with input data")
+    parser = argparse.ArgumentParser(description="COE Performance Sheet JSON Calculator")
+    parser.add_argument("--input", type=str, required=True, help="Path to input JSON file")
     args = parser.parse_args()
-    reference = args.reference
-    rfq_state.reference = reference
-    repo = get_default_repository()
 
-    input_data = None
-    if args.input:
-        with open(args.input) as f:
-            input_data = json.load(f)
+    with open(args.input, "r") as f:
+        data = json.load(f)
 
-    if args.action == "get":
-        result = repo.get(reference)
-        if result:
-            print(f"Data for reference {reference}:")
-            print(result)
-        else:
-            print(f"No data found for reference {reference}.")
-        return
+    # --- RFQ ---
+    rfq_data = {
+        "feed_length": parse_float(get_nested(data, ["feed", "average", "length"])),
+        "spm": parse_float(get_nested(data, ["feed", "average", "spm"])),
+    }
+    rfq_obj = rfq_input(**rfq_data)
+    rfq_result = calculate_fpm(rfq_obj)
 
-    if args.action == "delete":
-        deleted = repo.delete(reference)
-        if deleted:
-            print(f"Deleted data for reference {reference}.")
-        else:
-            print(f"No data found for reference {reference} to delete.")
-        return
+    # --- Material Specs ---
+    mat_data = {
+        'material_type': get_nested(data, ['scenario', 'materialType']),
+        'material_thickness': parse_float(get_nested(data, ['scenario', 'materialThickness'])),
+        'yield_strength': parse_float(get_nested(data, ['scenario', 'maxYieldStrength'])),
+        'coil_width': parse_float(get_nested(data, ['scenario', 'coilWidth'])),
+        'coil_weight': parse_float(get_nested(data, ['coil', 'weight'])),
+        'coil_id': parse_float(get_nested(data, ['coil', 'coilID'])),
+        'feed_direction': get_nested(data, ['feed', 'direction']),
+        'controls_level': get_nested(data, ['feed', 'controlsLevel']),
+        'type_of_line': get_nested(data, ['feed', 'typeOfLine']),
+        'feed_controls': get_nested(data, ['feed', 'controls']),
+        'passline': get_nested(data, ['feed', 'passline']),
+        'selected_roll': None,  # Not present
+        'reel_backplate': get_nested(data, ['reel', 'backplate', 'diameter']),
+        'reel_style': get_nested(data, ['reel', 'style']),
+        'light_gauge_non_marking': str2bool(get_nested(data, ['feed', 'lightGuageNonMarking'])),
+        'non_marking': str2bool(get_nested(data, ['feed', 'nonMarking'])),
+    }
+    mat_obj = MaterialSpecsPayload(**mat_data)
+    mat_result = calculate_variant(mat_obj)
 
-    # Default: upsert (create or update all calculations)
-    existing = repo.get(reference)
-    if existing:
-        print(f"Found existing data for reference {reference}. Updating calculations...")
-        for name, model_class, calc_func in CALCULATIONS:
-            print(f"Updating {name}...")
-            data_dict = existing['data'].get(name)
-            if data_dict:
-                obj = model_class(**data_dict)
-            else:
-                obj = prompt_for_data(model_class, reference, input_data.get(name) if input_data else None)
-            result = calc_func(obj)
-            repo.upsert(reference, {name: result})
-            print(f"{name} updated.")
+    # --- TDDBHD ---
+    tddbhd_data = {
+        'type_of_line': get_nested(data, ['feed', 'typeOfLine']),
+        'reel_drive_tqempty': None,  # Not present
+        'motor_hp': parse_float(get_nested(data, ['reel', 'horsepower'])),
+        'yield_strength': parse_float(get_nested(data, ['scenario', 'maxYieldStrength'])),
+        'thickness': parse_float(get_nested(data, ['scenario', 'materialThickness'])),
+        'width': parse_float(get_nested(data, ['scenario', 'coilWidth'])),
+        'coil_id': parse_float(get_nested(data, ['coil', 'coilID'])),
+        'coil_od': parse_float(get_nested(data, ['scenario', 'calculatedCoilOD'])),
+        'coil_weight': parse_float(get_nested(data, ['coil', 'weight'])),
+        'decel': parse_float(get_nested(data, ['reel', 'requiredDecelRate'])),
+        'friction': parse_float(get_nested(data, ['reel', 'coefficientOfFriction'])),
+        'air_pressure': parse_float(get_nested(data, ['reel', 'airPressureAvailable'])),
+        'brake_qty': parse_int(get_nested(data, ['reel', 'dragBrake', 'quantity'])),
+        'brake_model': get_nested(data, ['reel', 'dragBrake', 'model']),
+        'cylinder': get_nested(data, ['reel', 'holddown', 'assy']),
+        'hold_down_assy': get_nested(data, ['reel', 'holddown', 'assy']),
+        'hyd_threading_drive': get_nested(data, ['reel', 'threadingDrive', 'hydThreadingDrive']),
+        'air_clutch': get_nested(data, ['reel', 'threadingDrive', 'airClutch']),
+        'material_type': get_nested(data, ['scenario', 'materialType']),
+        'reel_model': get_nested(data, ['reel', 'model']),
+        'reel_width': parse_float(get_nested(data, ['reel', 'width'])),
+        'backplate_diameter': parse_float(get_nested(data, ['reel', 'backplate', 'diameter'])),
+    }
+    tddbhd_obj = TDDBHDInput(**tddbhd_data)
+    tddbhd_result = calculate_tbdbhd(tddbhd_obj)
+
+    # --- Reel Drive ---
+    reel_drive_data = {
+        'model': get_nested(data, ['reel', 'model']),
+        'material_type': get_nested(data, ['scenario', 'materialType']),
+        'coil_id': parse_float(get_nested(data, ['coil', 'coilID'])),
+        'coil_od': parse_float(get_nested(data, ['scenario', 'calculatedCoilOD'])),
+        'reel_width': parse_float(get_nested(data, ['reel', 'width'])),
+        'backplate_diameter': parse_float(get_nested(data, ['reel', 'backplate', 'diameter'])),
+        'motor_hp': parse_float(get_nested(data, ['reel', 'horsepower'])),
+        'type_of_line': get_nested(data, ['feed', 'typeOfLine']),
+        'required_max_fpm': parse_float(get_nested(data, ['feed', 'maximunVelocity'])),
+    }
+    reel_drive_obj = ReelDriveInput(**reel_drive_data)
+    reel_drive_result = calculate_reeldrive(reel_drive_obj)
+
+    # --- Str Utility ---
+    str_util_data = {
+        'max_coil_weight': parse_float(get_nested(data, ['coil', 'maxCoilWeight'])),
+        'coil_id': parse_float(get_nested(data, ['coil', 'coilID'])),
+        'coil_od': parse_float(get_nested(data, ['scenario', 'calculatedCoilOD'])),
+        'coil_width': parse_float(get_nested(data, ['coil', 'maxCoilWidth'])),
+        'material_thickness': parse_float(get_nested(data, ['scenario', 'materialThickness'])),
+        'yield_strength': parse_float(get_nested(data, ['scenario', 'maxYieldStrength'])),
+        'material_type': get_nested(data, ['scenario', 'materialType']),
+        'str_model': get_nested(data, ['straightener', 'model']),
+        'str_width': parse_float(get_nested(data, ['straightener', 'width'])),
+        'horsepower': parse_float(get_nested(data, ['straightener', 'horsepower'])),
+        'feed_rate': parse_float(get_nested(data, ['straightener', 'feedRate'])),
+        'max_feed_rate': parse_float(get_nested(data, ['straightener', 'feedRate'])),
+        'auto_brake_compensation': get_nested(data, ['straightener', 'autoBrakeCompensation']),
+        'acceleration': parse_float(get_nested(data, ['straightener', 'acceleration'])),
+        'num_str_rolls': parse_int(get_nested(data, ['straightener', 'rolls', 'numberOfRolls'])),
+    }
+    str_util_obj = StrUtilityInput(**str_util_data)
+    str_util_result = calculate_str_utility(str_util_obj)
+
+    # --- Roll Str Backbend ---
+    roll_str_backbend_data = {
+        'yield_strength': parse_float(get_nested(data, ['scenario', 'maxYieldStrength'])),
+        'thickness': parse_float(get_nested(data, ['scenario', 'materialThickness'])),
+        'width': parse_float(get_nested(data, ['scenario', 'coilWidth'])),
+        'material_type': get_nested(data, ['scenario', 'materialType']),
+        'str_model': get_nested(data, ['straightener', 'model']),
+        'num_str_rolls': parse_int(get_nested(data, ['straightener', 'rolls', 'numberOfRolls'])),
+        'calc_const': None,  # Not present
+    }
+    roll_str_backbend_obj = RollStrBackbendInput(**roll_str_backbend_data)
+    roll_str_backbend_result = calculate_roll_str_backbend(roll_str_backbend_obj)
+
+    # --- Feed (choose which) ---
+    # NOTE: Feed calculation functions now return additional keys such as:
+    #   'pinch_rolls', 'straightner_torque', 'payoff_max_speed',
+    #   'table_values', 'peak_torque', 'rms_torque_fa1', 'rms_torque_fa2', etc.
+    # These will appear in the 'feed' section of the output JSON.
+    feed_model = get_nested(data, ['feed', 'model'], '').lower()
+    is_pull_thru = str2bool(get_nested(data, ['feed', 'pullThru', 'isPullThru']))
+    feed_type = None
+    feed_result = None
+    if 'sigma' in feed_model and is_pull_thru:
+        feed_type = 'sigma_five_feed_with_pt'
+        feed_data = {
+            'feed_model': get_nested(data, ['feed', 'model']),
+            'width': parse_int(get_nested(data, ['feed', 'machineWidth'])),
+            'loop_pit': get_nested(data, ['feed', 'loopPit']),
+            'material_type': get_nested(data, ['scenario', 'materialType']),
+            'application': get_nested(data, ['feed', 'application']),
+            'type_of_line': get_nested(data, ['feed', 'typeOfLine']),
+            'roll_width': get_nested(data, ['feed', 'machineWidth']),
+            'feed_rate': parse_float(get_nested(data, ['feed', 'average', 'fpm'])),
+            'material_width': parse_int(get_nested(data, ['scenario', 'coilWidth'])),
+            'material_thickness': parse_float(get_nested(data, ['scenario', 'materialThickness'])),
+            'press_bed_length': parse_int(get_nested(data, ['press', 'bedLength'])),
+            'friction_in_die': 0,  # Not present
+            'acceleration_rate': parse_float(get_nested(data, ['feed', 'accelerationRate'])),
+            'chart_min_length': parse_float(get_nested(data, ['feed', 'chartMinLength'])),
+            'length_increment': parse_float(get_nested(data, ['feed', 'lengthIncrement'])),
+            'feed_angle_1': parse_float(get_nested(data, ['feed', 'feedAngle1'])),
+            'feed_angle_2': parse_float(get_nested(data, ['feed', 'feedAngle2'])),
+            'straightening_rolls': parse_int(get_nested(data, ['feed', 'pullThru', 'straightenerRolls'])),
+            'yield_strength': parse_float(get_nested(data, ['scenario', 'maxYieldStrength'])),
+            'str_pinch_rolls': get_nested(data, ['feed', 'pullThru', 'pinchRolls']),
+            'req_max_fpm': parse_float(get_nested(data, ['feed', 'maximunVelocity'])),
+        }
+        feed_obj = FeedWPullThruInput(**feed_data)
+        feed_result = calculate_sigma_five_pt(feed_obj)
+    elif 'sigma' in feed_model:
+        feed_type = 'sigma_five_feed'
+        feed_data = {
+            'feed_model': get_nested(data, ['feed', 'model']),
+            'width': parse_int(get_nested(data, ['feed', 'machineWidth'])),
+            'loop_pit': get_nested(data, ['feed', 'loopPit']),
+            'material_type': get_nested(data, ['scenario', 'materialType']),
+            'application': get_nested(data, ['feed', 'application']),
+            'type_of_line': get_nested(data, ['feed', 'typeOfLine']),
+            'roll_width': get_nested(data, ['feed', 'machineWidth']),
+            'feed_rate': parse_float(get_nested(data, ['feed', 'average', 'fpm'])),
+            'material_width': parse_int(get_nested(data, ['scenario', 'coilWidth'])),
+            'material_thickness': parse_float(get_nested(data, ['scenario', 'materialThickness'])),
+            'press_bed_length': parse_int(get_nested(data, ['press', 'bedLength'])),
+            'friction_in_die': 0,  # Not present
+            'acceleration_rate': parse_float(get_nested(data, ['feed', 'accelerationRate'])),
+            'chart_min_length': parse_float(get_nested(data, ['feed', 'chartMinLength'])),
+            'length_increment': parse_float(get_nested(data, ['feed', 'lengthIncrement'])),
+            'feed_angle_1': parse_float(get_nested(data, ['feed', 'feedAngle1'])),
+            'feed_angle_2': parse_float(get_nested(data, ['feed', 'feedAngle2'])),
+        }
+        feed_obj = FeedInput(**feed_data)
+        feed_result = calculate_sigma_five(feed_obj)
+    elif 'allen' in feed_model or 'mpl' in feed_model:
+        feed_type = 'allen_bradley_mpl_feed'
+        feed_data = {
+            'feed_model': get_nested(data, ['feed', 'model']),
+            'width': parse_int(get_nested(data, ['feed', 'machineWidth'])),
+            'loop_pit': get_nested(data, ['feed', 'loopPit']),
+            'material_type': get_nested(data, ['scenario', 'materialType']),
+            'application': get_nested(data, ['feed', 'application']),
+            'type_of_line': get_nested(data, ['feed', 'typeOfLine']),
+            'roll_width': get_nested(data, ['feed', 'machineWidth']),
+            'feed_rate': parse_float(get_nested(data, ['feed', 'average', 'fpm'])),
+            'material_width': parse_int(get_nested(data, ['scenario', 'coilWidth'])),
+            'material_thickness': parse_float(get_nested(data, ['scenario', 'materialThickness'])),
+            'press_bed_length': parse_int(get_nested(data, ['press', 'bedLength'])),
+            'friction_in_die': 0,  # Not present
+            'acceleration_rate': parse_float(get_nested(data, ['feed', 'accelerationRate'])),
+            'chart_min_length': parse_float(get_nested(data, ['feed', 'chartMinLength'])),
+            'length_increment': parse_float(get_nested(data, ['feed', 'lengthIncrement'])),
+            'feed_angle_1': parse_float(get_nested(data, ['feed', 'feedAngle1'])),
+            'feed_angle_2': parse_float(get_nested(data, ['feed', 'feedAngle2'])),
+        }
+        feed_obj = AllenBradleyInput(**feed_data)
+        feed_result = calculate_allen_bradley(feed_obj)
     else:
-        print(f"No data found for reference {reference}. Creating new entry...")
-        for name, model_class, calc_func in CALCULATIONS:
-            print(f"Creating {name}...")
-            obj = prompt_for_data(model_class, reference, input_data.get(name) if input_data else None)
-            result = calc_func(obj)
-            repo.upsert(reference, {name: result})
-            print(f"{name} created.")
-    print("All calculations complete.")
+        feed_result = None
+
+    # --- Shear (choose which) ---
+    shear_model = get_nested(data, ['shear', 'model'], '').lower()
+    shear_result = None
+    if shear_model == 'single_rake':
+        shear_data = {
+            'max_material_thickness': parse_float(get_nested(data, ['scenario', 'materialThickness'])),
+            'coil_width': parse_float(get_nested(data, ['scenario', 'coilWidth'])),
+            'material_tensile': parse_float(get_nested(data, ['shear', 'strength'])),
+            'rake_of_blade': parse_float(get_nested(data, ['shear', 'blade', 'rakeOfBladePerFoot'])),
+            'overlap': parse_float(get_nested(data, ['shear', 'blade', 'overlap'])),
+            'blade_opening': parse_float(get_nested(data, ['shear', 'blade', 'bladeOpening'])),
+            'percent_of_penetration': parse_float(get_nested(data, ['shear', 'blade', 'percentOfPenetration'])),
+            'bore_size': parse_float(get_nested(data, ['shear', 'cylinder', 'boreSize'])),
+            'rod_dia': parse_float(get_nested(data, ['shear', 'cylinder', 'rodDiameter'])),
+            'stroke': parse_float(get_nested(data, ['shear', 'cylinder', 'stroke'])),
+            'pressure': parse_float(get_nested(data, ['shear', 'hydraulic', 'pressure'])),
+            'time_for_down_stroke': parse_float(get_nested(data, ['shear', 'time', 'forDownwardStroke'])),
+            'dwell_time': parse_float(get_nested(data, ['shear', 'time', 'dwellTime'])),
+        }
+        shear_obj = HydShearInput(**shear_data)
+        shear_result = calculate_single_rake_hyd_shear(shear_obj)
+    elif shear_model == 'bow_tie':
+        shear_data = {
+            'max_material_thickness': parse_float(get_nested(data, ['scenario', 'materialThickness'])),
+            'coil_width': parse_float(get_nested(data, ['scenario', 'coilWidth'])),
+            'material_tensile': parse_float(get_nested(data, ['shear', 'strength'])),
+            'rake_of_blade': parse_float(get_nested(data, ['shear', 'blade', 'rakeOfBladePerFoot'])),
+            'overlap': parse_float(get_nested(data, ['shear', 'blade', 'overlap'])),
+            'blade_opening': parse_float(get_nested(data, ['shear', 'blade', 'bladeOpening'])),
+            'percent_of_penetration': parse_float(get_nested(data, ['shear', 'blade', 'percentOfPenetration'])),
+            'bore_size': parse_float(get_nested(data, ['shear', 'cylinder', 'boreSize'])),
+            'rod_dia': parse_float(get_nested(data, ['shear', 'cylinder', 'rodDiameter'])),
+            'stroke': parse_float(get_nested(data, ['shear', 'cylinder', 'stroke'])),
+            'pressure': parse_float(get_nested(data, ['shear', 'hydraulic', 'pressure'])),
+            'time_for_down_stroke': parse_float(get_nested(data, ['shear', 'time', 'forDownwardStroke'])),
+            'dwell_time': parse_float(get_nested(data, ['shear', 'time', 'dwellTime'])),
+        }
+        shear_obj = HydShearInput(**shear_data)
+        shear_result = calculate_bow_tie_hyd_shear(shear_obj)
+    # If model is empty or not recognized, skip shear
+
+    # --- Output ---
+    output = {
+        'rfq': rfq_result,
+        'material_specs': mat_result,
+        'tddbhd': tddbhd_result,
+        'reel_drive': reel_drive_result,
+        'str_utility': str_util_result,
+        'roll_str_backbend': roll_str_backbend_result,
+        'feed': feed_result,
+    }
+    if shear_result is not None:
+        output['shear'] = shear_result
+
+    print(json.dumps(output, indent=2, default=str))
 
 if __name__ == "__main__":
     main() 

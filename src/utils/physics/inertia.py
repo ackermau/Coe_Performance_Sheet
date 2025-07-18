@@ -2,7 +2,7 @@
 Inertia utilities for physics-based calculations.
 
 """
-from models import InertiaInput
+from models import inertia_input
 from math import pi
 
 import json
@@ -152,7 +152,7 @@ def calculate_inertia(lbs: float, o_dia: float, i_dia: float):
     """
     return ((lbs / 386.4) * (o_dia ** 2 + i_dia ** 2)) / 8
 
-def compute_refl_inertia(data: InertiaInput, qty: int = 1, length: float = 0, o_dia: float = 0, i_dia: float = 0, density: float = 0, ratio: float = 0):
+def compute_refl_inertia(data: inertia_input, qty: int = 1, length: float = 0, o_dia: float = 0, i_dia: float = 0, density: float = 0, ratio: float = 0):
     """
     Calculate reflected inertia for a given feed model.
     """
@@ -166,7 +166,7 @@ def compute_refl_inertia(data: InertiaInput, qty: int = 1, length: float = 0, o_
     except ValueError:
         raise ValueError("Invalid feed model")
 
-def calculate_total_refl_inertia(data: InertiaInput):
+def calculate_total_refl_inertia(data: inertia_input):
     try:
         if data.feed_model in feed_model_lookup:
             feed_data = feed_model_lookup[data.feed_model]

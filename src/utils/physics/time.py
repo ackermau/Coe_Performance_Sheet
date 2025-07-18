@@ -2,10 +2,10 @@
 Time utilities for physics-based calculations.
 
 """
-from models import TimeInput
+from models import time_input
 from math import sqrt, floor
 
-def calculate_init_values(data: TimeInput, feed_angle: int = 0):
+def calculate_init_values(data: time_input, feed_angle: int = 0):
     """
     Calculate initial values based on the input data.
 
@@ -56,7 +56,7 @@ def calculate_init_values(data: TimeInput, feed_angle: int = 0):
         "init_rms_torque": rms_torque
     }
 
-def calculate_values(data: TimeInput, init_values: dict, feed_angle: int = 0, index: int = 1):
+def calculate_values(data: time_input, init_values: dict, feed_angle: int = 0, index: int = 1):
     """
     Calculate shorter values based on the initial values and input data.
     """
@@ -107,7 +107,7 @@ def calculate_values(data: TimeInput, init_values: dict, feed_angle: int = 0, in
         "rms_torque": rms_torque
     }
 
-def calculate_feed_time(data: TimeInput, feed_angle: int = 0):
+def calculate_feed_time(data: time_input, feed_angle: int = 0):
     """
     Calculate the feed time based on the input data.
     """
@@ -159,7 +159,7 @@ def calculate_feed_time(data: TimeInput, feed_angle: int = 0):
 
     return lengths
 
-def calculate_time(data: TimeInput):
+def calculate_time(data: time_input):
     try:
         feed_angle_1_values = calculate_feed_time(data, data.feed_angle_1)
         feed_angle_2_values = calculate_feed_time(data, data.feed_angle_2)

@@ -3,10 +3,10 @@ Hydraulic Shear Calculations Service
 
 """
 
-from models import HydShearInput
+from models import hyd_shear_input
 from math import pi, atan, tan, radians
 
-def calculate_hyd_shear(data: HydShearInput, spec_type: str = "single_rake"):
+def calculate_hyd_shear(data: hyd_shear_input, spec_type: str = "single_rake"):
     """
     Calculate hydraulic shear parameters based on input data.
 

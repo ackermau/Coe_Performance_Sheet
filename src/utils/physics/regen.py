@@ -2,9 +2,9 @@
 Regenerative utilities for physics-based calculations.
 
 """
-from models import RegenInput
+from models import regen_input
 
-def calculate_regen(data: RegenInput):
+def calculate_regen(data: regen_input):
     """
     Calculate regenerative energy based on input parameters.
 

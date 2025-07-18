@@ -5,7 +5,6 @@ Utility functions for handling JSON files with labeled data.
 
 import json
 import os
-from typing import Any, Optional
 
 
 def append_to_json_list(data: dict, reference_number: str, directory: str = "./outputs") -> str:

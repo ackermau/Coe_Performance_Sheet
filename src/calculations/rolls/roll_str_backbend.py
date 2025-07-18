@@ -2,36 +2,19 @@
 Roll Str Backbend Calculation Module
 
 """
-from models import RollStrBackbendInput
+from models import roll_str_backbend_input
 from math import sqrt
-from pydantic import BaseModel
 
 from utils.shared import (
-    CREEP_FACTOR, RADIUS_OFF_COIL, roll_str_backbend_state,
-    rfq_state, JSON_FILE_PATH
+    CREEP_FACTOR, RADIUS_OFF_COIL, roll_str_backbend_state
 )
-
-from utils.json_util import load_json_list, append_to_json_list
 
 from utils.lookup_tables import (
     get_str_model_value,
     get_material_modulus,
-);
+)
 
-# In-memory storage for roll str backbend
-local_roll_str_backbend: dict = {}
-
-class RollStrBackbendCreate(BaseModel):
-    yield_strength: float = None
-    thickness: float = None
-    width: float = None
-    material_type: str = None
-    str_model: str = None
-    num_str_rolls: int = None
-    calc_const: float = None
-    # Add other fields as needed for creation
-
-def calculate_roll_str_backbend(data: RollStrBackbendInput):
+def calculate_roll_str_backbend(data: roll_str_backbend_input):
     """
     Calculate roll str backbend parameters.
 
@@ -282,15 +265,5 @@ def calculate_roll_str_backbend(data: RollStrBackbendInput):
         "percent_yield_last": percent_yield_last,
         "number_of_yield_strains_last": number_of_yield_strains_last,
     }
-
-    # Save the results to a JSON file
-    try:
-        append_to_json_list(
-            data={rfq_state.reference: result},
-            reference_number=rfq_state.reference,
-            directory=JSON_FILE_PATH
-        )
-    except:
-        return "ERROR: Roll Str Backbend calculations failed to save."
 
     return result
