@@ -43,7 +43,7 @@
       "inertia": "500",
       "reflInertia": "450"
     },
-    "scenario": {
+    "material": {
       "materialThickness": "2.0",
       "materialDensity": "7.85",
       "coilWidth": "1000",
@@ -363,6 +363,7 @@
       },
       "holddown": {
         "assy": "Yes",
+        "cylinder": "Hydraulic",
         "cylinderPressure": "100",
         "force": {
           "required": "200",

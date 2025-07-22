@@ -39,18 +39,58 @@ def calculate_tbdbhd(data: tddbhd_input):
     # density, max weight, friction, modulus, cylinder bore, holddown pressure, holddown force available
     try:
         density_lookup = get_material_density(data.material_type)
+    except Exception as e:
+        return f"ERROR: get_material_density failed for '{data.material_type}': {str(e)}"
+    
+    try:
         reel_max_weight = get_reel_max_weight(data.reel_model)
+    except Exception as e:
+        return f"ERROR: get_reel_max_weight failed for '{data.reel_model}': {str(e)}"
+    
+    try:
         modulus_lookup = get_material_modulus(data.material_type)
+    except Exception as e:
+        return f"ERROR: get_material_modulus failed for '{data.material_type}': {str(e)}"
+    
+    try:
         cylinder_bore_lookup = get_cylinder_bore(data.brake_model)
-        holddown_matrix_key = get_hold_down_matrix_label(data.reel_model ,data.hold_down_assy, data.cylinder)
+    except Exception as e:
+        return f"ERROR: get_cylinder_bore failed for '{data.brake_model}': {str(e)}"
+    
+    try:
+        holddown_matrix_key = get_hold_down_matrix_label(data.reel_model, data.hold_down_assy, data.cylinder)
+    except Exception as e:
+        return f"ERROR: get_hold_down_matrix_label failed for reel='{data.reel_model}', assy='{data.hold_down_assy}', cylinder='{data.cylinder}': {str(e)}"
+    
+    try:
         holddown_pressure_calc = get_pressure_psi(holddown_matrix_key, data.air_pressure)
+    except Exception as e:
+        return f"ERROR: get_pressure_psi failed for key='{holddown_matrix_key}', pressure='{data.air_pressure}': {str(e)}"
+    
+    try:
         hold_down_force_available = get_holddown_force_available(holddown_matrix_key, data.air_pressure)
+    except Exception as e:
+        return f"ERROR: get_holddown_force_available failed for key='{holddown_matrix_key}', pressure='{data.air_pressure}': {str(e)}"
+    
+    try:
         min_material_width_lookup = get_min_material_width(holddown_matrix_key)
+    except Exception as e:
+        return f"ERROR: get_min_material_width failed for key='{holddown_matrix_key}': {str(e)}"
+    
+    try:
         reel_type_lookup = get_type_of_line(data.type_of_line)
+    except Exception as e:
+        return f"ERROR: get_type_of_line failed for '{data.type_of_line}': {str(e)}"
+    
+    try:
         drive_key_lookup = get_drive_key(data.reel_model, data.air_clutch, data.hyd_threading_drive)
+    except Exception as e:
+        return f"ERROR: get_drive_key failed for reel='{data.reel_model}', clutch='{data.air_clutch}', drive='{data.hyd_threading_drive}': {str(e)}"
+    
+    try:
         drive_torque_lookup = get_drive_torque(drive_key_lookup)
-    except:
-        return "ERROR: TDDBHD lookups failed."
+    except Exception as e:
+        return f"ERROR: get_drive_torque failed for key='{drive_key_lookup}': {str(e)}"
 
     density = density_lookup
     max_weight = reel_max_weight

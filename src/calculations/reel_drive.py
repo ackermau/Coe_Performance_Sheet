@@ -65,7 +65,7 @@ def calc_mandrel_specs(
     return mandrel_dia, mandrel_length, mandrel_weight, mandrel_inertia, mandrel_refl 
 
 def calc_backplate_specs(
-        reel: Dict[str, Any], 
+        backplate_diameter: float, 
         total_ratio: float, 
         mandrel_dia: float
     ) -> Tuple[float, float, float]:
@@ -73,7 +73,7 @@ def calc_backplate_specs(
     Calculate backplate specifications including weight, inertia, and reflected inertia.
     
     Args:
-        reel (Dict[str, Any]): Reel dimensions dictionary from lookup table
+        backplate_diameter (float): Backplate diameter in inches
         total_ratio (float): Total gear ratio from motor to mandrel
         mandrel_dia (float): Mandrel diameter in inches (used for inertia calculation)
         
@@ -85,7 +85,7 @@ def calc_backplate_specs(
             
     """
     # Calculate backplate weight as circular disk
-    backplate_weight = ((reel["backplate_diameter"]/2)**2) * pi * 0.283
+    backplate_weight = ((backplate_diameter/2)**2) * pi * 0.283
     
     # Calculate moment of inertia using mandrel diameter as effective radius
     backplate_inertia = backplate_weight / 32.3 / 2 * ((mandrel_dia/2)**2 / 144) * 12
@@ -235,7 +235,7 @@ def calculate_reeldrive(data: reel_drive_input) -> Dict[str, Any]:
 
     # Calculate backplate specifications
     backplate_weight, backplate_inertia, backplate_refl = calc_backplate_specs(
-        reel, total_ratio, mandrel_dia
+        data.backplate_diameter, total_ratio, mandrel_dia
     )
     
     # Calculate coil specifications

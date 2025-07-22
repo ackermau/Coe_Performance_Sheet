@@ -217,7 +217,7 @@ class hyd_shear_input(BaseModel):
 # ZigZag Calculation Models
 ######################################################
 # ZigZagInput is used to define the input structure for zigzag calculations
-class ZigZagInput(BaseModel):
+class zig_zag_input(BaseModel):
     material_width: float
     material_thickness: float
     material_length_flat: float

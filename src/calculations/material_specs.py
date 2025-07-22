@@ -55,10 +55,10 @@ def calculate_variant(data: material_specs_input):
     else:
         min_loop_length = 0
 
-    coil_weight = to_float(coil_weight)
+    coil_weight = to_float(data.coil_weight)
     density = to_float(density)
-    coil_width = to_float(coil_width)
-    coil_id = to_float(coil_id)
+    coil_width = to_float(data.coil_width)
+    coil_id = to_float(data.coil_id)
 
     # Calculate coil OD based on weight, density, width, and inner diameter
     # Formula: OD = 2 * sqrt((weight/(density * π * width)) + (ID/2)²)
