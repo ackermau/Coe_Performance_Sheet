@@ -146,6 +146,7 @@
   "straightener": {
     "model": "CPPS-306",
     "rolls": {
+      "typeOfRoll": "7 Roll Str. Backbend",
       "straighteningRolls": "7",
       "numberOfRolls": "7",
       "backupRolls": "",
@@ -300,6 +301,7 @@
       "reflInertia": ""
     },
     "backplate": {
+      "type": "Standard Backplate",
       "diameter": "27",
       "thickness": "",
       "weight": "",

@@ -54,11 +54,14 @@ def parse_str(val):
 # --- Main mapping and calculation logic ---
 def main():
     parser = argparse.ArgumentParser(description="COE Performance Sheet JSON Calculator")
-    parser.add_argument("--input", type=str, required=True, help="Path to input JSON file")
+    parser.add_argument("--json", type=str, required=True, help="JSON data as string")
     args = parser.parse_args()
 
-    with open(args.input, "r") as f:
-        data = json.load(f)
+    # Parse JSON string
+    try:
+        data = json.loads(args.json)
+    except json.JSONDecodeError as e:
+        parser.error(f"Invalid JSON data: {e}")
 
     # --- RFQ (calculate for average, min, and max) ---
     rfq_average_data = {
