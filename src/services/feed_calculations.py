@@ -98,7 +98,7 @@ def run_sigma_five_calculation(data: base_feed_params, spec_type="sigma_five"):
     max_vel = max_motor_rpm / ratio * (l_roll * pi / 720) * 60
 
     # Frictional Torque
-    if spec_type == "sigma_five":
+    if "sigma_five" in spec_type:
         frictional_torque = (u_roll * 0.5 * data.friction_in_die) / ratio + friction_torque
     else:
         frictional_torque = (u_roll * 0.5 * data.friction_in_die) / ratio
@@ -129,6 +129,14 @@ def run_sigma_five_calculation(data: base_feed_params, spec_type="sigma_five"):
 
     # Match calculation
     match = refl_inertia / motor_inertia
+
+    if match < 10:
+        match_check = "OK"
+    elif match < 12:
+        match_check = "CAUTION"
+    else:
+        match_check = "EXCESS"
+
     if match < 10:
         settle_time = 0.035
     else:
@@ -148,8 +156,8 @@ def run_sigma_five_calculation(data: base_feed_params, spec_type="sigma_five"):
         # Str Max SP Inch
         str_max_sp_inch = str_max_sp * 12
     else:
-        str_max_sp = 0
-        str_max_sp_inch = 0
+        str_max_sp = 0.0
+        str_max_sp_inch = 0.0
 
     # Time calculations
     time = time_input(
@@ -209,8 +217,18 @@ def run_sigma_five_calculation(data: base_feed_params, spec_type="sigma_five"):
     # Acceleration Torque
     acceleration_torque = (((refl_inertia * rpm) / (9.55 * feed_angle_1_values[0]["acceleration_time"])) / efficiency) + ((motor_inertia * rpm) / (9.55 * feed_angle_1_values[0]["acceleration_time"]))
 
+    if acceleration_torque < motor_peak_torque:
+        acceleration_torque_check = "OK"
+    else:
+        acceleration_torque_check = "EXCESS"
+
     # Peak Torque
     peak_torque = acceleration_torque + frictional_torque + loop_torque
+
+    if motor_peak_torque > peak_torque:
+        peak_torque_check = "OK"
+    else:
+        peak_torque_check = "EXCESS"
 
     # RMS Torques
     if spec_type == "sigma_five_pt":
@@ -220,14 +238,24 @@ def run_sigma_five_calculation(data: base_feed_params, spec_type="sigma_five"):
         rms_torque_fa1 = max(rms_torque_fa1_list) if rms_torque_fa1_list else 0
         rms_torque_fa2 = max(rms_torque_fa2_list) if rms_torque_fa2_list else 0
     else:    
-        rms_torque_fa1 = sqrt(((peak_torque ** 2 * feed_angle_1_values[0]["acceleration_time"]) + 
-                                (acceleration_torque ** 2 * feed_angle_1_values[0]["acceleration_time"]) + 
-                                (settle_torque ** 2 * settle_time) + (loop_torque ** 2 * feed_angle_1_values[0]["dwell_time"])) / 
+        rms_torque_fa1 = sqrt((((peak_torque ** 2) * feed_angle_1_values[0]["acceleration_time"]) + 
+                                ((acceleration_torque ** 2) * feed_angle_1_values[0]["acceleration_time"]) + 
+                                ((settle_torque ** 2) * settle_time) + ((loop_torque ** 2) * feed_angle_1_values[0]["dwell_time"])) / 
                                 (feed_angle_1_values[0]["cycle_time"]))
-        rms_torque_fa2 = sqrt(((peak_torque ** 2 * feed_angle_2_values[0]["acceleration_time"]) +
-                                (acceleration_torque ** 2 * feed_angle_2_values[0]["acceleration_time"]) + 
-                                (settle_torque ** 2 * settle_time) + (loop_torque ** 2 * feed_angle_2_values[0]["dwell_time"])) / 
+        rms_torque_fa2 = sqrt((((peak_torque ** 2) * feed_angle_2_values[0]["acceleration_time"]) +
+                                ((acceleration_torque ** 2) * feed_angle_2_values[0]["acceleration_time"]) + 
+                                ((settle_torque ** 2) * settle_time) + ((loop_torque ** 2) * feed_angle_2_values[0]["dwell_time"])) / 
                                 (feed_angle_2_values[0]["cycle_time"]))
+
+    if motor_rms_torque > rms_torque_fa1:
+        rms_torque_fa1_check = "OK"
+    else:
+        rms_torque_fa1_check = "EXCESS"
+
+    if motor_rms_torque > rms_torque_fa2:
+        rms_torque_fa2_check = "OK"
+    else:
+        rms_torque_fa2_check = "EXCESS"
 
     # Calculate Regen
     regen = regen_input(
@@ -240,6 +268,15 @@ def run_sigma_five_calculation(data: base_feed_params, spec_type="sigma_five"):
         ec = ec
     )
     regen = calculate_regen(regen)
+
+    if (peak_torque_check == "OK" and 
+        rms_torque_fa1_check == "OK" and 
+        rms_torque_fa2_check == "OK" and 
+        acceleration_torque_check == "OK" and
+        data.width >= data.material_width):
+        feed_check = "OK"
+    else:
+        feed_check = ""
 
     return {
         "max_motor_rpm": max_motor_rpm,
@@ -258,10 +295,16 @@ def run_sigma_five_calculation(data: base_feed_params, spec_type="sigma_five"):
 
         "refl_inertia": refl_inertia,
         "match": match,
+        "match_check": match_check,
         "peak_torque": peak_torque,
+        "peak_torque_check": peak_torque_check,
         "rms_torque_fa1": rms_torque_fa1,
+        "rms_torque_fa1_check": rms_torque_fa1_check,
         "rms_torque_fa2": rms_torque_fa2,
+        "rms_torque_fa2_check": rms_torque_fa2_check,
         "acceleration_torque": acceleration_torque,
+        "acceleration_torque_check": acceleration_torque_check,
+        "feed_check": feed_check,
 
         "table_values": table_values,
     }

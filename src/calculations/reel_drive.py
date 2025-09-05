@@ -5,6 +5,7 @@ Reel Drive Calculation Module
 from models import reel_drive_input
 from math import pi
 from typing import Tuple, Dict, Any
+import sys
 
 from utils.shared import (
     CHAIN_RATIO, CHAIN_SPRKT_OD, CHAIN_SPRKT_THICKNESS, MOTOR_RPM,
@@ -125,22 +126,27 @@ def calc_coil_specs(
             - coil_refl: Reflected inertia to motor in lb-in²
             
     """
-    # Use material density for coil calculations
-    coil_density = density
-    
-    # Calculate coil width from weight and cross-sectional area
-    coil_width = reel_size / coil_density / ((coil_od**2 - coil_id**2) / 4) / pi
-    
-    # Calculate moment of inertia for hollow cylinder
-    coil_inertia = reel_size / 32.3 / 2 * ((coil_od/2)**2 + (coil_id/2)**2) /144 * 12
-    
-    # Calculate reflected inertia to motor shaft
-    if total_ratio != 0: 
-        coil_refl = coil_inertia / total_ratio**2
-    else: 
-        coil_refl = 0
-
-    return coil_density, coil_width, coil_inertia, coil_refl
+    try:
+        # Use material density for coil calculations
+        coil_density = density
+        
+        # Calculate coil width from weight and cross-sectional area
+        coil_width = reel_size / coil_density / ((coil_od**2 - coil_id**2) / 4) / pi
+        
+        # Calculate moment of inertia for hollow cylinder
+        coil_inertia = reel_size / 32.3 / 2 * ((coil_od/2)**2 + (coil_id/2)**2) /144 * 12
+        
+        # Calculate reflected inertia to motor shaft
+        if total_ratio != 0: 
+            coil_refl = coil_inertia / total_ratio**2
+        else: 
+            coil_refl = 0
+            
+        return coil_density, coil_width, coil_inertia, coil_refl
+        
+    except ZeroDivisionError as e:
+        # Return default/zero values to maintain the expected tuple structure
+        return 0.0, 0.0, 0.0, 0.0
 
 def calculate_reeldrive(data: reel_drive_input) -> Dict[str, Any]:
     """

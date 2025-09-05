@@ -35,6 +35,7 @@ class tddbhd_input(BaseModel):
     coil_id: float
     coil_od: float
     coil_weight: float
+    confirmed_min_width: bool
 
     decel: float
     friction: float
@@ -74,6 +75,7 @@ class str_utility_input(BaseModel):
     material_thickness: float
     yield_strength: float
     material_type: str
+    yield_met: str
 
     str_model: str
     str_width: float
@@ -94,9 +96,15 @@ class roll_str_backbend_input(BaseModel):
     thickness: float
     width: float
     material_type: str
+    material_thickness: float
     str_model: str
     num_str_rolls: int
-    calc_const: Optional[float]
+
+# Hidden Constant Calculation for Roll Str Backbend
+class hidden_const_input(BaseModel):
+    center_distance: float
+    radius_at_yield: float
+    thickness: float
 
 ##################################################
 # Physics Calculation Models
@@ -162,6 +170,7 @@ class time_input(BaseModel):
 ##################################################
 # BaseFeedParams is used to define the common parameters for feed calculations
 class base_feed_params(BaseModel):
+    feed_type: str
     feed_model: str
     width: int
     loop_pit: str
