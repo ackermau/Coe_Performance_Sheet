@@ -2,76 +2,19 @@
 Straightener Utility Calculation Module
 
 """
-from models import StrUtilityInput
-from pydantic import BaseModel
-from pydantic import Field
+from models import str_utility_input
 from math import pi, sqrt
 
 from utils.shared import (
     MOTOR_RPM, EFFICIENCY, PINCH_ROLL_QTY, MAT_LENGTH, CONT_ANGLE, FEED_RATE_BUFFER,
-    LEWIS_FACTORS, roll_str_backbend_state, rfq_state, JSON_FILE_PATH,
-    get_percent_material_yielded_check
+    LEWIS_FACTORS, roll_str_backbend_state, get_percent_material_yielded_check
 )
-
-from utils.json_util import load_json_list, append_to_json_list
 
 from utils.lookup_tables import (
     get_material_density, get_material_modulus, get_str_model_value, get_motor_inertia
 )
 
-# In-memory storage for str utility
-local_str_utility: dict = {}
-
-class StrUtilityOutput(BaseModel):
-    """
-    Model for the output of the Straightener Utility calculations.
-    """
-    requiredForce: float = Field(..., alias="required_force")
-    pinchRollDia: float = Field(..., alias="pinch_roll_dia")
-    strRollDia: float = Field(..., alias="str_roll_dia")
-    pinchRollReqTorque: float = Field(..., alias="pinch_roll_req_torque")
-    pinchRollRatedTorque: float = Field(..., alias="pinch_roll_rated_torque")
-    strRollReqTorque: float = Field(..., alias="str_roll_req_torque")
-    strRollRatedTorque: float = Field(..., alias="str_roll_rated_torque")
-    horsepowerRequired: float = Field(..., alias="horsepower_required")
-
-    centerDist: float = Field(..., alias="center_dist")
-    jackForceAvailable: float = Field(..., alias="jack_force_available")
-    maxRollDepth: float = Field(..., alias="max_roll_depth")
-    modulus: float = Field(..., alias="modulus")
-    pinchRollTeeth: float = Field(..., alias="pinch_roll_teeth")
-    pinchRollDP: float = Field(..., alias="pinch_roll_dp")
-    strRollTeeth: float = Field(..., alias="str_roll_teeth")
-    strRollDP: float = Field(..., alias="str_roll_dp")
-
-    contAngle: float = Field(..., alias="cont_angle")
-    faceWidth: float = Field(..., alias="face_width")
-    actualCoilWeight: float = Field(..., alias="actual_coil_weight")
-    coilOD: float = Field(..., alias="coil_od")
-    strTorque: float = Field(..., alias="str_torque")
-    accelerationTorque: float = Field(..., alias="acceleration_torque")
-    brakeTorque: float = Field(..., alias="brake_torque")
-    feedRateCheck: str = Field(..., alias="feed_rate_check")
-
-class StrUtilityCreate(BaseModel):
-    max_coil_weight: float = None
-    coil_id: float = None
-    coil_od: float = None
-    coil_width: float = None
-    material_thickness: float = None
-    yield_strength: float = None
-    material_type: str = None
-    str_model: str = None
-    str_width: float = None
-    horsepower: float = None
-    feed_rate: float = None
-    max_feed_rate: float = None
-    auto_brake_compensation: str = None
-    acceleration: float = None
-    num_str_rolls: int = None
-    # Add other fields as needed for creation
-
-def calculate_str_utility(data: StrUtilityInput):
+def calculate_str_utility(data: str_utility_input):
     """
     Calculate Straightener Utility values based on input data.
 
@@ -86,29 +29,81 @@ def calculate_str_utility(data: StrUtilityInput):
         ValueError: If any lookup fails or if calculations cannot be performed.
     
     """
-    # Lookups for calculations
-    try:
-        if data.horsepower == 7.5:
-            horsepower_string = "7.5"
-        else:    
-            horsepower_string = str(int(data.horsepower))
+    # Individual lookups with error handling
+    if data.horsepower == 7.5:
+        horsepower_string = "7.5"
+    else:    
+        horsepower_string = str(int(data.horsepower))
 
+    try:
         str_roll_dia = get_str_model_value(data.str_model, "roll_diameter", "str_roll_dia")
+    except:
+        return "ERROR: Str roll diameter lookup failed."
+
+    try:
         center_dist = get_str_model_value(data.str_model, "center_distance", "center_dist")
+    except:
+        return "ERROR: Center distance lookup failed."
+
+    try:
         pinch_roll_dia = get_str_model_value(data.str_model, "pinch_roll_dia", "pinch_roll_dia")
+    except:
+        return "ERROR: Pinch roll diameter lookup failed."
+
+    try:
         jack_force_available = get_str_model_value(data.str_model, "jack_force_avail", "jack_force_available")
+    except:
+        return "ERROR: Jack force available lookup failed."
+
+    try:
         max_roll_depth = get_str_model_value(data.str_model, "min_roll_depth", "max_roll_depth")
+    except:
+        return "ERROR: Max roll depth lookup failed."
+
+    try:
         str_gear_torque = get_str_model_value(data.str_model, "str_gear_torq", "str_gear_torque")
+    except:
+        return "ERROR: Str gear torque lookup failed."
+
+    try:
         density = get_material_density(data.material_type)
+    except:
+        return "ERROR: Material density lookup failed."
+
+    try:
         modulus = get_material_modulus(data.material_type)
+    except:
+        return "ERROR: Material modulus lookup failed."
+
+    try:
         pinch_roll_teeth = get_str_model_value(data.str_model, "pr_teeth", "pinch_roll_teeth")
+    except:
+        return "ERROR: Pinch roll teeth lookup failed."
+
+    try:
         pinch_roll_dp = get_str_model_value(data.str_model, "proll_dp", "pinch_roll_dp")
+    except:
+        return "ERROR: Pinch roll DP lookup failed."
+
+    try:
         str_roll_teeth = get_str_model_value(data.str_model, "sroll_teeth", "str_roll_teeth")
+    except:
+        return "ERROR: Str roll teeth lookup failed."
+
+    try:
         str_roll_dp = get_str_model_value(data.str_model, "sroll_dp", "str_roll_dp")
+    except:
+        return "ERROR: Str roll DP lookup failed."
+
+    try:
         face_width = get_str_model_value(data.str_model, "face_width", "face_width")
+    except:
+        return "ERROR: Face width lookup failed."
+
+    try:
         motor_inertia = get_motor_inertia(horsepower_string)
     except:
-        return "ERROR: Str Utility lookup failed."
+        return "ERROR: Motor inertia lookup failed."
 
     # Needed values for calculations
     str_qty = data.num_str_rolls
@@ -311,22 +306,55 @@ def calculate_str_utility(data: StrUtilityInput):
     # Actual Coil Weight
     actual_coil_weight = (((coil_od**2) - data.coil_id**2) / 4) * pi * data.coil_width * density
 
+    # Checks
+    # Required Force Check
+    if jack_force_available > required_force:
+        required_force_check = "OK"
+    else:
+        required_force_check = "NOT OK"
+
+    # Backup Rolls Check
+    if required_force >= (jack_force_available * 0.6):
+        backup_rolls_reccomended = "Back Up Rolls Recommended"
+    else:
+        backup_rolls_reccomended = "Not Recommended"
+
+    # Pinch Gear Check
+    if pinch_roll_rated_torque > pinch_roll_req_torque:
+        pinch_roll_check = "OK"
+    else:
+        pinch_roll_check = "NOT OK"
+
+    # Str Gear Check
+    if str_roll_rated_torque > str_roll_req_torque:
+        str_roll_check = "OK"
+    else:
+        str_roll_check = "NOT OK"
+
+    # Horsepower Check
+    if data.horsepower > horsepower_required:
+        horsepower_check = "OK"
+    else:
+        horsepower_check = "NOT OK"
+
+    # FPM Check
+    if data.feed_rate >= data.max_feed_rate * feed_rate_buffer:
+        fpm_check = "FPM SUFFICIENT"
+    else:
+        fpm_check = "FPM INSUFFICIENT"
+
     # Feed Rate check
-    feed_rate_check = ""
-    if (data.feed_rate >= data.max_feed_rate * feed_rate_buffer and 
-        jack_force_available > required_force and
-        pinch_roll_rated_torque > pinch_roll_req_torque and
-        str_roll_rated_torque > str_roll_req_torque and
-        data.horsepower > horsepower_required):
-        if get_percent_material_yielded_check(
-            roll_str_backbend_state["percent_material_yielded"],
-            roll_str_backbend_state["confirm_check"]
-        ) == "OK":
+    if (fpm_check == "FPM SUFFICIENT" and 
+        required_force_check == "OK" and
+        pinch_roll_check == "OK" and
+        str_roll_check == "OK" and
+        horsepower_check == "OK"):
+        if data.yield_met == "OK":
             feed_rate_check = "OK"
     else:
         feed_rate_check = "NOT OK"
     
-    results = {
+    return {
         "required_force": round(required_force, 3), 
         "pinch_roll_dia" : round(pinch_roll_dia, 3),
         "pinch_roll_req_torque" : round(pinch_roll_req_torque, 3),
@@ -352,17 +380,11 @@ def calculate_str_utility(data: StrUtilityInput):
         "str_torque" : round(str_torque, 3),
         "acceleration_torque" : round(accel_torque, 3),
         "brake_torque" : round(brake_torque, 3),
+        "backup_rolls_recommended" : backup_rolls_reccomended,
+        "required_force_check" : required_force_check,
+        "pinch_roll_check" : pinch_roll_check,
+        "str_roll_check" : str_roll_check,
+        "horsepower_check" : horsepower_check,
+        "fpm_check" : fpm_check,
         "feed_rate_check" : feed_rate_check
     }
-
-    # Save the results to a JSON file
-    try:
-        append_to_json_list(
-            data={rfq_state.reference: results},
-            reference_number=rfq_state.reference,
-            directory=JSON_FILE_PATH
-        )
-    except:
-        return "ERROR: Str Utility calculations failed to save."
-
-    return results

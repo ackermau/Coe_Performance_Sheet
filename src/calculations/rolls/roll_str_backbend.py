@@ -2,36 +2,20 @@
 Roll Str Backbend Calculation Module
 
 """
-from models import RollStrBackbendInput
+from models import roll_str_backbend_input, hidden_const_input
+from calculations.rolls.hidden_const import calculate_hidden_const
 from math import sqrt
-from pydantic import BaseModel
 
 from utils.shared import (
-    CREEP_FACTOR, RADIUS_OFF_COIL, roll_str_backbend_state,
-    rfq_state, JSON_FILE_PATH
+    CREEP_FACTOR, RADIUS_OFF_COIL, roll_str_backbend_state
 )
-
-from utils.json_util import load_json_list, append_to_json_list
 
 from utils.lookup_tables import (
     get_str_model_value,
     get_material_modulus,
-);
+)
 
-# In-memory storage for roll str backbend
-local_roll_str_backbend: dict = {}
-
-class RollStrBackbendCreate(BaseModel):
-    yield_strength: float = None
-    thickness: float = None
-    width: float = None
-    material_type: str = None
-    str_model: str = None
-    num_str_rolls: int = None
-    calc_const: float = None
-    # Add other fields as needed for creation
-
-def calculate_roll_str_backbend(data: RollStrBackbendInput):
+def calculate_roll_str_backbend(data: roll_str_backbend_input):
     """
     Calculate roll str backbend parameters.
 
@@ -68,25 +52,27 @@ def calculate_roll_str_backbend(data: RollStrBackbendInput):
         return "ERROR: Invalid number of rolls for backbend."
 
     # Values needed for calculations
-    main_value = roll_str_backbend_state["calc_const"]
     creep_factor = CREEP_FACTOR
     radius_off_coil = RADIUS_OFF_COIL
     curve_at_yield = 2 * data.yield_strength / (data.thickness * modules)
     radius_at_yield = 1 / curve_at_yield
     bending_moment_to_yield = data.width * data.yield_strength * (data.thickness ** 2) / 6
     if abs(1 / radius_off_coil) > curve_at_yield:
-        radius_off_coil_after_springback = 1 / ((1 / radius_off_coil) - ((abs(radius_off_coil) / radius_off_coil) * (1.5 * (1 - creep_factor)) * curve_at_yield * (1 / ((1/3) * (curve_at_yield / (1 / radius_off_coil)) ** 2))))
+        radius_off_coil_after_springback = 1 / ((1 / radius_off_coil) - ((abs(radius_off_coil) / radius_off_coil) * (1.5 * (1 - creep_factor)) * curve_at_yield * (1 - ((1/3) * (curve_at_yield / (1 / radius_off_coil)) ** 2))))
     else:
         if creep_factor == 0:
             radius_off_coil_after_springback = abs(radius_off_coil) / radius_off_coil * 99999
         else:
             radius_off_coil_after_springback = radius_off_coil / creep_factor
 
-    r_ri = 1 / radius_off_coil_after_springback
+    one_radius_off_coil = 1 / radius_off_coil_after_springback
 
-    if data.calc_const is not None:
-        roll_str_backbend_state["calc_const"] = data.calc_const
-        main_value = data.calc_const
+    hidden_input = hidden_const_input(
+        center_distance = center_dist,
+        radius_at_yield = radius_at_yield,
+        thickness = data.thickness      
+    )
+    main_value = calculate_hidden_const(hidden_input)
 
     # Max Roller Depth with material
     check = ((str_roll_dia + data.thickness) ** 2) - ((center_dist / 2) ** 2)
@@ -114,7 +100,7 @@ def calculate_roll_str_backbend(data: RollStrBackbendInput):
     if (main_value - 10000) / 1000 < max_roll_depth_with_material:
         roll_height_first_up = "TOO DEEP!"
     else:
-        roll_height_first_up = (main_value - 10000) / 1000
+        roll_height_first_up = round(((main_value - 10000) / 1000), 3)
 
     roll_height_last = data.thickness * 0.8
 
@@ -173,6 +159,10 @@ def calculate_roll_str_backbend(data: RollStrBackbendInput):
         else:
             percent_yield_mid_down = "NONE"
 
+        force_required_check_mid = "OK"
+        if force_required_mid > jack_force_available:
+            force_required_check_mid = "NOT ENOUGH FORCE!"
+
         mid_results[f"mid_up_{idx}"] = {
             "roll_height_mid_up": round(roll_height_mid, 3),
             "res_rad_mid_up": round(res_rad_mid_up, 3),
@@ -182,6 +172,7 @@ def calculate_roll_str_backbend(data: RollStrBackbendInput):
             "springback_mid_up": round(springback_mid_up, 4),
             "radius_after_springback_mid_up": round(radius_after_springback_mid_up, 3),
             "force_required_mid_up": round(force_required_mid, 3),
+            "force_required_check_mid_up": force_required_check_mid,
             "percent_yield_mid_up": percent_yield_mid_up,
             "number_of_yield_strains_mid_up": number_of_yield_strains_mid,
         }
@@ -235,20 +226,48 @@ def calculate_roll_str_backbend(data: RollStrBackbendInput):
 
     force_required_first = mb_first_up * 5.333 / center_dist
 
+    # Percent yield check
+    if percent_yield_first_up == "NONE":
+        percent_yield_check = "NONE"
+    else:
+        if percent_yield_first_up < 0.47:
+            percent_yield_check = "LOW"
+        elif percent_yield_first_up > 0.7:
+            percent_yield_check = "HIGH"
+        else:
+            percent_yield_check = "OK"
+
+    # Force check
+    force_required_check_first = "OK"
+    force_required_check_last = "OK"
+    if force_required_first > jack_force_available:
+        force_required_check_first = "NOT ENOUGH FORCE!"
+    if force_required_last > jack_force_available:
+        force_required_check_last = "NOT ENOUGH FORCE!"
+
     result = {
+        "num_str_rolls": data.num_str_rolls,
         "roll_diameter": round(str_roll_dia, 4),
         "center_distance": round(center_dist, 4),
         "modules": modules,
         "jack_force_available": jack_force_available,
         "max_roll_depth_without_material": round(max_roll_depth_without_material, 3),
         "max_roll_depth_with_material": round(max_roll_depth_with_material, 3),
+        "radius_off_coil": round(radius_off_coil, 3),
+        "radius_off_coil_after_springback": round(radius_off_coil_after_springback, 3),
+        "one_radius_off_coil": round(one_radius_off_coil, 3),
+        "curve_at_yield": round(curve_at_yield, 4),
+        "radius_at_yield": round(radius_at_yield, 4),
+        "bending_moment_to_yield": round(bending_moment_to_yield, 4),
+        "hidden_const": main_value,
         "roller_depth_required": round(roller_depth_required, 3),
         "roller_depth_required_check": roller_depth_required_check,
         "roller_force_required": round(roller_force_required, 3),
         "roller_force_required_check": roller_force_required_check,
+        "percent_yield_check": percent_yield_check,
     }
     result["first_up"] = {
-        "roll_height_first_up": round(roll_height_first_up, 3),
+        "roll_height_first_up": roll_height_first_up,
         "res_rad_first_up": round(res_rad_first_up, 3),
         "r_ri_first_up": round(r_ri_first_up, 4),
         "mb_first_up": round(mb_first_up, 3),
@@ -256,6 +275,7 @@ def calculate_roll_str_backbend(data: RollStrBackbendInput):
         "springback_first_up": round(springback_first_up, 4),
         "radius_after_springback_first_up": round(radius_after_springback_first_up, 3),
         "force_required_first_up": round(force_required_first, 3),
+        "force_required_check_first_up": force_required_check_first,
         "percent_yield_first_up": percent_yield_first_up,
         "number_of_yield_strains_first_up": number_of_yield_strains_first,
     }
@@ -279,18 +299,9 @@ def calculate_roll_str_backbend(data: RollStrBackbendInput):
         "springback_last": round(springback_last, 4),
         "radius_after_springback_last": round(radius_after_springback_last, 3) if not isinstance(radius_after_springback_last, str) else radius_after_springback_last,
         "force_required_last": round(force_required_last, 3),
+        "force_required_check_last": force_required_check_last,
         "percent_yield_last": percent_yield_last,
         "number_of_yield_strains_last": number_of_yield_strains_last,
     }
-
-    # Save the results to a JSON file
-    try:
-        append_to_json_list(
-            data={rfq_state.reference: result},
-            reference_number=rfq_state.reference,
-            directory=JSON_FILE_PATH
-        )
-    except:
-        return "ERROR: Roll Str Backbend calculations failed to save."
 
     return result

@@ -2,10 +2,10 @@
 Time utilities for physics-based calculations.
 
 """
-from models import TimeInput
+from models import time_input
 from math import sqrt, floor
 
-def calculate_init_values(data: TimeInput, feed_angle: int = 0):
+def calculate_init_values(data: time_input, feed_angle: int = 0):
     """
     Calculate initial values based on the input data.
 
@@ -56,12 +56,11 @@ def calculate_init_values(data: TimeInput, feed_angle: int = 0):
         "init_rms_torque": rms_torque
     }
 
-def calculate_values(data: TimeInput, init_values: dict, feed_angle: int = 0, index: int = 1):
+def calculate_values(data: time_input, init_values: dict, feed_angle: int = 0, index: int = 1):
     """
     Calculate shorter values based on the initial values and input data.
     """
-    # Calculate shorter values
-    if index == 1:
+    if index is 1:
         length = data.min_length
     else:
         length = data.min_length + (data.increment * (index - 1))
@@ -89,7 +88,7 @@ def calculate_values(data: TimeInput, init_values: dict, feed_angle: int = 0, in
                        ((data.settle_torque ** 2) * data.settle_time) + 
                        ((data.loop_torque ** 2) * dwell_time)) / cycle_time)
     
-    if 60 / cycle_time * length < data.str_max_sp_inch:
+    if (60 / cycle_time * length) < data.str_max_sp_inch:
         strokes_per_minute = floor(60 / cycle_time)
     else: 
         strokes_per_minute = floor(data.str_max_sp_inch / length)
@@ -107,7 +106,7 @@ def calculate_values(data: TimeInput, init_values: dict, feed_angle: int = 0, in
         "rms_torque": rms_torque
     }
 
-def calculate_feed_time(data: TimeInput, feed_angle: int = 0):
+def calculate_feed_time(data: time_input, feed_angle: int = 0):
     """
     Calculate the feed time based on the input data.
     """
@@ -141,8 +140,8 @@ def calculate_feed_time(data: TimeInput, feed_angle: int = 0):
         "rms_torque": min_values["rms_torque"]
     }]
 
-    for i in range(2, 22):
-        values = calculate_values(data, init_values, data.feed_angle_1, i)
+    for i in range(2, 24):
+        values = calculate_values(data, init_values, feed_angle, i)
         lengths.append({
             "index": i,
             "length": values["length"],
@@ -159,7 +158,7 @@ def calculate_feed_time(data: TimeInput, feed_angle: int = 0):
 
     return lengths
 
-def calculate_time(data: TimeInput):
+def calculate_time(data: time_input):
     try:
         feed_angle_1_values = calculate_feed_time(data, data.feed_angle_1)
         feed_angle_2_values = calculate_feed_time(data, data.feed_angle_2)

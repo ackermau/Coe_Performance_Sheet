@@ -2,7 +2,7 @@
 Zig Zag Calculation Module
 
 """
-from models import ZigZagInput
+from models import zig_zag_input
 from math import pi, sqrt, floor, atan
 import json
 import os
@@ -299,7 +299,7 @@ def calculate_table_values(min_length: float, init_length: float, incriment: flo
         "ln_lb_torque_force_out": ln_lb_torque_force_out
     }
 
-def calculate_zig_zag(data: ZigZagInput):
+def calculate_zig_zag(data: zig_zag_input):
     """
     Calculate the zig-zag motion parameters based on the input data.
 

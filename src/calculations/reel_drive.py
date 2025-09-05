@@ -2,18 +2,16 @@
 Reel Drive Calculation Module
 
 """
-from models import ReelDriveInput
+from models import reel_drive_input
 from math import pi
 from typing import Tuple, Dict, Any
-from pydantic import BaseModel
+import sys
 
 from utils.shared import (
     CHAIN_RATIO, CHAIN_SPRKT_OD, CHAIN_SPRKT_THICKNESS, MOTOR_RPM,
     REDUCER_DRIVING, REDUCER_BACKDRIVING, REDUCER_INERTIA, ACCEL_RATE,
-    rfq_state, JSON_FILE_PATH
+    rfq_state
 )
-
-from utils.database import get_default_db
 
 from utils.lookup_tables import (
     get_reel_dimensions,
@@ -22,23 +20,6 @@ from utils.lookup_tables import (
     get_type_of_line,
     get_fpm_buffer
 )
-
-# In-memory storage for reel drive
-local_reel_drive: dict = {}
-
-db = get_default_db()
-
-class ReelDriveCreate(BaseModel):
-    model: str = None
-    material_type: str = None
-    coil_id: float = None
-    coil_od: float = None
-    reel_width: float = None
-    backplate_diameter: float = None
-    motor_hp: float = None
-    type_of_line: str = None
-    required_max_fpm: float = 0
-    # Add other fields as needed for creation
 
 def calc_mandrel_specs(
         reel: Dict[str, Any], 
@@ -85,7 +66,7 @@ def calc_mandrel_specs(
     return mandrel_dia, mandrel_length, mandrel_weight, mandrel_inertia, mandrel_refl 
 
 def calc_backplate_specs(
-        reel: Dict[str, Any], 
+        backplate_diameter: float, 
         total_ratio: float, 
         mandrel_dia: float
     ) -> Tuple[float, float, float]:
@@ -93,7 +74,7 @@ def calc_backplate_specs(
     Calculate backplate specifications including weight, inertia, and reflected inertia.
     
     Args:
-        reel (Dict[str, Any]): Reel dimensions dictionary from lookup table
+        backplate_diameter (float): Backplate diameter in inches
         total_ratio (float): Total gear ratio from motor to mandrel
         mandrel_dia (float): Mandrel diameter in inches (used for inertia calculation)
         
@@ -105,7 +86,7 @@ def calc_backplate_specs(
             
     """
     # Calculate backplate weight as circular disk
-    backplate_weight = ((reel["backplate_diameter"]/2)**2) * pi * 0.283
+    backplate_weight = ((backplate_diameter/2)**2) * pi * 0.283
     
     # Calculate moment of inertia using mandrel diameter as effective radius
     backplate_inertia = backplate_weight / 32.3 / 2 * ((mandrel_dia/2)**2 / 144) * 12
@@ -145,24 +126,29 @@ def calc_coil_specs(
             - coil_refl: Reflected inertia to motor in lb-in²
             
     """
-    # Use material density for coil calculations
-    coil_density = density
-    
-    # Calculate coil width from weight and cross-sectional area
-    coil_width = reel_size / coil_density / ((coil_od**2 - coil_id**2) / 4) / pi
-    
-    # Calculate moment of inertia for hollow cylinder
-    coil_inertia = reel_size / 32.3 / 2 * ((coil_od/2)**2 + (coil_id/2)**2) /144 * 12
-    
-    # Calculate reflected inertia to motor shaft
-    if total_ratio != 0: 
-        coil_refl = coil_inertia / total_ratio**2
-    else: 
-        coil_refl = 0
+    try:
+        # Use material density for coil calculations
+        coil_density = density
+        
+        # Calculate coil width from weight and cross-sectional area
+        coil_width = reel_size / coil_density / ((coil_od**2 - coil_id**2) / 4) / pi
+        
+        # Calculate moment of inertia for hollow cylinder
+        coil_inertia = reel_size / 32.3 / 2 * ((coil_od/2)**2 + (coil_id/2)**2) /144 * 12
+        
+        # Calculate reflected inertia to motor shaft
+        if total_ratio != 0: 
+            coil_refl = coil_inertia / total_ratio**2
+        else: 
+            coil_refl = 0
+            
+        return coil_density, coil_width, coil_inertia, coil_refl
+        
+    except ZeroDivisionError as e:
+        # Return default/zero values to maintain the expected tuple structure
+        return 0.0, 0.0, 0.0, 0.0
 
-    return coil_density, coil_width, coil_inertia, coil_refl
-
-def calculate_reeldrive(data: ReelDriveInput) -> Dict[str, Any]:
+def calculate_reeldrive(data: reel_drive_input) -> Dict[str, Any]:
     """
     Main calculation endpoint for reel drive system analysis.
     
@@ -255,7 +241,7 @@ def calculate_reeldrive(data: ReelDriveInput) -> Dict[str, Any]:
 
     # Calculate backplate specifications
     backplate_weight, backplate_inertia, backplate_refl = calc_backplate_specs(
-        reel, total_ratio, mandrel_dia
+        data.backplate_diameter, total_ratio, mandrel_dia
     )
     
     # Calculate coil specifications
@@ -465,7 +451,5 @@ def calculate_reeldrive(data: ReelDriveInput) -> Dict[str, Any]:
         },
         "use_pulloff": pulloff                 
     }
-
-    # Save the results to the database
-    db.create(rfq_state.reference, results)
+    
     return results
